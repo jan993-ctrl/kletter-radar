@@ -1,0 +1,97 @@
+[
+  {
+    "0": {
+      "id": "athlet-1769621925041",
+      "name": "Neuer Athlet",
+      "abilities": [
+        5,
+        5,
+        5,
+        5,
+        5
+      ],
+      "styles": [
+        5,
+        5,
+        5,
+        5,
+        5
+      ],
+      "notes": "gareheqawh"
+    },
+    "id": "6e3cb253-acf6-4f67-9878-ade77b5059d2",
+    "abilities": [
+      4,
+      4,
+      3,
+      2,
+      9
+    ],
+    "styles": [
+      5,
+      2,
+      3,
+      1,
+      10
+    ],
+    "name": "Dennis",
+    "notes": "Nicht schlecht!"
+  },
+  {
+    "id": "3df39d02-f753-4879-a5d8-750a2304925f",
+    "name": "Jan",
+    "notes": "noch in arbeit",
+    "abilities": [
+      9,
+      4,
+      5,
+      7,
+      8
+    ],
+    "styles": [
+      8,
+      7,
+      6,
+      3,
+      5
+    ]
+  },
+  {
+    "id": "9ceb7191-eeb9-402a-984a-949f8f6fd4d6",
+    "name": "dawfgfa",
+    "notes": "fgawggwahaewjhasj",
+    "abilities": [
+      7,
+      4,
+      0,
+      3,
+      2
+    ],
+    "styles": [
+      7,
+      5,
+      9,
+      2,
+      2
+    ]
+  },
+  {
+    "id": "a5715bfd-1bbe-4398-a9c5-1d95762a83ab",
+    "name": "Till",
+    "notes": "",
+    "abilities": [
+      8,
+      7,
+      7,
+      8,
+      9
+    ],
+    "styles": [
+      9,
+      9,
+      8,
+      9,
+      7
+    ]
+  }
+]
