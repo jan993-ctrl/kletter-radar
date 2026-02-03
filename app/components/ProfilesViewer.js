@@ -4,6 +4,8 @@ import { useState } from "react";
 import RadarChart from "./RadarChart";
 import CombinedRadar from "./CombinedRadar";
 
+
+
 const abilityLabels = ["Kraft","Beweglichkeit","Mentalität","Explosivität","Körperspannung"];
 const styleLabels   = ["Crimper","Sloper","Slab","Dyno","Pocket"];
 
