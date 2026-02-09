@@ -4,15 +4,7 @@ import { useEffect, useState } from "react";
 import RadarChart from "@components/RadarChart";
 import { supabaseBrowser } from "@lib/supabase-browser";
 
-
-const abilityLabels = [
-  "Kraft",
-  "Beweglichkeit",
-  "Mentalität",
-  "Explosivität",
-  "Körperspannung",
-];
-
+const abilityLabels = ["Kraft", "Beweglichkeit", "Mentalität", "Explosivität", "Körperspannung"];
 const styleLabels = ["Crimper", "Sloper", "Slab", "Dyno", "Pocket"];
 
 export default function AdminPage() {
@@ -23,23 +15,14 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    // Listen to auth changes
-    const {
-      data: { subscription },
-    } = supabaseBrowser.auth.onAuthStateChange((_event, s) => {
+    const { data: { subscription } } = supabaseBrowser.auth.onAuthStateChange((_event, s) => {
       setSession(s);
     });
-
-    // initial session
     supabaseBrowser.auth.getSession().then(({ data }) => setSession(data?.session ?? null));
-
-    return () => {
-      subscription?.unsubscribe?.();
-    };
+    return () => subscription?.unsubscribe?.();
   }, []);
 
   useEffect(() => {
-    // load profiles (public)
     fetch("/api/profiles")
       .then((r) => r.json())
       .then((d) => {
@@ -47,10 +30,7 @@ export default function AdminPage() {
         setProfiles(arr);
         if (arr.length > 0) setSelectedId((prev) => prev ?? arr[0].id);
       })
-      .catch((e) => {
-        console.error("Failed to load profiles:", e);
-        setProfiles([]);
-      });
+      .catch((e) => console.error("Failed to load profiles:", e));
   }, []);
 
   useEffect(() => {
@@ -64,9 +44,7 @@ export default function AdminPage() {
 
   const signIn = async (email, password) => {
     const { error } = await supabaseBrowser.auth.signInWithPassword({ email, password });
-    if (error) {
-      alert("Login failed: " + error.message);
-    }
+    if (error) alert("Login failed: " + error.message);
   };
 
   const signOut = async () => {
@@ -92,127 +70,109 @@ export default function AdminPage() {
       });
 
       const payload = await res.json();
-      if (!res.ok) {
-        const msg = payload?.error || payload?.message || "Save failed";
-        throw new Error(msg);
-      }
+      if (!res.ok) throw new Error(payload?.error || "Save failed");
 
-      // payload expected to be updated list (or single object); handle both
-      if (Array.isArray(payload)) {
-        setProfiles(payload);
-        const updated = payload.find((p) => p.id === selected.id);
-        if (updated) setSelected({ ...updated });
-      } else if (payload && payload.id) {
-        // if server returns the saved profile
-        setProfiles((prev) => {
-          const idx = prev.findIndex((p) => p.id === payload.id);
-          if (idx === -1) return [...prev, payload];
-          const copy = [...prev];
-          copy[idx] = payload;
-          return copy;
-        });
-        setSelected({ ...payload });
-      }
-
-      alert("Saved");
+      alert("Gespeichert!");
+      window.location.reload(); 
     } catch (err) {
-      console.error("Error saving profile:", err);
-      alert("Error saving: " + (err.message || err));
+      alert("Fehler beim Speichern: " + err.message);
     } finally {
       setSaving(false);
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!id || !confirm("Willst du dieses Profil wirklich löschen?")) return;
+    try {
+      const res = await fetch(`/api/profiles?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        alert("Gelöscht!");
+        window.location.reload();
+      } else {
+        const err = await res.json();
+        alert("Fehler: " + err.error);
+      }
+    } catch (error) {
+      alert("Fehler: " + error.message);
+    }
+  };
+
   const handleNew = () => {
-    const id =
-      typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `id-${Date.now()}`;
+    const id = crypto.randomUUID();
     const newP = { id, name: "", notes: "", abilities: [0, 0, 0, 0, 0], styles: [0, 0, 0, 0, 0] };
     setProfiles((prev) => [...prev, newP]);
     setSelectedId(id);
     setSelected(newP);
   };
 
-  // If not signed in, show login
   if (!session) {
     return (
       <main style={{ padding: 20 }}>
         <h1>Admin Login</h1>
         <LoginForm onSubmit={signIn} />
-        <p style={{ marginTop: 12 }}>
-          Hinweis: Du musst in Supabase einen Admin-Benutzer anlegen (siehe Anleitung).
-        </p>
       </main>
     );
   }
 
-  // safe arrays to avoid undefined
   const safeAbilities = selected?.abilities ?? [0, 0, 0, 0, 0];
   const safeStyles = selected?.styles ?? [0, 0, 0, 0, 0];
 
   return (
-    <main style={{ padding: 20 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1>Admin</h1>
-        <div>
-          <button onClick={signOut}>Sign out</button>
-        </div>
+    <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #ccc", paddingBottom: 10 }}>
+        <h1>Admin Panel</h1>
+        <button onClick={signOut} style={{ padding: "5px 10px", cursor: "pointer" }}>Abmelden</button>
       </div>
 
-      <div style={{ marginTop: 12 }}>
-        <label>
-          Profil wählen:
-          <select value={selectedId || ""} onChange={(e) => setSelectedId(e.target.value)}>
-            <option value="" disabled>
-              -- wählen --
-            </option>
-            {profiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name || "(neu)"}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button onClick={handleNew} style={{ marginLeft: 8 }}>
-          Neues Profil
-        </button>
+      <div style={{ marginTop: 20, backgroundColor: "#f4f4f4", padding: 15, borderRadius: 8 }}>
+        <label><strong>Profil wählen:</strong> </label>
+        <select value={selectedId || ""} onChange={(e) => setSelectedId(e.target.value)} style={{ padding: 5 }}>
+          <option value="" disabled>-- wählen --</option>
+          {profiles.map((p) => (
+            <option key={p.id} value={p.id}>{p.name || "(Unbenannt)"}</option>
+          ))}
+        </select>
+        <button onClick={handleNew} style={{ marginLeft: 10, padding: "5px 10px", cursor: "pointer" }}>+ Neues Profil</button>
       </div>
 
       {!selected ? (
-        <p>Lade…</p>
+        <p style={{ marginTop: 20, textAlign: "center" }}>Bitte ein Profil auswählen oder neu erstellen.</p>
       ) : (
-        <div style={{ display: "flex", gap: 24, marginTop: 16 }}>
-          <div style={{ flex: 1, minWidth: 280 }}>
-            <label>
-              Name:{" "}
-              <input
+        <div style={{ display: "flex", gap: 40, marginTop: 20, flexWrap: "wrap" }}>
+          
+          {/* Linke Seite: Formular */}
+          <div style={{ flex: "1 1 300px" }}>
+            <div style={{ marginBottom: 15 }}>
+                <label style={{ display: "block", fontWeight: "bold" }}>Name:</label>
+                <input
+                style={{ width: '100%', padding: 8, boxSizing: "border-box" }}
                 value={selected.name}
                 onChange={(e) => setSelected((s) => ({ ...s, name: e.target.value }))}
-              />
-            </label>
-            <br />
-            <label>
-              Notizen:{" "}
-              <textarea
+                />
+            </div>
+
+            <div style={{ marginBottom: 15 }}>
+                <label style={{ display: "block", fontWeight: "bold" }}>Notizen:</label>
+                <textarea
+                style={{ width: '100%', height: 80, padding: 8, boxSizing: "border-box" }}
                 value={selected.notes}
                 onChange={(e) => setSelected((s) => ({ ...s, notes: e.target.value }))}
-              />
-            </label>
+                />
+            </div>
 
             <h3>Fähigkeiten</h3>
             {abilityLabels.map((lab, i) => (
-              <div key={lab}>
-                <label>
-                  {lab}: {safeAbilities[i]}
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="10"
+              <div key={lab} style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>{lab}</span>
+                    <span>{safeAbilities[i]}</span>
+                </div>
+                <input type="range" min="0" max="10" step="1" style={{ width: "100%" }}
                   value={safeAbilities[i]}
                   onChange={(e) => {
                     const v = parseInt(e.target.value, 10);
-                    setSelected((s) => {
-                      const a = [...(s.abilities ?? [0, 0, 0, 0, 0])];
+                    setSelected(s => {
+                      const a = [...s.abilities];
                       a[i] = v;
                       return { ...s, abilities: a };
                     });
@@ -221,21 +181,19 @@ export default function AdminPage() {
               </div>
             ))}
 
-            <h3>Kletterstile</h3>
+            <h3>Stile</h3>
             {styleLabels.map((lab, i) => (
-              <div key={lab}>
-                <label>
-                  {lab}: {safeStyles[i]}
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="10"
+              <div key={lab} style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>{lab}</span>
+                    <span>{safeStyles[i]}</span>
+                </div>
+                <input type="range" min="0" max="10" step="1" style={{ width: "100%" }}
                   value={safeStyles[i]}
                   onChange={(e) => {
                     const v = parseInt(e.target.value, 10);
-                    setSelected((s) => {
-                      const a = [...(s.styles ?? [0, 0, 0, 0, 0])];
+                    setSelected(s => {
+                      const a = [...s.styles];
                       a[i] = v;
                       return { ...s, styles: a };
                     });
@@ -244,40 +202,50 @@ export default function AdminPage() {
               </div>
             ))}
 
-            <div style={{ marginTop: 12 }}>
-              <button onClick={handleSave} disabled={saving}>
-                {saving ? "Speichern..." : "Speichern"}
+            <div style={{ marginTop: 30, display: 'flex', gap: 15, paddingBottom: 50 }}>
+              <button 
+                onClick={handleSave} 
+                disabled={saving}
+                style={{ backgroundColor: '#4CAF50', color: 'white', padding: '12px 24px', border: 'none', borderRadius: 6, cursor: 'pointer', flex: 1, fontWeight: "bold" }}
+              >
+                {saving ? "Speichert..." : "Speichern"}
+              </button>
+              
+              <button 
+                onClick={() => handleDelete(selected.id)}
+                style={{ backgroundColor: 'transparent', color: '#f44336', padding: '12px 24px', border: '1px solid #f44336', borderRadius: 6, cursor: 'pointer', fontWeight: "bold" }}
+              >
+                Löschen
               </button>
             </div>
           </div>
 
-          <div style={{ flex: "0 0 360px", display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ height: 300 }}>
-              <RadarChart
-                labels={abilityLabels}
-                dataSets={[
-                  {
-                    label: "Fähigkeiten",
-                    data: safeAbilities,
-                    backgroundColor: "rgba(54,162,235,0.25)",
-                    borderColor: "rgba(54,162,235,1)",
-                  },
-                ]}
-              />
-            </div>
-            <div style={{ height: 300 }}>
-              <RadarChart
-                labels={styleLabels}
-                dataSets={[
-                  {
-                    label: "Stile",
-                    data: safeStyles,
-                    backgroundColor: "rgba(255,159,64,0.25)",
-                    borderColor: "rgba(255,159,64,1)",
-                  },
-                ]}
-              />
-            </div>
+          {/* Rechte Seite: Diagramme - Hier liegt die Lösung für den Error */}
+          <div style={{ flex: "0 0 400px", display: "flex", flexDirection: "column", gap: 30 }}>
+              {/* Jedes Chart bekommt einen Container mit fester Höhe und Breite */}
+              <div style={{ position: "relative", width: "400px", height: "350px", overflow: "hidden", border: "1px solid #eee", borderRadius: 8, padding: 10 }}>
+                <RadarChart 
+                    labels={abilityLabels} 
+                    dataSets={[{ 
+                        label: "Fähigkeiten", 
+                        data: safeAbilities, 
+                        backgroundColor: "rgba(54,162,235,0.2)",
+                        borderColor: "rgba(54,162,235,1)"
+                    }]} 
+                />
+              </div>
+
+              <div style={{ position: "relative", width: "400px", height: "350px", overflow: "hidden", border: "1px solid #eee", borderRadius: 8, padding: 10 }}>
+                <RadarChart 
+                    labels={styleLabels} 
+                    dataSets={[{ 
+                        label: "Stile", 
+                        data: safeStyles, 
+                        backgroundColor: "rgba(255,159,64,0.2)",
+                        borderColor: "rgba(255,159,64,1)"
+                    }]} 
+                />
+              </div>
           </div>
         </div>
       )}
@@ -289,21 +257,10 @@ function LoginForm({ onSubmit }) {
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit(email, pw);
-      }}
-    >
-      <label>
-        Email: <input value={email} onChange={(e) => setEmail(e.target.value)} />
-      </label>
-      <br />
-      <label>
-        Password: <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} />
-      </label>
-      <br />
-      <button type="submit">Login</button>
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit(email, pw); }} style={{ maxWidth: 300, display: "flex", flexDirection: "column", gap: 10 }}>
+      <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ padding: 8 }} />
+      <input placeholder="Passwort" type="password" value={pw} onChange={(e) => setPw(e.target.value)} style={{ padding: 8 }} />
+      <button type="submit" style={{ padding: 10, backgroundColor: "#007bff", color: "white", border: "none", borderRadius: 4, cursor: "pointer" }}>Login</button>
     </form>
   );
 }

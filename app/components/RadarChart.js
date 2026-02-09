@@ -21,11 +21,11 @@ export default function RadarChart({ labels = [], dataSets = [] }) {
 
   const options = {
     responsive: true,
-    maintainAspectRatio: false, // <- wichtig für responsive Charts
+    maintainAspectRatio: false,
     scales: {
       r: {
-        suggestedMin: 0,
-        suggestedMax: 10,
+        min: 0, // Festes Minimum statt "suggested"
+        max: 10, // Festes Maximum statt "suggested"
         ticks: { stepSize: 1 },
       },
     },
@@ -35,7 +35,8 @@ export default function RadarChart({ labels = [], dataSets = [] }) {
   };
 
   return (
-    <div style={{ width: "100%", height: "100%" }}>
+    // Der wichtigste Teil: Ein Container mit festem Layout-Verhalten
+    <div style={{ position: "relative", width: "100%", height: "100%", minHeight: 0 }}>
       <Radar data={data} options={options} />
     </div>
   );
