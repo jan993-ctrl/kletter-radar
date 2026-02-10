@@ -24,13 +24,16 @@ export default function MyPage() {
         return;
       }
 
-      let { data } = await supabaseBrowser
+      console.log("Eingeloggter User ID:", user.id);
+
+      let { data, error } = await supabaseBrowser
         .from('profiles')
         .select('*')
         .eq('id', user.id) 
         .single();
 
-      if (!data) {
+      if (error || !data) {
+        console.log("Kein Profil gefunden, erstelle lokales Backup...");
         setProfile({ 
           id: user.id, 
           name: user.email.split('@')[0], 
@@ -39,6 +42,7 @@ export default function MyPage() {
           image_url: ""
         });
       } else {
+        console.log("Profil geladen:", data);
         setProfile(data);
       }
       setLoading(false);
@@ -51,41 +55,49 @@ export default function MyPage() {
     if (!file || !profile) return;
     
     setUploading(true);
-    // Name ist immer gleich -> User-ID
     const fileName = `avatar-${profile.id}`;
     
     try {
-      // 1. Upload mit { upsert: true } -> erlaubt das Überschreiben
+      // 1. Storage Upload
       const { error: uploadError } = await supabaseBrowser.storage
         .from('profiles')
-        .upload(fileName, file, {
-          upsert: true // WICHTIG: Erlaubt das Ersetzen der Datei
-        });
+        .upload(fileName, file, { upsert: true });
       
       if (uploadError) throw uploadError;
       
-      // 2. Die öffentliche URL generieren
+      // 2. URL generieren
       const { data: urlData } = supabaseBrowser.storage
         .from('profiles')
         .getPublicUrl(fileName);
       
-      // Cache-Buster (?t=...): Verhindert, dass der Browser das alte Bild anzeigt
       const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
-      // 3. Sofort in der Datenbank speichern
-      const { error: dbError } = await supabaseBrowser
+      // --- DEBUG LOGS ---
+      console.log("Versuche in DB zu speichern...");
+      console.log("Ziel-URL:", publicUrl);
+      console.log("Ziel-ID:", profile.id);
+
+      // 3. Datenbank Update (Wir nutzen .select() um zu sehen ob eine Zeile betroffen ist)
+      const { data: updateResult, error: dbError } = await supabaseBrowser
         .from('profiles')
         .update({ image_url: publicUrl })
-        .eq('id', profile.id);
+        .eq('id', profile.id)
+        .select();
 
       if (dbError) throw dbError;
+      
+      console.log("DB Update Resultat:", updateResult);
 
-      // 4. UI aktualisieren
-      setProfile({ ...profile, image_url: publicUrl });
-      alert("Bild aktualisiert!");
+      if (updateResult.length === 0) {
+        console.error("Warnung: Keine Zeile in der DB wurde aktualisiert. Existiert die ID?");
+      }
+
+      // 4. UI State aktualisieren
+      setProfile(prev => ({ ...prev, image_url: publicUrl }));
+      alert("Bild erfolgreich hochgeladen!");
 
     } catch (err) {
-      console.error(err);
+      console.error("Fehler im Upload-Prozess:", err);
       alert("Fehler: " + err.message);
     } finally {
       setUploading(false);
@@ -93,14 +105,22 @@ export default function MyPage() {
   };
 
   const handleSave = async () => {
+    if (!profile) return;
+    
+    console.log("Speichere gesamtes Profil:", profile);
+    
+    // Wir nutzen update statt upsert, um sicherzugehen, dass wir nur die eigene ID treffen
+    const { id, ...updateData } = profile;
     const { error } = await supabaseBrowser
       .from('profiles')
-      .upsert(profile);
+      .update(updateData)
+      .eq('id', id);
 
     if (!error) {
       alert("Profil erfolgreich gespeichert!");
       window.location.href = "/";
     } else {
+      console.error("Fehler beim Speichern des Profils:", error);
       alert("Fehler: " + error.message);
     }
   };
@@ -125,12 +145,13 @@ export default function MyPage() {
           </div>
           <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
         </div>
+        {uploading && <p style={{ color: "blue", fontSize: "0.8rem" }}>Bild wird verarbeitet...</p>}
       </div>
 
       <div style={sectionStyle}>
         <h3>Dein Name</h3>
         <input 
-          value={profile.name} 
+          value={profile.name || ""} 
           onChange={e => setProfile({...profile, name: e.target.value})} 
           style={inputStyle}
         />
@@ -180,7 +201,7 @@ export default function MyPage() {
   );
 }
 
-// Styles (nur die wichtigsten)
+// Styles
 const sectionStyle = { backgroundColor: "#fff", padding: "20px", borderRadius: "15px", marginBottom: "20px", border: "1px solid #eee" };
 const backBtnStyle = { background: "none", border: "none", color: "#666", cursor: "pointer", marginBottom: "10px" };
 const inputStyle = { width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ddd" };
