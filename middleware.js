@@ -1,36 +1,70 @@
-import { NextResponse } from "next/server";
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse } from 'next/server'
 
-export function middleware(req) {
-  const isAdminRoute = req.nextUrl.pathname.startsWith("/admin");
+export async function middleware(request) {
+  // 1. Erstelle eine initiale Response
+  let response = NextResponse.next({
+    request: { headers: request.headers },
+  })
 
-  if (!isAdminRoute) {
-    return NextResponse.next();
-  }
-
-  const authHeader = req.headers.get("authorization");
-
-  if (!authHeader) {
-    return new NextResponse("Auth required", {
-      status: 401,
-      headers: {
-        "WWW-Authenticate": 'Basic realm="Admin"',
+  // 2. Supabase Client mit KORREKTER Cookie-Logik
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        get(name) {
+          return request.cookies.get(name)?.value
+        },
+        set(name, value, options) {
+          // WICHTIG: Setze den Cookie in der Request UND in der Response
+          request.cookies.set({ name, value, ...options })
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          })
+          response.cookies.set({ name, value, ...options })
+        },
+        remove(name, options) {
+          // WICHTIG: Entferne den Cookie in der Request UND in der Response
+          request.cookies.set({ name, value: '', ...options })
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          })
+          response.cookies.set({ name, value: '', ...options })
+        },
       },
-    });
+    }
+  )
+
+  // 3. User abrufen
+  const { data: { user } } = await supabase.auth.getUser()
+  const { pathname } = request.nextUrl
+  const ADMIN_EMAIL = "janstoll1993@googlemail.com"
+
+  // 4. Weiterleitungs-Logik
+  
+  // Schutz für Admin
+  if (pathname.startsWith('/admin')) {
+    if (!user || user.email !== ADMIN_EMAIL) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
   }
 
-  const base64 = authHeader.split(" ")[1];
-  const [user, pass] = atob(base64).split(":");
-
-  const ADMIN_USER = process.env.ADMIN_USER || "admin";
-  const ADMIN_PASS = process.env.ADMIN_PASS || "changeme";
-
-  if (user === ADMIN_USER && pass === ADMIN_PASS) {
-    return NextResponse.next();
+  // Schutz für Profil
+  if (pathname.startsWith('/profile') && !user) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  return new NextResponse("Forbidden", { status: 403 });
+  // Login-Seite verlassen, wenn bereits eingeloggt
+  if (pathname === '/login' && user) {
+    const target = user.email === ADMIN_EMAIL ? '/admin' : '/profile'
+    return NextResponse.redirect(new URL(target, request.url))
+  }
+
+  return response
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
-};
+  // Wir überwachen admin, profile und login
+  matcher: ['/admin/:path*', '/profile/:path*', '/login'],
+}

@@ -1,149 +1,256 @@
 "use client";
 import { useEffect, useState } from "react";
-import { supabaseBrowser } from "@lib/supabase-browser";
+import { supabaseBrowser } from "@/lib/supabase/client";
 import Link from "next/link";
+import CombinedRadar from "@/components/charts/CombinedRadar";
 
-// Die Liste bis 9a
 const GRADES = [
   "1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", 
   "4a", "4b", "4c", "5a", "5b", "5c", "6a", "6b", "6c", 
   "7a", "7b", "7c", "8a", "8b", "8c", "9a"
 ];
 
+const styleLabels = ["Crimper", "Sloper", "Slab", "Dyno", "Pocket"];
+
 export default function Frontpage() {
   const [climbers, setClimbers] = useState([]);
-  const [session, setSession] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [flippedCards, setFlippedCards] = useState({});
 
   const ADMIN_EMAIL = "janstoll1993@googlemail.com";
 
   useEffect(() => {
-    // Session laden
-    supabaseBrowser.auth.getSession().then(({ data }) => {
-      setSession(data?.session ?? null);
-    });
-    
-    // Profile laden
-    fetch("/api/profiles")
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          // Sortierung nach Gesamtstärke (Summe abilities)
-          const sorted = data.sort((a, b) => {
-            const sumA = a.abilities?.reduce((acc, val) => acc + val, 0) || 0;
-            const sumB = b.abilities?.reduce((acc, val) => acc + val, 0) || 0;
+    const initPage = async () => {
+      try {
+        const [authRes, profileRes] = await Promise.all([
+          supabaseBrowser.auth.getUser(),
+          fetch("/api/profiles").then(res => res.json())
+        ]);
+
+        setUser(authRes.data?.user ?? null);
+
+        if (Array.isArray(profileRes)) {
+          const sorted = profileRes.sort((a, b) => {
+            const sumA = (a.abilities || []).reduce((acc, val) => acc + val, 0);
+            const sumB = (b.abilities || []).reduce((acc, val) => acc + val, 0);
             return sumB - sumA;
           });
           setClimbers(sorted);
         }
-      })
-      .catch(err => console.error("Fehler:", err))
-      .finally(() => setLoading(false));
+      } catch (err) {
+        console.error("Initialisierungsfehler:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initPage();
   }, []);
 
-  // Hilfsfunktion für Farben der Grade
-  const getGradeColor = (index) => {
-    if (index < 12) return "#28a745"; // bis 4c: Grün
-    if (index < 15) return "#ffc107"; // 5er: Gelb
-    if (index < 18) return "#fd7e14"; // 6er: Orange
-    if (index < 21) return "#dc3545"; // 7er: Rot
-    return "#343a40"; // 8a - 9a: Schwarz
+  const toggleFlip = (id) => {
+    setFlippedCards(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
   };
 
-  const profileLink = session?.user?.email === ADMIN_EMAIL ? "/admin" : "/profile";
+  const getGradeColor = (index) => {
+    if (index < 6) return "#a5a5a5"; 
+    if (index < 12) return "#28a745"; 
+    if (index < 15) return "#ffc107"; 
+    if (index < 18) return "#fd7e14"; 
+    if (index < 21) return "#dc3545"; 
+    if (index < 24) return "#8e44ad"; 
+    return "#2c3e50"; 
+  };
+
+  const profileLink = user?.email === ADMIN_EMAIL ? "/admin" : "/profile";
 
   return (
-    <main style={{ padding: "20px", fontFamily: "sans-serif", maxWidth: "1200px", margin: "0 auto", backgroundColor: "#fbfbfb", minHeight: "100vh" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #eee", paddingBottom: "15px", marginBottom: "30px" }}>
-        <h1 style={{ fontSize: "1.8rem", margin: 0, display: "flex", alignItems: "center", gap: "10px" }}>
+    <main style={mainStyle}>
+      <header style={headerStyle}>
+        <h1 style={logoStyle}>
           <span style={{ fontSize: "2rem" }}>🧗</span> Kletter-Quartett
         </h1>
         <div>
-          {session ? (
-            <Link href={profileLink}><button style={navBtnStyle}>Mein Profil</button></Link>
-          ) : (
-            <Link href="/admin"><button style={navBtnStyle}>Login</button></Link>
-          )}
+          <Link href={user ? profileLink : "/login"}>
+            <button style={navBtnStyle}>
+              {user ? "Mein Profil" : "Login"}
+            </button>
+          </Link>
         </div>
       </header>
 
       {loading ? (
-        <p style={{ textAlign: "center", marginTop: "50px", color: "#666" }}>Lade Kletterer-Community...</p>
+        <div style={loaderContainer}>
+          <p>Lade Kletterer-Community...</p>
+        </div>
       ) : (
         <div style={gridStyle}>
-          {climbers.map((c, index) => {
-            const safeAbilities = c.abilities || [0,0,0,0,0];
-            const safeStyles = c.styles || [0];
-            const gradeIdx = safeStyles[0];
+          {climbers.length > 0 ? climbers.map((c, index) => {
+            const safeAbilities = c.abilities || [0, 0, 0, 0, 0];
+            const safeStyles = c.styles || [0, 0, 0, 0, 0];
+            const sumAbilities = safeAbilities.reduce((a, b) => a + b, 0);
+            const powerScore = Math.round((sumAbilities / 120) * 100);
+            const mentalValue = safeAbilities[2];
+            
+            const cardId = c.user_id || c.id || index;
+            const isFlipped = !!flippedCards[cardId];
 
             return (
-              <div key={c.id || index} style={cardStyle}>
-                {/* Ranking oben links */}
-                <div style={rankBadgeStyle}>#{index + 1}</div>
-
-                {/* Profilbild Bereich */}
-                <div style={imgContainerStyle}>
-                  <img 
-                    src={c.image_url || `https://ui-avatars.com/api/?name=${c.name || 'User'}&background=random&size=300`} 
-                    style={imgStyle} 
-                    alt={c.name} 
-                  />
-                </div>
-                
-                <div style={{ padding: "15px" }}>
-                  <h2 style={{ margin: "0 0 15px 0", fontSize: "1.4rem", color: "#333" }}>{c.name || "Kletter-Gast"}</h2>
+              <div 
+                key={cardId} 
+                style={cardContainerStyle} 
+                onClick={() => toggleFlip(cardId)}
+              >
+                <div style={{
+                  ...cardInnerStyle,
+                  transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)"
+                }}>
                   
-                  {/* Stats mit kleinen Balken */}
-                  <div style={statsStyle}>
-                    {[
-                      { label: "Kraft", val: safeAbilities[0], color: "#ff4757" },
-                      { label: "Bewegl.", val: safeAbilities[1], color: "#2ed573" },
-                      { label: "Mental", val: safeAbilities[2], color: "#1e90ff" }
-                    ].map(stat => (
-                      <div key={stat.label} style={{ marginBottom: "8px" }}>
-                        <div style={statLine}>
-                          <span>{stat.label}</span>
-                          <b>{stat.val * 10}</b>
+                  {/* VORDERSEITE */}
+                  <div style={cardFrontStyle}>
+                    <div style={rankBadgeStyle}>#{index + 1}</div>
+                    
+                    <div style={imgContainerStyle}>
+                      <img 
+                        src={c.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || 'User')}&background=random&size=300`} 
+                        style={imgStyle} 
+                        alt={c.name} 
+                      />
+                    </div>
+                    
+                    <div style={{ padding: "18px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+                        <h2 style={nameStyle}>{c.name || "Kletter-Gast"}</h2>
+                        <div style={powerBadge}>
+                          <span style={{ fontSize: "0.55rem", fontWeight: "bold", color: "#aaa" }}>POWER</span>
+                          <div style={{ fontSize: "1.3rem" }}>{powerScore}</div>
                         </div>
-                        <div style={progressBg}><div style={{ ...progressFill, width: `${stat.val * 10}%`, backgroundColor: stat.color }}></div></div>
                       </div>
-                    ))}
-                  </div>
+                      
+                      <div style={mentalCenterBox}>
+                        <div style={mentalLabel}>MENTALITÄT</div>
+                        <div style={mentalValueDisplay}>Level {mentalValue}</div>
+                      </div>
 
-                  {/* Grad-Badge unten */}
-                  <div style={{ marginTop: "15px", borderTop: "1px solid #eee", paddingTop: "12px", textAlign: "center" }}>
-                    <div style={{ fontSize: "0.75rem", color: "#888", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "5px" }}>Best Onsight</div>
-                    <div style={{ 
-                      display: "inline-block",
-                      padding: "5px 20px",
-                      borderRadius: "20px",
-                      backgroundColor: getGradeColor(gradeIdx),
-                      color: (gradeIdx >= 12 && gradeIdx < 15) ? "#000" : "#fff",
-                      fontWeight: "900",
-                      fontSize: "1.2rem",
-                      boxShadow: "0 2px 5px rgba(0,0,0,0.1)"
-                    }}>
-                      {GRADES[gradeIdx] || "1a"}
+                      <div style={stylesGrid}>
+                        {styleLabels.map((label, i) => (
+                          <div key={label} style={styleItem}>
+                            <span style={styleLabelText}>{label}</span>
+                            <span style={{ 
+                              ...styleValueText, 
+                              color: getGradeColor(safeStyles[i]) 
+                            }}>
+                              {GRADES[safeStyles[i]] || "1a"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
+
+                  {/* RÜCKSEITE */}
+                  <div style={cardBackStyle}>
+                    <div style={{ padding: "20px", height: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                      <h3 style={{ borderBottom: "1px solid #eee", width: "100%", paddingBottom: "10px", marginTop: 0, textAlign: "left" }}>
+                        Statistik & Notizen
+                      </h3>
+                      
+                      {/* Die kombinierte Chart */}
+                      <div style={chartWrapperStyle}>
+                        <CombinedRadar 
+                          abilities={safeAbilities} 
+                          styles={safeStyles} 
+                          width={240} 
+                          height={240} 
+                        />
+                      </div>
+
+                      <div style={notesAreaStyle}>
+                        <strong style={{ fontSize: "0.75rem", color: "#888", display: "block", marginBottom: "5px" }}>ÜBER {c.name?.toUpperCase()}:</strong>
+                        {c.notes ? c.notes : "Keine besonderen Notizen oder Ziele hinterlegt."}
+                      </div>
+
+                      <div style={{ marginTop: "auto", fontSize: "0.7rem", color: "#bbb" }}>
+                        ↻ Klicken zum Umdrehen
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             );
-          })}
+          }) : (
+            <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "50px", color: "#888" }}>
+              Noch keine Kletterer angemeldet.
+            </div>
+          )}
         </div>
       )}
     </main>
   );
 }
 
-// Styles
-const navBtnStyle = { padding: "10px 22px", borderRadius: "25px", border: "none", backgroundColor: "#007bff", color: "white", cursor: "pointer", fontWeight: "bold", boxShadow: "0 4px 10px rgba(0,123,255,0.3)" };
-const gridStyle = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "30px", marginTop: "10px" };
-const cardStyle = { position: "relative", borderRadius: "20px", overflow: "hidden", boxShadow: "0 10px 25px rgba(0,0,0,0.08)", border: "1px solid #eee", backgroundColor: "white", transition: "transform 0.2s" };
-const rankBadgeStyle = { position: "absolute", top: "12px", left: "12px", backgroundColor: "rgba(0,0,0,0.75)", color: "white", padding: "5px 10px", borderRadius: "10px", fontSize: "0.85rem", fontWeight: "bold", zIndex: 10, backdropFilter: "blur(4px)" };
-const imgContainerStyle = { height: "220px", width: "100%", backgroundColor: "#f0f0f0" };
+// STYLES
+const mainStyle = { padding: "20px", fontFamily: "'Inter', sans-serif", maxWidth: "1200px", margin: "0 auto", backgroundColor: "#f4f7f6", minHeight: "100vh" };
+const headerStyle = { display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #e0e0e0", paddingBottom: "15px", marginBottom: "30px" };
+const logoStyle = { fontSize: "1.8rem", margin: 0, display: "flex", alignItems: "center", gap: "12px", color: "#2c3e50", fontWeight: "900" };
+const navBtnStyle = { padding: "12px 24px", borderRadius: "30px", border: "none", backgroundColor: "#007bff", color: "white", cursor: "pointer", fontWeight: "bold", boxShadow: "0 4px 12px rgba(0,123,255,0.25)" };
+const loaderContainer = { textAlign: "center", marginTop: "100px", color: "#666" };
+const gridStyle = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "25px" };
+
+const cardContainerStyle = { perspective: "1000px", height: "550px", cursor: "pointer" };
+const cardInnerStyle = { position: "relative", width: "100%", height: "100%", transition: "transform 0.6s", transformStyle: "preserve-3d" };
+
+const baseFaceStyle = {
+  position: "absolute",
+  width: "100%",
+  height: "100%",
+  backfaceVisibility: "hidden",
+  borderRadius: "24px",
+  boxShadow: "0 15px 35px rgba(0,0,0,0.1)",
+  overflow: "hidden",
+  backgroundColor: "white",
+  border: "1px solid rgba(0,0,0,0.05)"
+};
+
+const cardFrontStyle = { ...baseFaceStyle };
+const cardBackStyle = { ...baseFaceStyle, transform: "rotateY(180deg)", backgroundColor: "#fff" };
+
+const rankBadgeStyle = { position: "absolute", top: "15px", left: "15px", backgroundColor: "rgba(0,0,0,0.8)", color: "white", padding: "6px 12px", borderRadius: "12px", fontSize: "0.9rem", fontWeight: "bold", zIndex: 10 };
+const imgContainerStyle = { height: "210px", width: "100%", backgroundColor: "#e9ecef" };
 const imgStyle = { width: "100%", height: "100%", objectFit: "cover" };
-const statsStyle = { display: "flex", flexDirection: "column" };
-const statLine = { display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: "3px" };
-const progressBg = { height: "6px", backgroundColor: "#eee", borderRadius: "3px", overflow: "hidden" };
-const progressFill = { height: "100%", borderRadius: "3px", transition: "width 0.5s ease-out" };
+const nameStyle = { margin: "0", fontSize: "1.4rem", color: "#1a1a1a", fontWeight: "800", letterSpacing: "-0.5px" };
+const powerBadge = { display: "flex", flexDirection: "column", alignItems: "center", backgroundColor: "#1a1a1a", color: "#fff", padding: "8px", borderRadius: "16px", minWidth: "60px", lineHeight: "1" };
+const mentalCenterBox = { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundColor: "#f8f9fa", padding: "12px", borderRadius: "16px", marginBottom: "20px", border: "1px solid #f0f0f0" };
+const mentalLabel = { fontSize: "0.7rem", fontWeight: "bold", color: "#888", letterSpacing: "1.5px", marginBottom: "4px" };
+const mentalValueDisplay = { fontSize: "1.3rem", fontWeight: "900", color: "#007bff" };
+const stylesGrid = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", borderTop: "1px solid #eee", paddingTop: "15px" };
+const styleItem = { display: "flex", flexDirection: "column" };
+const styleLabelText = { fontSize: "0.65rem", color: "#bbb", textTransform: "uppercase", fontWeight: "bold", marginBottom: "2px" };
+const styleValueText = { fontSize: "1.2rem", fontWeight: "900" };
+
+// SPEZIELLE RÜCKSEITEN-STYLES
+const chartWrapperStyle = { 
+  margin: "10px 0", 
+  padding: "10px", 
+  backgroundColor: "#fcfcfc", 
+  borderRadius: "15px" 
+};
+
+const notesAreaStyle = { 
+  marginTop: "10px", 
+  fontSize: "0.9rem", 
+  lineHeight: "1.4", 
+  color: "#444", 
+  textAlign: "left", 
+  width: "100%",
+  padding: "10px",
+  backgroundColor: "#f0f7ff",
+  borderRadius: "12px",
+  borderLeft: "4px solid #007bff",
+  maxHeight: "120px",
+  overflowY: "auto"
+};

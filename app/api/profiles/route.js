@@ -1,93 +1,90 @@
-// app/api/profiles/route.js
-
 import { NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase-server";
+import { createClient, supabaseAdmin } from "@/lib/supabase/server";
 
-export const dynamic = "force-dynamic"; // <--- Diese Zeile hinzufügen
+export const dynamic = "force-dynamic";
 
-// GET -> public: alle Profile lesen
 export async function GET() {
-  console.log("DEBUG: Verbinde mit URL:", process.env.SUPABASE_URL);
-  const { data, error } = await supabaseServer
-    .from("profiles")
-    .select("*")
-    .order("id", { ascending: true });
-
-  if (error) {
-    console.error("GET /api/profiles error:", error);
-    return NextResponse.json([], { status: 500 });
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("profiles")
+      .select("*")
+      .order("name", { ascending: true });
+    if (error) throw error;
+    return NextResponse.json(data ?? []);
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  return NextResponse.json(data ?? []);
 }
 
-// POST -> admin: Profile speichern (Supabase Auth)
 export async function POST(req) {
   try {
-    const authHeader = req.headers.get("authorization") || "";
-    const token = authHeader.split(" ")[1];
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (authError || !user) {
+      return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
     }
 
-    const { data: userData, error: userErr } =
-      await supabaseServer.auth.getUser(token);
+    const profileData = await req.json();
+    const ADMIN_EMAIL = "janstoll1993@googlemail.com";
+    const isAdmin = user.email === ADMIN_EMAIL;
 
-    if (userErr || !userData?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Sicherheits-Check für normale User
+    if (!isAdmin && profileData.user_id && profileData.user_id !== user.id) {
+      return NextResponse.json({ error: "Keine Berechtigung" }, { status: 403 });
     }
 
-    const profile = await req.json();
+    const upsertData = {
+      name: profileData.name,
+      abilities: profileData.abilities || [5, 5, 5, 5, 5],
+      styles: profileData.styles || [0],
+      notes: profileData.notes || "",
+      image_url: profileData.image_url || "",
+      updated_at: new Date().toISOString(),
+    };
 
-    const { error: upsertErr } = await supabaseServer
+    if (isAdmin) {
+      // Admin identifiziert Profile über die UUID (id)
+      upsertData.id = profileData.id;
+      // Falls das Profil bereits einem User gehört, behalten wir die user_id bei
+      if (profileData.user_id) upsertData.user_id = profileData.user_id;
+    } else {
+      // Normaler User wird über seine Login-ID verknüpft
+      upsertData.user_id = user.id;
+    }
+
+    const { data, error: upsertErr } = await supabaseAdmin
       .from("profiles")
-      .upsert(
-        {
-          id: profile.id,
-          name: profile.name,
-          abilities: profile.abilities,
-          styles: profile.styles,
-          notes: profile.notes,
-        },
-        { onConflict: "id" }
-      );
+      .upsert(upsertData, { 
+        onConflict: isAdmin ? 'id' : 'user_id' 
+      })
+      .select()
+      .single();
 
-    if (upsertErr) {
-      console.error("Upsert error:", upsertErr);
-      return NextResponse.json({ error: upsertErr.message }, { status: 500 });
-    }
-
-    const { data: all, error: allErr } =
-      await supabaseServer.from("profiles").select("*");
-
-    if (allErr) {
-      return NextResponse.json({ error: allErr.message }, { status: 500 });
-    }
-
-    return NextResponse.json(all);
+    if (upsertErr) throw upsertErr;
+    return NextResponse.json({ success: true, data });
   } catch (err) {
-    console.error("POST /api/profiles error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
 
 export async function DELETE(request) {
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get("id");
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
 
-  if (!id) {
-    return NextResponse.json({ error: "ID required" }, { status: 400 });
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const ADMIN_EMAIL = "janstoll1993@googlemail.com";
+
+    if (!user || user.email !== ADMIN_EMAIL) {
+      return NextResponse.json({ error: "Nur Admins dürfen löschen" }, { status: 403 });
+    }
+
+    const { error } = await supabaseAdmin.from("profiles").delete().eq("id", id);
+    if (error) throw error;
+    return NextResponse.json({ message: "Gelöscht" });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
-
-  const { error } = await supabaseServer
-    .from("profiles")
-    .delete()
-    .eq("id", id);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ message: "Deleted successfully" });
 }

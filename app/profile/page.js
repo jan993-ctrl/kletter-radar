@@ -1,210 +1,252 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabaseBrowser } from "@lib/supabase-browser";
+import RadarChart from "@/components/charts/RadarChart";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
+// Deine definierten Grade
 const GRADES = [
   "1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", 
   "4a", "4b", "4c", "5a", "5b", "5c", "6a", "6b", "6c", 
   "7a", "7b", "7c", "8a", "8b", "8c", "9a"
 ];
 
-const ABILITY_LABELS = ["Kraft", "Beweglichkeit", "Mental", "Ausdauer", "Technik"];
+const abilityLabels = ["Kraft", "Beweglichkeit", "Mentalität", "Explosivität", "Körperspannung"];
+const styleLabels = ["Crimper", "Sloper", "Slab", "Dyno", "Pocket"];
 
-export default function MyPage() {
+export default function ProfilePage() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const loadData = async () => {
-      const { data: { user } } = await supabaseBrowser.auth.getUser();
-      if (!user) {
-        window.location.href = "/admin";
-        return;
+      try {
+        const { data: { user }, error: authError } = await supabaseBrowser.auth.getUser();
+        
+        if (authError || !user) {
+          router.push("/login");
+          return;
+        }
+
+        const { data, error } = await supabaseBrowser
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (!data) {
+          // Initialwerte bei neuem Profil (Level 12 als Standard)
+          setProfile({
+            user_id: user.id,
+            name: user.email?.split('@')[0] || "Kletterer",
+            notes: "",
+            abilities: [12, 12, 12, 12, 12],
+            styles: [12, 12, 12, 12, 12],
+            image_url: ""
+          });
+        } else {
+          setProfile(data);
+        }
+      } catch (err) {
+        console.error("Fehler beim Laden:", err);
+      } finally {
+        setLoading(false);
       }
-
-      console.log("Eingeloggter User ID:", user.id);
-
-      let { data, error } = await supabaseBrowser
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id) 
-        .single();
-
-      if (error || !data) {
-        console.log("Kein Profil gefunden, erstelle lokales Backup...");
-        setProfile({ 
-          id: user.id, 
-          name: user.email.split('@')[0], 
-          abilities: [5, 5, 5, 0, 0], 
-          styles: [12], 
-          image_url: ""
-        });
-      } else {
-        console.log("Profil geladen:", data);
-        setProfile(data);
-      }
-      setLoading(false);
     };
+
     loadData();
-  }, []);
+  }, [router]);
+
+  const signOut = async () => {
+    await supabaseBrowser.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file || !profile) return;
-    
-    setUploading(true);
-    const fileName = `avatar-${profile.id}`;
-    
+    if (!file || !profile?.user_id) return;
+
+    setSaving(true);
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${profile.user_id}/${Date.now()}.${fileExt}`;
+
     try {
-      // 1. Storage Upload
       const { error: uploadError } = await supabaseBrowser.storage
         .from('profiles')
         .upload(fileName, file, { upsert: true });
-      
+
       if (uploadError) throw uploadError;
-      
-      // 2. URL generieren
-      const { data: urlData } = supabaseBrowser.storage
-        .from('profiles')
-        .getPublicUrl(fileName);
-      
-      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
-      // --- DEBUG LOGS ---
-      console.log("Versuche in DB zu speichern...");
-      console.log("Ziel-URL:", publicUrl);
-      console.log("Ziel-ID:", profile.id);
-
-      // 3. Datenbank Update (Wir nutzen .select() um zu sehen ob eine Zeile betroffen ist)
-      const { data: updateResult, error: dbError } = await supabaseBrowser
-        .from('profiles')
-        .update({ image_url: publicUrl })
-        .eq('id', profile.id)
-        .select();
-
-      if (dbError) throw dbError;
-      
-      console.log("DB Update Resultat:", updateResult);
-
-      if (updateResult.length === 0) {
-        console.error("Warnung: Keine Zeile in der DB wurde aktualisiert. Existiert die ID?");
-      }
-
-      // 4. UI State aktualisieren
-      setProfile(prev => ({ ...prev, image_url: publicUrl }));
-      alert("Bild erfolgreich hochgeladen!");
-
+      const { data } = supabaseBrowser.storage.from('profiles').getPublicUrl(fileName);
+      setProfile({ ...profile, image_url: data.publicUrl });
+      alert("Bild bereit! Bitte unten 'Speichern' klicken.");
     } catch (err) {
-      console.error("Fehler im Upload-Prozess:", err);
-      alert("Fehler: " + err.message);
+      alert("Upload-Fehler: " + err.message);
     } finally {
-      setUploading(false);
+      setSaving(false);
     }
   };
 
   const handleSave = async () => {
     if (!profile) return;
-    
-    console.log("Speichere gesamtes Profil:", profile);
-    
-    // Wir nutzen update statt upsert, um sicherzugehen, dass wir nur die eigene ID treffen
-    const { id, ...updateData } = profile;
-    const { error } = await supabaseBrowser
-      .from('profiles')
-      .update(updateData)
-      .eq('id', id);
+    setSaving(true);
+    try {
+      const res = await fetch("/api/profiles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile),
+      });
 
-    if (!error) {
-      alert("Profil erfolgreich gespeichert!");
-      window.location.href = "/";
-    } else {
-      console.error("Fehler beim Speichern des Profils:", error);
-      alert("Fehler: " + error.message);
+      if (!res.ok) {
+        const payload = await res.json();
+        throw new Error(payload?.error || "Speichern fehlgeschlagen");
+      }
+
+      alert("Dein Profil wurde gespeichert!");
+      router.refresh();
+    } catch (err) {
+      alert("Fehler: " + err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
-  if (loading) return <div style={{ textAlign: "center", marginTop: "50px" }}>Lade...</div>;
+  if (loading) return <div style={{ padding: 50, textAlign: "center" }}>Lade Profil...</div>;
+  if (!profile) return <div style={{ padding: 50, textAlign: "center" }}>Fehler beim Laden der Profildaten.</div>;
+
+  // WICHTIG: Die Fallbacks sorgen dafür, dass die Slider nicht abstürzen
+  const safeAbilities = Array.isArray(profile.abilities) && profile.abilities.length === 5 
+    ? profile.abilities 
+    : [12, 12, 12, 12, 12];
+
+  const safeStyles = Array.isArray(profile.styles) && profile.styles.length === 5 
+    ? profile.styles 
+    : [12, 12, 12, 12, 12];
 
   return (
-    <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto", fontFamily: "sans-serif", paddingBottom: "100px" }}>
-      <button onClick={() => window.location.href = "/"} style={backBtnStyle}>← Abbrechen</button>
-      
-      <h1>Profil bearbeiten</h1>
-
-      <div style={sectionStyle}>
-        <h3>Dein Foto</h3>
-        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-          <div style={avatarPreviewStyle}>
-             {profile.image_url ? (
-               <img src={profile.image_url} style={imgStyle} alt="Vorschau" />
-             ) : (
-               <span style={{ fontSize: "2rem" }}>👤</span>
-             )}
-          </div>
-          <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} />
+    <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", color: "#333" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #ccc", paddingBottom: 10 }}>
+        <h1 style={{ margin: 0 }}>👤 Mein Profil</h1>
+        <div>
+          <button onClick={() => router.push("/")} style={{ marginRight: 10, padding: "8px 15px", cursor: "pointer", borderRadius: 4, border: "1px solid #ccc", backgroundColor: "white", color: "black" }}>← Zur Website</button>
+          <button onClick={signOut} style={{ padding: "8px 15px", cursor: "pointer", backgroundColor: "#ff4d4d", color: "white", border: "none", borderRadius: 4, fontWeight: "bold" }}>Abmelden</button>
         </div>
-        {uploading && <p style={{ color: "blue", fontSize: "0.8rem" }}>Bild wird verarbeitet...</p>}
       </div>
 
-      <div style={sectionStyle}>
-        <h3>Dein Name</h3>
-        <input 
-          value={profile.name || ""} 
-          onChange={e => setProfile({...profile, name: e.target.value})} 
-          style={inputStyle}
-        />
-      </div>
-
-      <div style={sectionStyle}>
-        <h3>Skills (0-10)</h3>
-        {ABILITY_LABELS.map((label, i) => (
-          <div key={label} style={{ marginBottom: "18px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>{label}</span>
-              <b>{profile.abilities[i]}</b>
-            </div>
-            <input 
-              type="range" min="0" max="10" 
-              value={profile.abilities[i]} 
-              onChange={e => {
-                const newAbilities = [...profile.abilities];
-                newAbilities[i] = parseInt(e.target.value);
-                setProfile({...profile, abilities: newAbilities});
-              }}
-              style={{ width: "100%" }}
+      <div style={{ display: "flex", gap: 40, marginTop: 30, flexWrap: "wrap" }}>
+        
+        {/* Formular-Spalte */}
+        <div style={{ flex: "1 1 400px" }}>
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: "block", fontWeight: "bold", marginBottom: 5 }}>Name:</label>
+            <input
+              style={{ width: '100%', padding: 10, borderRadius: 4, border: "1px solid #ccc", boxSizing: "border-box", color: "black" }}
+              value={profile.name || ""}
+              onChange={(e) => setProfile({ ...profile, name: e.target.value })}
             />
           </div>
-        ))}
-      </div>
 
-      <div style={sectionStyle}>
-        <h3>Bester Onsight Grad</h3>
-        <div style={{ fontSize: "2rem", fontWeight: "bold", textAlign: "center", color: "#28a745" }}>
-           {GRADES[profile.styles[0]] || "1a"}
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: "block", fontWeight: "bold", marginBottom: 5 }}>Notizen & Ziele:</label>
+            <textarea
+              style={{ width: '100%', height: 80, padding: 10, borderRadius: 4, border: "1px solid #ccc", boxSizing: "border-box", color: "black" }}
+              value={profile.notes || ""}
+              onChange={(e) => setProfile({ ...profile, notes: e.target.value })}
+            />
+          </div>
+
+          <div style={{ backgroundColor: "#fff", padding: 15, borderRadius: 8, border: "1px solid #ddd", marginBottom: 25 }}>
+            <h3 style={{ marginTop: 0 }}>Profilfoto</h3>
+            <input type="file" accept="image/*" onChange={handleImageUpload} disabled={saving} />
+            {profile.image_url && (
+              <div style={{ marginTop: 15 }}>
+                <img src={profile.image_url} alt="Vorschau" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8, border: "2px solid #ddd" }} />
+              </div>
+            )}
+          </div>
+
+          <h3>Fähigkeiten (Level 0-24)</h3>
+          {abilityLabels.map((lab, i) => (
+            <div key={lab} style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
+                <span>{lab}</span>
+                <span style={{ fontWeight: "bold", color: "#007bff" }}>Level {safeAbilities[i]}</span>
+              </div>
+              <input type="range" min="0" max="24" step="1" style={{ width: "100%" }}
+                value={safeAbilities[i]}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  const a = [...safeAbilities];
+                  a[i] = v;
+                  setProfile({ ...profile, abilities: a });
+                }}
+              />
+            </div>
+          ))}
+
+          <h3 style={{ marginTop: 30 }}>Stile (Grad)</h3>
+          {styleLabels.map((lab, i) => (
+            <div key={lab} style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
+                <span>{lab}</span>
+                <span style={{ fontWeight: "bold", color: "#28a745" }}>{GRADES[safeStyles[i]] || "1a"}</span>
+              </div>
+              <input type="range" min="0" max={GRADES.length - 1} step="1" style={{ width: "100%" }}
+                value={safeStyles[i]}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10);
+                  const s = [...safeStyles];
+                  s[i] = v;
+                  setProfile({ ...profile, styles: s });
+                }}
+              />
+            </div>
+          ))}
+
+          <div style={{ marginTop: 40, paddingBottom: 100 }}>
+            <button 
+              onClick={handleSave} 
+              disabled={saving}
+              style={{ backgroundColor: '#28a745', color: 'white', padding: '15px 30px', border: 'none', borderRadius: 6, cursor: 'pointer', width: '100%', fontWeight: "bold", fontSize: "1rem" }}
+            >
+              {saving ? "Wird gespeichert..." : "Profil speichern"}
+            </button>
+          </div>
         </div>
-        <input 
-          type="range" min="0" max="24" 
-          value={profile.styles[0]} 
-          onChange={e => {
-            setProfile({...profile, styles: [parseInt(e.target.value)]});
-          }}
-          style={{ width: "100%" }}
-        />
-      </div>
 
-      <button onClick={handleSave} style={saveBtnStyle} disabled={uploading}>
-        {uploading ? "Wird geladen..." : "Änderungen speichern"}
-      </button>
-    </div>
+        {/* Chart-Spalte: Behält beide einzelnen Grafiken bei */}
+        <div style={{ flex: "0 0 400px", display: "flex", flexDirection: "column", gap: 30 }}>
+          <div style={{ position: "relative", width: "400px", height: "350px", border: "1px solid #eee", borderRadius: 8, padding: 10, backgroundColor: "white" }}>
+            <RadarChart 
+              labels={abilityLabels} 
+              dataSets={[{ 
+                label: "Fähigkeiten", 
+                data: safeAbilities, 
+                backgroundColor: "rgba(54,162,235,0.2)",
+                borderColor: "rgba(54,162,235,1)"
+              }]} 
+            />
+          </div>
+
+          <div style={{ position: "relative", width: "400px", height: "350px", border: "1px solid #eee", borderRadius: 8, padding: 10, backgroundColor: "white" }}>
+            <RadarChart 
+              labels={styleLabels} 
+              dataSets={[{ 
+                label: "Stile", 
+                data: safeStyles, 
+                backgroundColor: "rgba(40,167,69,0.2)",
+                borderColor: "rgba(40,167,69,1)"
+              }]} 
+            />
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }
-
-// Styles
-const sectionStyle = { backgroundColor: "#fff", padding: "20px", borderRadius: "15px", marginBottom: "20px", border: "1px solid #eee" };
-const backBtnStyle = { background: "none", border: "none", color: "#666", cursor: "pointer", marginBottom: "10px" };
-const inputStyle = { width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ddd" };
-const saveBtnStyle = { position: "fixed", bottom: "20px", left: "50%", transform: "translateX(-50%)", width: "calc(100% - 40px)", maxWidth: "560px", padding: "16px", backgroundColor: "#007bff", color: "white", border: "none", borderRadius: "12px", fontSize: "1.1rem", fontWeight: "bold", cursor: "pointer" };
-const avatarPreviewStyle = { width: "70px", height: "70px", borderRadius: "50%", backgroundColor: "#f0f0f0", overflow: "hidden", border: "2px solid #eee", display: "flex", justifyContent: "center", alignItems: "center" };
-const imgStyle = { width: "100%", height: "100%", objectFit: "cover" };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import RadarChart from "./RadarChart";
+import RadarChart from "../charts/RadarChart";
 import CombinedRadar from "./CombinedRadar";
 
 

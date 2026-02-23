@@ -1,41 +1,47 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import RadarChart from "@components/RadarChart";
-import { supabaseBrowser } from "@lib/supabase-browser";
+import RadarChart from "@/components/charts/RadarChart";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+
+// Deine definierten Grade
+const GRADES = [
+  "1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", 
+  "4a", "4b", "4c", "5a", "5b", "5c", "6a", "6b", "6c", 
+  "7a", "7b", "7c", "8a", "8b", "8c", "9a"
+];
 
 const abilityLabels = ["Kraft", "Beweglichkeit", "Mentalität", "Explosivität", "Körperspannung"];
 const styleLabels = ["Crimper", "Sloper", "Slab", "Dyno", "Pocket"];
 
 export default function AdminPage() {
-  const [session, setSession] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [selected, setSelected] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
-  // 1. Auth-Check
+  // 1. Profile laden
   useEffect(() => {
-    const { data: { subscription } } = supabaseBrowser.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-    });
-    supabaseBrowser.auth.getSession().then(({ data }) => setSession(data?.session ?? null));
-    return () => subscription?.unsubscribe?.();
-  }, []);
-
-  // 2. Profile laden
-  useEffect(() => {
-    fetch("/api/profiles")
-      .then((r) => r.json())
-      .then((d) => {
+    const loadProfiles = async () => {
+      try {
+        const r = await fetch("/api/profiles");
+        const d = await r.json();
         const arr = Array.isArray(d) ? d : [];
         setProfiles(arr);
-        if (arr.length > 0) setSelectedId((prev) => prev ?? arr[0].id);
-      })
-      .catch((e) => console.error("Failed to load profiles:", e));
+        if (arr.length > 0) setSelectedId(arr[0].id);
+      } catch (e) {
+        console.error("Failed to load profiles:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadProfiles();
   }, []);
 
-  // 3. Auswahl synchronisieren
+  // 2. Auswahl synchronisieren
   useEffect(() => {
     if (!selectedId) {
       setSelected(null);
@@ -45,17 +51,12 @@ export default function AdminPage() {
     if (p) setSelected({ ...p });
   }, [selectedId, profiles]);
 
-  const signIn = async (email, password) => {
-    const { error } = await supabaseBrowser.auth.signInWithPassword({ email, password });
-    if (error) alert("Login failed: " + error.message);
-  };
-
   const signOut = async () => {
     await supabaseBrowser.auth.signOut();
-    setSession(null);
+    router.push("/login");
+    router.refresh();
   };
 
-  // 4. Foto-Upload Logik
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file || !selected) return;
@@ -63,18 +64,17 @@ export default function AdminPage() {
     setSaving(true);
     const fileExt = file.name.split('.').pop();
     const fileName = `${selected.id}-${Date.now()}.${fileExt}`;
-    const filePath = fileName; // Speichert direkt im Bucket "profiles"
 
     try {
       const { error: uploadError } = await supabaseBrowser.storage
         .from('profiles')
-        .upload(filePath, file);
+        .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
-      const { data } = supabaseBrowser.storage.from('profiles').getPublicUrl(filePath);
+      const { data } = supabaseBrowser.storage.from('profiles').getPublicUrl(fileName);
       setSelected({ ...selected, image_url: data.publicUrl });
-      alert("Bild erfolgreich hochgeladen! Jetzt noch 'Speichern' klicken.");
+      alert("Bild hochgeladen! Bitte 'Speichern' klicken.");
     } catch (err) {
       alert("Upload-Fehler: " + err.message);
     } finally {
@@ -82,20 +82,13 @@ export default function AdminPage() {
     }
   };
 
-  // 5. Daten speichern
   const handleSave = async () => {
     if (!selected) return alert("Kein Profil ausgewählt");
     setSaving(true);
     try {
-      const { data: sessionData } = await supabaseBrowser.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      
       const res = await fetch("/api/profiles", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(selected),
       });
 
@@ -105,7 +98,9 @@ export default function AdminPage() {
       }
 
       alert("Gespeichert!");
-      window.location.reload(); 
+      const r = await fetch("/api/profiles");
+      const d = await r.json();
+      setProfiles(d);
     } catch (err) {
       alert("Fehler beim Speichern: " + err.message);
     } finally {
@@ -113,13 +108,20 @@ export default function AdminPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!id || !confirm("Willst du dieses Profil wirklich löschen?")) return;
+  const handleDelete = async (profile) => {
+    if (!profile.id) return alert("Dieses Profil hat keine gültige ID.");
+    if (!confirm(`Willst du das Profil von ${profile.name} wirklich löschen?`)) return;
+    
     try {
-      const res = await fetch(`/api/profiles?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/profiles?id=${profile.id}`, { method: "DELETE" });
       if (res.ok) {
         alert("Gelöscht!");
-        window.location.reload();
+        const updatedList = profiles.filter(p => p.id !== profile.id);
+        setProfiles(updatedList);
+        setSelectedId(updatedList.length > 0 ? updatedList[0].id : null);
+      } else {
+        const errData = await res.json();
+        throw new Error(errData.error || "Löschen fehlgeschlagen");
       }
     } catch (error) {
       alert("Fehler: " + error.message);
@@ -128,57 +130,57 @@ export default function AdminPage() {
 
   const handleNew = () => {
     const id = crypto.randomUUID();
-    const newP = { id, name: "", notes: "", abilities: [0, 0, 0, 0, 0], styles: [0, 0, 0, 0, 0], image_url: "" };
+    const newP = { 
+      id, 
+      user_id: null, 
+      name: "Neuer Kletterer", 
+      notes: "", 
+      abilities: [12, 12, 12, 12, 12], // Startet bei Level 12 (Mitte)
+      styles: [12, 12, 12, 12, 12],    // Startet bei 5a (Index 12)
+      image_url: "" 
+    };
     setProfiles((prev) => [...prev, newP]);
     setSelectedId(id);
     setSelected(newP);
   };
 
-  if (!session) {
-    return (
-      <main style={{ padding: 20 }}>
-        <h1>Admin Login</h1>
-        <LoginForm onSubmit={signIn} />
-      </main>
-    );
-  }
+  if (isLoading) return <div className="p-10 text-center">Lade Admin-Panel...</div>;
 
-  const safeAbilities = selected?.abilities ?? [0, 0, 0, 0, 0];
-  const safeStyles = selected?.styles ?? [0, 0, 0, 0, 0];
+  const safeAbilities = selected?.abilities ?? [12, 12, 12, 12, 12];
+  const safeStyles = selected?.styles ?? [12, 12, 12, 12, 12];
 
   return (
-    <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif" }}>
+    <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", color: "#333" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #ccc", paddingBottom: 10 }}>
-        <h1>Admin Panel</h1>
+        <h1 style={{ margin: 0 }}>🧗 Admin Panel</h1>
         <div>
-          <button onClick={() => window.location.href = "/"} style={{ marginRight: 10, padding: "5px 10px", cursor: "pointer" }}>← Zur Website</button>
-          <button onClick={signOut} style={{ padding: "5px 10px", cursor: "pointer", backgroundColor: "#eee", border: "1px solid #ccc" }}>Abmelden</button>
+          <button onClick={() => router.push("/")} style={{ marginRight: 10, padding: "8px 15px", cursor: "pointer", borderRadius: 4, border: "1px solid #ccc", backgroundColor: "white", color: "black" }}>← Zur Website</button>
+          <button onClick={signOut} style={{ padding: "8px 15px", cursor: "pointer", backgroundColor: "#ff4d4d", color: "white", border: "none", borderRadius: 4, fontWeight: "bold" }}>Abmelden</button>
         </div>
       </div>
 
-      <div style={{ marginTop: 20, backgroundColor: "#f4f4f4", padding: 15, borderRadius: 8 }}>
-        <label><strong>Profil wählen:</strong> </label>
-        <select value={selectedId || ""} onChange={(e) => setSelectedId(e.target.value)} style={{ padding: 5 }}>
+      <div style={{ marginTop: 20, backgroundColor: "#f4f4f4", padding: 15, borderRadius: 8, display: "flex", alignItems: "center", gap: 15 }}>
+        <label><strong>Profil bearbeiten:</strong> </label>
+        <select value={selectedId || ""} onChange={(e) => setSelectedId(e.target.value)} style={{ padding: "8px", borderRadius: 4, border: "1px solid #ccc", minWidth: "200px", color: "black" }}>
           <option value="" disabled>-- wählen --</option>
           {profiles.map((p) => (
             <option key={p.id} value={p.id}>{p.name || "(Unbenannt)"}</option>
           ))}
         </select>
-        <button onClick={handleNew} style={{ marginLeft: 10, padding: "5px 10px", cursor: "pointer", backgroundColor: "#007bff", color: "white", border: "none", borderRadius: 4 }}>+ Neues Profil</button>
+        <button onClick={handleNew} style={{ padding: "8px 15px", cursor: "pointer", backgroundColor: "#007bff", color: "white", border: "none", borderRadius: 4, fontWeight: "bold" }}>+ Neu</button>
       </div>
 
       {!selected ? (
-        <p style={{ marginTop: 40, textAlign: "center", color: "#666" }}>Bitte ein Profil auswählen oder neu erstellen.</p>
+        <p style={{ marginTop: 40, textAlign: "center", color: "#666" }}>Bitte ein Profil auswählen oder links auf "Neu" klicken.</p>
       ) : (
         <div style={{ display: "flex", gap: 40, marginTop: 30, flexWrap: "wrap" }}>
           
-          {/* Formular-Spalte */}
           <div style={{ flex: "1 1 400px" }}>
             <div style={{ marginBottom: 20 }}>
                 <label style={{ display: "block", fontWeight: "bold", marginBottom: 5 }}>Name:</label>
                 <input
-                  style={{ width: '100%', padding: 10, borderRadius: 4, border: "1px solid #ccc" }}
-                  value={selected.name}
+                  style={{ width: '100%', padding: 10, borderRadius: 4, border: "1px solid #ccc", boxSizing: "border-box", color: "black" }}
+                  value={selected.name || ""}
                   onChange={(e) => setSelected((s) => ({ ...s, name: e.target.value }))}
                 />
             </div>
@@ -186,8 +188,8 @@ export default function AdminPage() {
             <div style={{ marginBottom: 20 }}>
                 <label style={{ display: "block", fontWeight: "bold", marginBottom: 5 }}>Notizen:</label>
                 <textarea
-                  style={{ width: '100%', height: 80, padding: 10, borderRadius: 4, border: "1px solid #ccc" }}
-                  value={selected.notes}
+                  style={{ width: '100%', height: 80, padding: 10, borderRadius: 4, border: "1px solid #ccc", boxSizing: "border-box", color: "black" }}
+                  value={selected.notes || ""}
                   onChange={(e) => setSelected((s) => ({ ...s, notes: e.target.value }))}
                 />
             </div>
@@ -202,14 +204,14 @@ export default function AdminPage() {
               )}
             </div>
 
-            <h3>Fähigkeiten</h3>
+            <h3>Fähigkeiten (Level 0-24)</h3>
             {abilityLabels.map((lab, i) => (
               <div key={lab} style={{ marginBottom: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
                     <span>{lab}</span>
-                    <span style={{ fontWeight: "bold" }}>{safeAbilities[i]}</span>
+                    <span style={{ fontWeight: "bold", color: "#007bff" }}>Level {safeAbilities[i]}</span>
                 </div>
-                <input type="range" min="0" max="10" step="1" style={{ width: "100%" }}
+                <input type="range" min="0" max="24" step="1" style={{ width: "100%" }}
                   value={safeAbilities[i]}
                   onChange={(e) => {
                     const v = parseInt(e.target.value, 10);
@@ -221,14 +223,14 @@ export default function AdminPage() {
               </div>
             ))}
 
-            <h3>Stile</h3>
+            <h3 style={{ marginTop: 30 }}>Stile (Grad)</h3>
             {styleLabels.map((lab, i) => (
               <div key={lab} style={{ marginBottom: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
                     <span>{lab}</span>
-                    <span style={{ fontWeight: "bold" }}>{safeStyles[i]}</span>
+                    <span style={{ fontWeight: "bold", color: "#28a745" }}>{GRADES[safeStyles[i]] || "1a"}</span>
                 </div>
-                <input type="range" min="0" max="10" step="1" style={{ width: "100%" }}
+                <input type="range" min="0" max={GRADES.length - 1} step="1" style={{ width: "100%" }}
                   value={safeStyles[i]}
                   onChange={(e) => {
                     const v = parseInt(e.target.value, 10);
@@ -246,11 +248,11 @@ export default function AdminPage() {
                 disabled={saving}
                 style={{ backgroundColor: '#28a745', color: 'white', padding: '15px 30px', border: 'none', borderRadius: 6, cursor: 'pointer', flex: 2, fontWeight: "bold", fontSize: "1rem" }}
               >
-                {saving ? "Wird verarbeitet..." : "Profil & Foto Speichern"}
+                {saving ? "Wird gespeichert..." : "Änderungen speichern"}
               </button>
               
               <button 
-                onClick={() => handleDelete(selected.id)}
+                onClick={() => handleDelete(selected)}
                 style={{ backgroundColor: 'white', color: '#dc3545', padding: '15px 20px', border: '1px solid #dc3545', borderRadius: 6, cursor: 'pointer', fontWeight: "bold" }}
               >
                 Löschen
@@ -258,7 +260,6 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Diagramm-Spalte */}
           <div style={{ flex: "0 0 400px", display: "flex", flexDirection: "column", gap: 30 }}>
               <div style={{ position: "relative", width: "400px", height: "350px", border: "1px solid #eee", borderRadius: 8, padding: 10, backgroundColor: "white" }}>
                 <RadarChart 
@@ -278,27 +279,14 @@ export default function AdminPage() {
                     dataSets={[{ 
                         label: "Stile", 
                         data: safeStyles, 
-                        backgroundColor: "rgba(255,159,64,0.2)",
-                        borderColor: "rgba(255,159,64,1)"
+                        backgroundColor: "rgba(40,167,69,0.2)",
+                        borderColor: "rgba(40,167,69,1)"
                     }]} 
                 />
               </div>
           </div>
-
         </div>
       )}
     </main>
-  );
-}
-
-function LoginForm({ onSubmit }) {
-  const [email, setEmail] = useState("");
-  const [pw, setPw] = useState("");
-  return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit(email, pw); }} style={{ maxWidth: 300, display: "flex", flexDirection: "column", gap: 10, marginTop: 20 }}>
-      <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ padding: 10, borderRadius: 4, border: "1px solid #ccc" }} />
-      <input placeholder="Passwort" type="password" value={pw} onChange={(e) => setPw(e.target.value)} style={{ padding: 10, borderRadius: 4, border: "1px solid #ccc" }} />
-      <button type="submit" style={{ padding: 12, backgroundColor: "#007bff", color: "white", border: "none", borderRadius: 4, cursor: "pointer", fontWeight: "bold" }}>Login</button>
-    </form>
   );
 }
