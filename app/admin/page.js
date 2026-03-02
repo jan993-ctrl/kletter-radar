@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import RadarChart from "@/components/charts/RadarChart";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 // Deine definierten Grade
 const GRADES = [
@@ -171,7 +172,7 @@ export default function AdminPage() {
       </div>
 
       {!selected ? (
-        <p style={{ marginTop: 40, textAlign: "center", color: "#666" }}>Bitte ein Profil auswählen oder links auf "Neu" klicken.</p>
+        <p style={{ marginTop: 40, textAlign: "center", color: "#666" }}>Bitte ein Profil auswählen oder links auf &quot;Neu&quot; klicken.</p>
       ) : (
         <div style={{ display: "flex", gap: 40, marginTop: 30, flexWrap: "wrap" }}>
           
@@ -199,7 +200,7 @@ export default function AdminPage() {
               <input type="file" accept="image/*" onChange={handleImageUpload} disabled={saving} />
               {selected.image_url && (
                 <div style={{ marginTop: 15 }}>
-                  <img src={selected.image_url} alt="Vorschau" style={{ width: 120, height: 120, objectFit: 'cover', borderRadius: 8, border: "2px solid #ddd" }} />
+                  <Image src={selected.image_url} alt="Vorschau" width={120} height={120} style={{ objectFit: 'cover', borderRadius: 8, border: "2px solid #ddd" }} />
                 </div>
               )}
             </div>
