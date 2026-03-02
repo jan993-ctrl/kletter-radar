@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { createClient, supabaseAdmin } from "@/lib/supabase/server";
+import { createClient, getSupabaseAdmin } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getSupabaseAdmin()
       .from("profiles")
       .select("*")
       .order("name", { ascending: true });
@@ -53,7 +53,7 @@ export async function POST(req) {
       upsertData.user_id = user.id;
     }
 
-    const { data, error: upsertErr } = await supabaseAdmin
+    const { data, error: upsertErr } = await getSupabaseAdmin()
       .from("profiles")
       .upsert(upsertData, { 
         onConflict: isAdmin ? 'id' : 'user_id' 
@@ -81,7 +81,7 @@ export async function DELETE(request) {
       return NextResponse.json({ error: "Nur Admins dürfen löschen" }, { status: 403 });
     }
 
-    const { error } = await supabaseAdmin.from("profiles").delete().eq("id", id);
+    const { error } = await getSupabaseAdmin().from("profiles").delete().eq("id", id);
     if (error) throw error;
     return NextResponse.json({ message: "Gelöscht" });
   } catch (err) {
