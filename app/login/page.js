@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -8,17 +8,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [isChecking, setIsChecking] = useState(true);
+  const isChecking = false;
   const router = useRouter();
 
   const ADMIN_EMAIL = "janstoll1993@googlemail.com";
-
-  useEffect(() => {
-    // Wir lassen die Seite einfach nur laden. 
-    // Wenn die Middleware (Server) entscheiden sollte, dass du weg musst, 
-    // macht sie das von alleine. Wir funken hier nicht dazwischen.
-    setIsChecking(false);
-  }, []);
 
   const handleSignIn = async (e) => {
     if (e) {
