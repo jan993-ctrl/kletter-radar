@@ -238,7 +238,6 @@ const styleItem = { display: "flex", flexDirection: "column" };
 const styleLabelText = { fontSize: "0.65rem", color: "#bbb", textTransform: "uppercase", fontWeight: "bold", marginBottom: "2px" };
 const styleValueText = { fontSize: "1.2rem", fontWeight: "900" };
 
-// SPEZIELLE RÜCKSEITEN-STYLES
 const chartWrapperStyle = { 
   margin: "10px 0", 
   padding: "10px", 
