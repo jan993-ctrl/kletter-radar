@@ -171,7 +171,7 @@ export default function AdminPage() {
       </div>
 
       {!selected ? (
-        <p style={{ marginTop: 40, textAlign: "center", color: "#666" }}>Bitte ein Profil auswählen oder links auf "Neu" klicken.</p>
+        <p style={{ marginTop: 40, textAlign: "center", color: "#666" }}>Bitte ein Profil auswählen oder links auf &quot;Neu&quot; klicken.</p>
       ) : (
         <div style={{ display: "flex", gap: 40, marginTop: 30, flexWrap: "wrap" }}>
           
