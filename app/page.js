@@ -98,6 +98,8 @@ export default function Frontpage() {
             
             const cardId = c.user_id || c.id || index;
             const isFlipped = !!flippedCards[cardId];
+            const avatarSrc = c.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || 'User')}&background=random&size=300`;
+            const isFallbackAvatar = !c.image_url;
 
             return (
               <div 
@@ -116,11 +118,12 @@ export default function Frontpage() {
                     
                     <div style={imgContainerStyle}>
                       <Image
-                        src={c.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || 'User')}&background=random&size=300`}
+                        src={avatarSrc}
                         style={imgStyle}
                         alt={c.name || "Kletter-Gast"}
                         fill
                         sizes="(max-width: 768px) 100vw, 33vw"
+                        unoptimized={isFallbackAvatar}
                       />
                     </div>
                     
@@ -235,7 +238,6 @@ const styleItem = { display: "flex", flexDirection: "column" };
 const styleLabelText = { fontSize: "0.65rem", color: "#bbb", textTransform: "uppercase", fontWeight: "bold", marginBottom: "2px" };
 const styleValueText = { fontSize: "1.2rem", fontWeight: "900" };
 
-// SPEZIELLE RÜCKSEITEN-STYLES
 const chartWrapperStyle = { 
   margin: "10px 0", 
   padding: "10px", 
