@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import Link from "next/link";
 import CombinedRadar from "@/components/charts/CombinedRadar";
+import Image from "next/image";
 
 const GRADES = [
   "1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", 
@@ -114,10 +115,12 @@ export default function Frontpage() {
                     <div style={rankBadgeStyle}>#{index + 1}</div>
                     
                     <div style={imgContainerStyle}>
-                      <img 
-                        src={c.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || 'User')}&background=random&size=300`} 
-                        style={imgStyle} 
-                        alt={c.name} 
+                      <Image
+                        src={c.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || 'User')}&background=random&size=300`}
+                        style={imgStyle}
+                        alt={c.name || "Kletter-Gast"}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 33vw"
                       />
                     </div>
                     
@@ -220,7 +223,7 @@ const cardFrontStyle = { ...baseFaceStyle };
 const cardBackStyle = { ...baseFaceStyle, transform: "rotateY(180deg)", backgroundColor: "#fff" };
 
 const rankBadgeStyle = { position: "absolute", top: "15px", left: "15px", backgroundColor: "rgba(0,0,0,0.8)", color: "white", padding: "6px 12px", borderRadius: "12px", fontSize: "0.9rem", fontWeight: "bold", zIndex: 10 };
-const imgContainerStyle = { height: "210px", width: "100%", backgroundColor: "#e9ecef" };
+const imgContainerStyle = { height: "210px", width: "100%", backgroundColor: "#e9ecef", position: "relative" };
 const imgStyle = { width: "100%", height: "100%", objectFit: "cover" };
 const nameStyle = { margin: "0", fontSize: "1.4rem", color: "#1a1a1a", fontWeight: "800", letterSpacing: "-0.5px" };
 const powerBadge = { display: "flex", flexDirection: "column", alignItems: "center", backgroundColor: "#1a1a1a", color: "#fff", padding: "8px", borderRadius: "16px", minWidth: "60px", lineHeight: "1" };
