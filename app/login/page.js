@@ -18,14 +18,14 @@ export default function LoginPage() {
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     setLoading(true);
-    setMessage(""); 
-    
+    setMessage("");
+
     try {
-      const { data, error } = await supabaseBrowser.auth.signInWithPassword({ 
-        email: email.trim(), 
-        password 
+      const { data, error } = await supabaseBrowser.auth.signInWithPassword({
+        email: email.trim(),
+        password,
       });
 
       if (error) {
@@ -35,16 +35,16 @@ export default function LoginPage() {
       } else if (data?.user) {
         console.log("Login erfolgreich, synchronisiere...");
         setMessage("Erfolgreich! Leite weiter...");
-        
+
         // Refresh löscht den alten Cache
-        router.refresh(); 
+        router.refresh();
 
         // Wir warten 600ms, damit der Cookie sicher im Browser-Speicher landet
         setTimeout(() => {
           const target = data.user.email === ADMIN_EMAIL ? "/admin" : "/profile";
-          
+
           // REPLACE ist hier der Schlüssel. Es verhindert das Zurückspringen.
-          window.location.replace(target); 
+          window.location.replace(target);
         }, 600);
       }
     } catch (err) {
@@ -60,11 +60,11 @@ export default function LoginPage() {
     const { error } = await supabaseBrowser.auth.signUp({
       email: email.trim(),
       password,
-      options: { 
-        emailRedirectTo: `${window.location.origin}/auth/callback` 
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
-    
+
     if (error) {
       setMessage("Fehler: " + error.message);
     } else {
@@ -131,12 +131,55 @@ export default function LoginPage() {
           </button>
         </div>
       </div>
-      
-      {message && (
-        <div className={`text-sm p-3 rounded mt-2 ${message.includes("Fehler") ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
-          {message}
+
+      <div className="flex flex-col gap-4 max-w-md mx-auto mt-20 p-6 border rounded shadow bg-white text-black">
+        <h1 className="text-2xl font-bold mb-2 text-black">🧗 Kletter-Quartett</h1>
+        <p className="text-sm text-gray-600 mb-4">Melde dich an, um dein Profil zu verwalten.</p>
+
+        <div className="flex flex-col gap-4">
+          <input
+            type="email"
+            placeholder="E-Mail"
+            className="p-2 border rounded bg-gray-50 text-black outline-none focus:border-blue-500"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+          />
+          <input
+            type="password"
+            placeholder="Passwort"
+            className="p-2 border rounded bg-gray-50 text-black outline-none focus:border-blue-500"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+          />
+
+          <div className="flex gap-2 mt-2">
+            <button
+              type="button"
+              onClick={handleSignIn}
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded flex-1 font-medium disabled:opacity-50 transition-all"
+            >
+              {loading ? "Lädt..." : "Login"}
+            </button>
+            <button
+              type="button"
+              onClick={handleSignUp}
+              disabled={loading}
+              className="bg-green-600 hover:bg-green-700 text-white p-2 rounded flex-1 font-medium disabled:opacity-50 transition-all"
+            >
+              Registrieren
+            </button>
+          </div>
         </div>
-      )}
-    </div>
+
+        {message && (
+          <div className={`text-sm p-3 rounded mt-2 ${message.includes("Fehler") ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
+            {message}
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
