@@ -170,12 +170,12 @@ export default function ProfilePage() {
   const safeStyles = normalizeStyles(profile.styles);
 
   return (
-    <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", color: "#333" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #ccc", paddingBottom: 10 }}>
+    <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "Inter, sans-serif", color: "#f4f4f5", backgroundColor: "#09090b", minHeight: "100vh" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #3f3f46", paddingBottom: 10 }}>
         <h1 style={{ margin: 0 }}>👤 Mein Profil</h1>
         <div>
-          <button onClick={() => router.push("/")} style={{ marginRight: 10, padding: "8px 15px", cursor: "pointer", borderRadius: 4, border: "1px solid #ccc", backgroundColor: "white", color: "black" }}>← Zur Website</button>
-          <button onClick={signOut} style={{ padding: "8px 15px", cursor: "pointer", backgroundColor: "#ff4d4d", color: "white", border: "none", borderRadius: 4, fontWeight: "bold" }}>Abmelden</button>
+          <button onClick={() => router.push("/")} style={{ marginRight: 10, padding: "8px 15px", cursor: "pointer", borderRadius: 999, border: "1px solid #3f3f46", backgroundColor: "#18181b", color: "#f4f4f5" }}>← Zur Website</button>
+          <button onClick={signOut} style={{ padding: "8px 15px", cursor: "pointer", backgroundColor: "#3f3f46", color: "#f4f4f5", border: "1px solid #52525b", borderRadius: 999, fontWeight: "bold" }}>Abmelden</button>
         </div>
       </div>
 
@@ -194,7 +194,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Körperdaten Sektion */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: 25, backgroundColor: "#f8f9fa", padding: "15px", borderRadius: "8px", border: "1px solid #eee" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: 25, backgroundColor: "#18181b", padding: "15px", borderRadius: "12px", border: "1px solid #3f3f46" }}>
             <div>
               <label style={smallLabel}>Gewicht (kg)</label>
               <input type="number" style={inputStyle} value={profile.weight || ""} onChange={(e) => setProfile({...profile, weight: parseFloat(e.target.value) || 0})} />
@@ -209,9 +209,9 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <h3>Körperliche Eigenschaften (Level 0-24)</h3>
+          <h3 style={{ color: "#fafafa" }}>Körperliche Eigenschaften (Level 0-24)</h3>
           {ABILITY_CONFIG.map((cfg, i) => (
-            <div key={cfg.label} style={{ marginBottom: 18, padding: "10px", borderRadius: "8px", backgroundColor: expandedKey === cfg.key ? "#f0f7ff" : "transparent" }}>
+            <div key={cfg.label} style={{ marginBottom: 18, padding: "12px", borderRadius: "12px", backgroundColor: expandedKey === cfg.key ? "#18181b" : "#111114", border: "1px solid #27272a" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                 <div>
                   <span style={{ fontWeight: "bold", display: "block" }}>{cfg.label}</span>
@@ -222,7 +222,7 @@ export default function ProfilePage() {
                     </button>
                   )}
                 </div>
-                <span style={{ fontWeight: "bold", color: "#007bff" }}>Level {safeAbilities[i]}</span>
+                <span style={{ fontWeight: "bold", color: "#34d399" }}>Level {safeAbilities[i]}</span>
               </div>
 
               {expandedKey === "kraft" && cfg.key === "kraft" ? (
@@ -252,12 +252,12 @@ export default function ProfilePage() {
             </div>
           ))}
 
-          <h3 style={{ marginTop: 30 }}>Stile (Grad)</h3>
+          <h3 style={{ marginTop: 30, color: "#fafafa" }}>Stile (Grad)</h3>
           {STYLE_LABELS.map((lab, i) => (
             <div key={lab} style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
                 <span>{lab}</span>
-                <span style={{ fontWeight: "bold", color: "#28a745" }}>{GRADES[safeStyles[i]] || "1a"}</span>
+                <span style={{ fontWeight: "bold", color: "#f59e0b" }}>{GRADES[safeStyles[i]] || "1a"}</span>
               </div>
               <input type="range" min="0" max={GRADES.length - 1} step="1" style={{ width: "100%" }}
                 value={safeStyles[i]}
@@ -274,13 +274,13 @@ export default function ProfilePage() {
           <div style={{ marginBottom: 20, marginTop: 30 }}>
             <label style={{ display: "block", fontWeight: "bold", marginBottom: 5 }}>Notizen & Ziele:</label>
             <textarea
-              style={{ width: '100%', height: 80, padding: 10, borderRadius: 4, border: "1px solid #ccc", boxSizing: "border-box", color: "black" }}
+              style={{ width: '100%', height: 80, padding: 10, borderRadius: 10, border: "1px solid #3f3f46", boxSizing: "border-box", color: "#f4f4f5", backgroundColor: "#18181b" }}
               value={profile.notes || ""}
               onChange={(e) => setProfile({ ...profile, notes: e.target.value })}
             />
           </div>
 
-          <div style={{ backgroundColor: "#fff", padding: 15, borderRadius: 8, border: "1px solid #ddd", marginBottom: 25 }}>
+          <div style={{ backgroundColor: "#18181b", padding: 15, borderRadius: 12, border: "1px solid #3f3f46", marginBottom: 25 }}>
             <h3 style={{ marginTop: 0 }}>Profilfoto</h3>
             <input type="file" accept="image/*" onChange={handleImageUpload} disabled={saving} />
             {profile.image_url && (
@@ -294,7 +294,7 @@ export default function ProfilePage() {
             <button 
               onClick={handleSave} 
               disabled={saving}
-              style={{ backgroundColor: '#28a745', color: 'white', padding: '15px 30px', border: 'none', borderRadius: 6, cursor: 'pointer', width: '100%', fontWeight: "bold", fontSize: "1rem" }}
+              style={{ backgroundColor: '#10b981', color: '#052e16', padding: '15px 30px', border: 'none', borderRadius: 10, cursor: 'pointer', width: '100%', fontWeight: "bold", fontSize: "1rem" }}
             >
               {saving ? "Wird gespeichert..." : "Profil speichern"}
             </button>
@@ -333,8 +333,8 @@ export default function ProfilePage() {
 }
 
 // Interne Styles für bessere Übersicht
-const inputStyle = { width: '100%', padding: 10, borderRadius: 4, border: "1px solid #ccc", boxSizing: "border-box", color: "black", marginTop: "5px" };
-const smallLabel = { fontSize: "0.75rem", fontWeight: "bold", color: "#666" };
-const detailBtnStyle = { display: "block", marginTop: "5px", background: "none", border: "1px solid #007bff", color: "#007bff", cursor: "pointer", fontSize: "0.7rem", borderRadius: "4px", padding: "2px 6px" };
-const detailBoxStyle = { marginTop: "15px", padding: "15px", backgroundColor: "white", borderRadius: "8px", border: "1px solid #d0e7ff", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" };
-const chartBoxStyle = { position: "relative", width: "400px", height: "350px", border: "1px solid #eee", borderRadius: 8, padding: 10, backgroundColor: "white" };
+const inputStyle = { width: '100%', padding: 10, borderRadius: 10, border: "1px solid #3f3f46", boxSizing: "border-box", color: "#f4f4f5", backgroundColor: "#18181b", marginTop: "5px" };
+const smallLabel = { fontSize: "0.75rem", fontWeight: "bold", color: "#a1a1aa" };
+const detailBtnStyle = { display: "block", marginTop: "5px", background: "#18181b", border: "1px solid #34d399", color: "#34d399", cursor: "pointer", fontSize: "0.7rem", borderRadius: "8px", padding: "4px 8px" };
+const detailBoxStyle = { marginTop: "15px", padding: "15px", backgroundColor: "#18181b", borderRadius: "12px", border: "1px solid #3f3f46", boxShadow: "0 10px 24px rgba(0,0,0,0.25)" };
+const chartBoxStyle = { position: "relative", width: "400px", height: "350px", border: "1px solid #3f3f46", borderRadius: 12, padding: 10, backgroundColor: "#18181b" };

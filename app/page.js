@@ -167,7 +167,7 @@ export default function Frontpage() {
                   {/* RÜCKSEITE */}
                   <div style={cardBackStyle}>
                     <div style={{ padding: "20px", height: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                      <h3 style={{ borderBottom: "1px solid #eee", width: "100%", paddingBottom: "10px", marginTop: 0, textAlign: "left" }}>
+                      <h3 style={{ borderBottom: "1px solid #3f3f46", width: "100%", paddingBottom: "10px", marginTop: 0, textAlign: "left", color: "#f4f4f5" }}>
                         Statistik & Notizen
                       </h3>
                       
@@ -186,7 +186,7 @@ export default function Frontpage() {
                         {c.notes ? c.notes : "Keine besonderen Notizen oder Ziele hinterlegt."}
                       </div>
 
-                      <div style={{ marginTop: "auto", fontSize: "0.7rem", color: "#bbb" }}>
+                      <div style={{ marginTop: "auto", fontSize: "0.7rem", color: "#a1a1aa" }}>
                         ↻ Klicken zum Umdrehen
                       </div>
                     </div>
@@ -196,7 +196,7 @@ export default function Frontpage() {
               </div>
             );
           }) : (
-            <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "50px", color: "#888" }}>
+            <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "50px", color: "#a1a1aa" }}>
               Noch keine Kletterer angemeldet.
             </div>
           )}
@@ -207,11 +207,11 @@ export default function Frontpage() {
 }
 
 // STYLES
-const mainStyle = { padding: "20px", fontFamily: "'Inter', sans-serif", maxWidth: "1200px", margin: "0 auto", backgroundColor: "#f4f7f6", minHeight: "100vh" };
-const headerStyle = { display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #e0e0e0", paddingBottom: "15px", marginBottom: "30px" };
-const logoStyle = { fontSize: "1.8rem", margin: 0, display: "flex", alignItems: "center", gap: "12px", color: "#2c3e50", fontWeight: "900" };
-const navBtnStyle = { padding: "12px 24px", borderRadius: "30px", border: "none", backgroundColor: "#007bff", color: "white", cursor: "pointer", fontWeight: "bold", boxShadow: "0 4px 12px rgba(0,123,255,0.25)" };
-const loaderContainer = { textAlign: "center", marginTop: "100px", color: "#666" };
+const mainStyle = { padding: "24px", fontFamily: "'Inter', sans-serif", maxWidth: "1200px", margin: "0 auto", backgroundColor: "#09090b", minHeight: "100vh", color: "#f4f4f5" };
+const headerStyle = { display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #27272a", paddingBottom: "15px", marginBottom: "30px" };
+const logoStyle = { fontSize: "1.8rem", margin: 0, display: "flex", alignItems: "center", gap: "12px", color: "#fafafa", fontWeight: "900" };
+const navBtnStyle = { padding: "12px 24px", borderRadius: "999px", border: "1px solid #3f3f46", backgroundColor: "#18181b", color: "#f4f4f5", cursor: "pointer", fontWeight: "bold", boxShadow: "0 0 0 1px rgba(255,255,255,0.03) inset" };
+const loaderContainer = { textAlign: "center", marginTop: "100px", color: "#a1a1aa" };
 const gridStyle = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "25px" };
 
 const cardContainerStyle = { perspective: "1000px", height: "550px", cursor: "pointer" };
@@ -223,32 +223,32 @@ const baseFaceStyle = {
   height: "100%",
   backfaceVisibility: "hidden",
   borderRadius: "24px",
-  boxShadow: "0 15px 35px rgba(0,0,0,0.1)",
+  boxShadow: "0 18px 40px rgba(0,0,0,0.45)",
   overflow: "hidden",
-  backgroundColor: "white",
-  border: "1px solid rgba(0,0,0,0.05)"
+  backgroundColor: "#18181b",
+  border: "1px solid #3f3f46"
 };
 
 const cardFrontStyle = { ...baseFaceStyle };
-const cardBackStyle = { ...baseFaceStyle, transform: "rotateY(180deg)", backgroundColor: "#fff" };
+const cardBackStyle = { ...baseFaceStyle, transform: "rotateY(180deg)", backgroundColor: "#18181b" };
 
-const rankBadgeStyle = { position: "absolute", top: "15px", left: "15px", backgroundColor: "rgba(0,0,0,0.8)", color: "white", padding: "6px 12px", borderRadius: "12px", fontSize: "0.9rem", fontWeight: "bold", zIndex: 10 };
-const imgContainerStyle = { height: "210px", width: "100%", backgroundColor: "#e9ecef", position: "relative" };
+const rankBadgeStyle = { position: "absolute", top: "15px", left: "15px", backgroundColor: "rgba(16,185,129,0.15)", color: "#6ee7b7", padding: "6px 12px", borderRadius: "12px", fontSize: "0.9rem", fontWeight: "bold", zIndex: 10, border: "1px solid rgba(16,185,129,0.45)" };
+const imgContainerStyle = { height: "210px", width: "100%", backgroundColor: "#27272a", position: "relative" };
 const imgStyle = { width: "100%", height: "100%", objectFit: "cover" };
-const nameStyle = { margin: "0", fontSize: "1.4rem", color: "#1a1a1a", fontWeight: "800", letterSpacing: "-0.5px" };
-const powerBadge = { display: "flex", flexDirection: "column", alignItems: "center", backgroundColor: "#1a1a1a", color: "#fff", padding: "8px", borderRadius: "16px", minWidth: "60px", lineHeight: "1" };
-const mentalCenterBox = { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundColor: "#f8f9fa", padding: "12px", borderRadius: "16px", marginBottom: "20px", border: "1px solid #f0f0f0" };
-const mentalLabel = { fontSize: "0.7rem", fontWeight: "bold", color: "#888", letterSpacing: "1.5px", marginBottom: "4px" };
-const mentalValueDisplay = { fontSize: "1.3rem", fontWeight: "900", color: "#007bff" };
-const stylesGrid = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", borderTop: "1px solid #eee", paddingTop: "15px" };
+const nameStyle = { margin: "0", fontSize: "1.4rem", color: "#fafafa", fontWeight: "800", letterSpacing: "-0.5px" };
+const powerBadge = { display: "flex", flexDirection: "column", alignItems: "center", backgroundColor: "#0a0a0a", color: "#fff", padding: "8px", borderRadius: "16px", minWidth: "60px", lineHeight: "1", border: "1px solid #3f3f46" };
+const mentalCenterBox = { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundColor: "#27272a", padding: "12px", borderRadius: "16px", marginBottom: "20px", border: "1px solid #3f3f46" };
+const mentalLabel = { fontSize: "0.7rem", fontWeight: "bold", color: "#a1a1aa", letterSpacing: "1.5px", marginBottom: "4px" };
+const mentalValueDisplay = { fontSize: "1.3rem", fontWeight: "900", color: "#34d399" };
+const stylesGrid = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", borderTop: "1px solid #3f3f46", paddingTop: "15px" };
 const styleItem = { display: "flex", flexDirection: "column" };
-const styleLabelText = { fontSize: "0.65rem", color: "#bbb", textTransform: "uppercase", fontWeight: "bold", marginBottom: "2px" };
+const styleLabelText = { fontSize: "0.65rem", color: "#a1a1aa", textTransform: "uppercase", fontWeight: "bold", marginBottom: "2px" };
 const styleValueText = { fontSize: "1.2rem", fontWeight: "900" };
 
 const chartWrapperStyle = { 
   margin: "10px 0", 
   padding: "10px", 
-  backgroundColor: "#fcfcfc", 
+  backgroundColor: "#0a0a0a", 
   borderRadius: "15px" 
 };
 
@@ -256,13 +256,13 @@ const notesAreaStyle = {
   marginTop: "10px", 
   fontSize: "0.9rem", 
   lineHeight: "1.4", 
-  color: "#444", 
+  color: "#e4e4e7", 
   textAlign: "left", 
   width: "100%",
   padding: "10px",
-  backgroundColor: "#f0f7ff",
+  backgroundColor: "rgba(16,185,129,0.08)",
   borderRadius: "12px",
-  borderLeft: "4px solid #007bff",
+  borderLeft: "4px solid #34d399",
   maxHeight: "120px",
   overflowY: "auto"
 };
