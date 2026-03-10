@@ -102,16 +102,17 @@ export default function Frontpage() {
             const powerScore = Math.round((sumAbilities / denominator) * 100);
             const mentalValue = safeAbilities[2];
             
-            const cardId = c.user_id || c.id || index;
-            const isFlipped = !!flippedCards[cardId];
+            const cardId = c.user_id || c.id || "climber";
+            const cardInstanceId = `${cardId}-${index}`;
+            const isFlipped = !!flippedCards[cardInstanceId];
             const avatarSrc = c.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || 'User')}&background=random&size=300`;
             const isFallbackAvatar = !c.image_url;
 
             return (
               <div 
-                key={cardId} 
+                key={cardInstanceId} 
                 style={cardContainerStyle} 
-                onClick={() => toggleFlip(cardId)}
+                onClick={() => toggleFlip(cardInstanceId)}
               >
                 <div style={{
                   ...cardInnerStyle,
