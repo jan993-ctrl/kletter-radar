@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import RadarChart from "../charts/RadarChart";
-import CombinedRadar from "./CombinedRadar";
+import CombinedRadar from "../charts/CombinedRadar";
 
 
 
