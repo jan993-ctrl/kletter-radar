@@ -86,6 +86,13 @@ export default function LoginPage() {
     <div className="flex flex-col gap-4 max-w-md mx-auto mt-20 p-6 border rounded shadow bg-white text-black">
       <h1 className="text-2xl font-bold mb-2 text-black">🧗 Kletter-Quartett</h1>
       <p className="text-sm text-gray-600 mb-4">Melde dich an, um dein Profil zu verwalten.</p>
+      <button
+        type="button"
+        onClick={() => router.push("/")}
+        style={{ padding: "8px 15px", cursor: "pointer", borderRadius: 4, border: "1px solid #ccc", backgroundColor: "white", color: "black", alignSelf: "flex-start" }}
+      >
+        ← Zurück zur Startseite
+      </button>
       
       <div className="flex flex-col gap-4">
         <input 
