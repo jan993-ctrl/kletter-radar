@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient, getSupabaseAdmin } from "@/lib/supabase/server";
+import {
+  hasExpectedArrayLengths,
+  needsAbilityMigration,
+  normalizeAbilities,
+  normalizeStyles,
+} from "@/lib/utils/profile-schema";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +16,32 @@ export async function GET() {
       .select("*")
       .order("name", { ascending: true });
     if (error) throw error;
-    return NextResponse.json(data ?? []);
+
+    const profiles = data ?? [];
+    const migratedProfiles = await Promise.all(
+      profiles.map(async (profile) => {
+        const normalizedAbilities = normalizeAbilities(profile.abilities);
+        const normalizedStyles = normalizeStyles(profile.styles);
+        const requiresMigration = needsAbilityMigration(profile.abilities)
+          || !Array.isArray(profile.styles)
+          || profile.styles.length !== normalizedStyles.length;
+
+        if (requiresMigration && profile.id) {
+          await getSupabaseAdmin()
+            .from("profiles")
+            .update({ abilities: normalizedAbilities, styles: normalizedStyles, updated_at: new Date().toISOString() })
+            .eq("id", profile.id);
+        }
+
+        return {
+          ...profile,
+          abilities: normalizedAbilities,
+          styles: normalizedStyles,
+        };
+      })
+    );
+
+    return NextResponse.json(migratedProfiles);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -34,10 +65,18 @@ export async function POST(req) {
       return NextResponse.json({ error: "Keine Berechtigung" }, { status: 403 });
     }
 
+    const { abilitiesOk, stylesOk } = hasExpectedArrayLengths(profileData);
+    if (!abilitiesOk || !stylesOk) {
+      return NextResponse.json(
+        { error: "Ungültiges Schema: abilities/styles haben nicht die erwartete Länge." },
+        { status: 400 }
+      );
+    }
+
     const upsertData = {
       name: profileData.name,
-      abilities: profileData.abilities || [5, 5, 5, 5, 5],
-      styles: profileData.styles || [0],
+      abilities: normalizeAbilities(profileData.abilities),
+      styles: normalizeStyles(profileData.styles),
       notes: profileData.notes || "",
       image_url: profileData.image_url || "",
       updated_at: new Date().toISOString(),

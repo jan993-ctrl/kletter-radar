@@ -5,6 +5,15 @@ import RadarChart from "@/components/charts/RadarChart";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import {
+  ABILITY_LABELS,
+  DEFAULT_ABILITY_LEVEL,
+  DEFAULT_STYLE_LEVEL,
+  MAX_ABILITY_LEVEL,
+  STYLE_LABELS,
+  normalizeAbilities,
+  normalizeStyles,
+} from "@/lib/utils/profile-schema";
 
 // Deine definierten Grade
 const GRADES = [
@@ -12,9 +21,6 @@ const GRADES = [
   "4a", "4b", "4c", "5a", "5b", "5c", "6a", "6b", "6c", 
   "7a", "7b", "7c", "8a", "8b", "8c", "9a"
 ];
-
-const abilityLabels = ["Kraft", "Beweglichkeit", "Mentalität", "Explosivität", "Körperspannung"];
-const styleLabels = ["Crimper", "Sloper", "Slab", "Dyno", "Pocket"];
 
 export default function AdminPage() {
   const [profiles, setProfiles] = useState([]);
@@ -136,8 +142,8 @@ export default function AdminPage() {
       user_id: null, 
       name: "Neuer Kletterer", 
       notes: "", 
-      abilities: [12, 12, 12, 12, 12], // Startet bei Level 12 (Mitte)
-      styles: [12, 12, 12, 12, 12],    // Startet bei 5a (Index 12)
+      abilities: Array(ABILITY_LABELS.length).fill(DEFAULT_ABILITY_LEVEL),
+      styles: Array(STYLE_LABELS.length).fill(DEFAULT_STYLE_LEVEL),
       image_url: "" 
     };
     setProfiles((prev) => [...prev, newP]);
@@ -147,8 +153,8 @@ export default function AdminPage() {
 
   if (isLoading) return <div className="p-10 text-center">Lade Admin-Panel...</div>;
 
-  const safeAbilities = selected?.abilities ?? [12, 12, 12, 12, 12];
-  const safeStyles = selected?.styles ?? [12, 12, 12, 12, 12];
+  const safeAbilities = normalizeAbilities(selected?.abilities);
+  const safeStyles = normalizeStyles(selected?.styles);
 
   return (
     <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", color: "#333" }}>
@@ -206,13 +212,13 @@ export default function AdminPage() {
             </div>
 
             <h3>Fähigkeiten (Level 0-24)</h3>
-            {abilityLabels.map((lab, i) => (
+            {ABILITY_LABELS.map((lab, i) => (
               <div key={lab} style={{ marginBottom: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
                     <span>{lab}</span>
                     <span style={{ fontWeight: "bold", color: "#007bff" }}>Level {safeAbilities[i]}</span>
                 </div>
-                <input type="range" min="0" max="24" step="1" style={{ width: "100%" }}
+                <input type="range" min="0" max={MAX_ABILITY_LEVEL} step="1" style={{ width: "100%" }}
                   value={safeAbilities[i]}
                   onChange={(e) => {
                     const v = parseInt(e.target.value, 10);
@@ -225,7 +231,7 @@ export default function AdminPage() {
             ))}
 
             <h3 style={{ marginTop: 30 }}>Stile (Grad)</h3>
-            {styleLabels.map((lab, i) => (
+            {STYLE_LABELS.map((lab, i) => (
               <div key={lab} style={{ marginBottom: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
                     <span>{lab}</span>
@@ -264,7 +270,7 @@ export default function AdminPage() {
           <div style={{ flex: "0 0 400px", display: "flex", flexDirection: "column", gap: 30 }}>
               <div style={{ position: "relative", width: "400px", height: "350px", border: "1px solid #eee", borderRadius: 8, padding: 10, backgroundColor: "white" }}>
                 <RadarChart 
-                    labels={abilityLabels} 
+                    labels={ABILITY_LABELS} 
                     dataSets={[{ 
                         label: "Fähigkeiten", 
                         data: safeAbilities, 
@@ -276,7 +282,7 @@ export default function AdminPage() {
 
               <div style={{ position: "relative", width: "400px", height: "350px", border: "1px solid #eee", borderRadius: 8, padding: 10, backgroundColor: "white" }}>
                 <RadarChart 
-                    labels={styleLabels} 
+                    labels={STYLE_LABELS} 
                     dataSets={[{ 
                         label: "Stile", 
                         data: safeStyles, 
