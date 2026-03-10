@@ -3,12 +3,11 @@
 import { useState } from "react";
 import RadarChart from "../charts/RadarChart";
 import CombinedRadar from "../charts/CombinedRadar";
-import {
-  ABILITY_LABELS,
-  STYLE_LABELS,
-  normalizeAbilities,
-  normalizeStyles,
-} from "@/lib/utils/profile-schema";
+
+
+
+const abilityLabels = ["Kraft","Beweglichkeit","Mentalität","Explosivität","Körperspannung"];
+const styleLabels   = ["Crimper","Sloper","Slab","Dyno","Pocket"];
 
 export default function ProfilesViewer({ initialProfiles = [] }) {
   const [selectedId, setSelectedId] = useState(initialProfiles[0]?.id || null);
