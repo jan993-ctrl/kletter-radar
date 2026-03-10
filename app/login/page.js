@@ -84,9 +84,18 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-col gap-4 max-w-md mx-auto mt-20 p-6 border rounded shadow bg-white text-black">
-      <h1 className="text-2xl font-bold mb-2 text-black">🧗 Kletter-Quartett</h1>
-      <p className="text-sm text-gray-600 mb-4">Melde dich an, um dein Profil zu verwalten.</p>
-      
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #ccc", paddingBottom: 10 }}>
+        <h1 className="text-2xl font-bold text-black" style={{ margin: 0 }}>🧗 Kletter-Quartett</h1>
+        <button
+          type="button"
+          onClick={() => router.push("/")}
+          style={{ padding: "8px 15px", cursor: "pointer", borderRadius: 4, border: "1px solid #ccc", backgroundColor: "white", color: "black" }}
+        >
+          ← Zurück zur Startseite
+        </button>
+      </div>
+      <p className="text-sm text-gray-600 mb-2">Melde dich an, um dein Profil zu verwalten.</p>
+
       <div className="flex flex-col gap-4">
         <input 
           type="email" 
