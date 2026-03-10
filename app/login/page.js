@@ -83,15 +83,53 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", color: "#333" }}>
-      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", borderBottom: "1px solid #ccc", paddingBottom: 10 }}>
-        <button
-          type="button"
-          onClick={() => router.push("/")}
-          style={{ padding: "8px 15px", cursor: "pointer", borderRadius: 4, border: "1px solid #ccc", backgroundColor: "white", color: "black" }}
-        >
-          ← Zurück zur Startseite
-        </button>
+    <div className="flex flex-col gap-4 max-w-md mx-auto mt-20 p-6 border rounded shadow bg-white text-black">
+      <h1 className="text-2xl font-bold mb-2 text-black">🧗 Kletter-Quartett</h1>
+      <p className="text-sm text-gray-600 mb-4">Melde dich an, um dein Profil zu verwalten.</p>
+      <button
+        type="button"
+        onClick={() => router.push("/")}
+        style={{ padding: "8px 15px", cursor: "pointer", borderRadius: 4, border: "1px solid #ccc", backgroundColor: "white", color: "black", alignSelf: "flex-start" }}
+      >
+        ← Zurück zur Startseite
+      </button>
+      
+      <div className="flex flex-col gap-4">
+        <input 
+          type="email" 
+          placeholder="E-Mail" 
+          className="p-2 border rounded bg-gray-50 text-black outline-none focus:border-blue-500"
+          value={email} 
+          onChange={(e) => setEmail(e.target.value)} 
+          autoComplete="email"
+        />
+        <input 
+          type="password" 
+          placeholder="Passwort" 
+          className="p-2 border rounded bg-gray-50 text-black outline-none focus:border-blue-500"
+          value={password} 
+          onChange={(e) => setPassword(e.target.value)} 
+          autoComplete="current-password"
+        />
+        
+        <div className="flex gap-2 mt-2">
+          <button 
+            type="button"
+            onClick={handleSignIn} 
+            disabled={loading} 
+            className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded flex-1 font-medium disabled:opacity-50 transition-all"
+          >
+            {loading ? "Lädt..." : "Login"}
+          </button>
+          <button 
+            type="button"
+            onClick={handleSignUp} 
+            disabled={loading} 
+            className="bg-green-600 hover:bg-green-700 text-white p-2 rounded flex-1 font-medium disabled:opacity-50 transition-all"
+          >
+            Registrieren
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-4 max-w-md mx-auto mt-20 p-6 border rounded shadow bg-white text-black">
