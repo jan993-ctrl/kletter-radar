@@ -4,14 +4,19 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import Link from "next/link";
 import CombinedRadar from "@/components/charts/CombinedRadar";
 import Image from "next/image";
+import {
+  ABILITY_COUNT,
+  MAX_ABILITY_LEVEL,
+  STYLE_LABELS,
+  normalizeAbilities,
+  normalizeStyles,
+} from "@/lib/utils/profile-schema";
 
 const GRADES = [
   "1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", 
   "4a", "4b", "4c", "5a", "5b", "5c", "6a", "6b", "6c", 
   "7a", "7b", "7c", "8a", "8b", "8c", "9a"
 ];
-
-const styleLabels = ["Crimper", "Sloper", "Slab", "Dyno", "Pocket"];
 
 export default function Frontpage() {
   const [climbers, setClimbers] = useState([]);
@@ -90,10 +95,11 @@ export default function Frontpage() {
       ) : (
         <div style={gridStyle}>
           {climbers.length > 0 ? climbers.map((c, index) => {
-            const safeAbilities = c.abilities || [0, 0, 0, 0, 0];
-            const safeStyles = c.styles || [0, 0, 0, 0, 0];
+            const safeAbilities = normalizeAbilities(c.abilities);
+            const safeStyles = normalizeStyles(c.styles);
             const sumAbilities = safeAbilities.reduce((a, b) => a + b, 0);
-            const powerScore = Math.round((sumAbilities / 120) * 100);
+            const denominator = ABILITY_COUNT * MAX_ABILITY_LEVEL;
+            const powerScore = Math.round((sumAbilities / denominator) * 100);
             const mentalValue = safeAbilities[2];
             
             const cardId = c.user_id || c.id || index;
@@ -142,7 +148,7 @@ export default function Frontpage() {
                       </div>
 
                       <div style={stylesGrid}>
-                        {styleLabels.map((label, i) => (
+                        {STYLE_LABELS.map((label, i) => (
                           <div key={label} style={styleItem}>
                             <span style={styleLabelText}>{label}</span>
                             <span style={{ 

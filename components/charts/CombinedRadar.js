@@ -1,9 +1,12 @@
 "use client";
 
 import RadarChart from "./RadarChart";
-
-const abilityLabels = ["Kraft", "Beweglichkeit", "Mentalität", "Explosivität", "Körperspannung"];
-const styleLabels = ["Crimper", "Sloper", "Slab", "Dyno", "Pocket"];
+import {
+  ABILITY_COUNT,
+  ABILITY_LABELS,
+  STYLE_COUNT,
+  STYLE_LABELS,
+} from "@/lib/utils/profile-schema";
 
 export default function CombinedRadar({
   abilities = [],
@@ -11,17 +14,20 @@ export default function CombinedRadar({
   height = 360,
   width = 360,
 }) {
-  // Sicherstellen, dass wir immer 5 Werte haben, falls das Profil unvollständig ist
-  const safeAbilities = abilities.length === 5 ? abilities : [0, 0, 0, 0, 0];
-  const safeStyles = styles.length === 5 ? styles : [0, 0, 0, 0, 0];
+  if (!Array.isArray(abilities) || abilities.length !== ABILITY_COUNT) {
+    throw new Error(`CombinedRadar erwartet abilities mit exakt ${ABILITY_COUNT} Werten.`);
+  }
 
-  const labels = [...abilityLabels, ...styleLabels];
+  if (!Array.isArray(styles) || styles.length !== STYLE_COUNT) {
+    throw new Error(`CombinedRadar erwartet styles mit exakt ${STYLE_COUNT} Werten.`);
+  }
+
+  const labels = [...ABILITY_LABELS, ...STYLE_LABELS];
 
   const datasets = [
     {
       label: "Fähigkeiten",
-      // Erste 5 Werte sind Fähigkeiten, die restlichen 5 (Stile) werden mit 0 gefüllt
-      data: [...safeAbilities, 0, 0, 0, 0, 0],
+      data: [...abilities, ...Array(STYLE_COUNT).fill(null)],
       backgroundColor: "rgba(54,162,235,0.25)",
       borderColor: "rgba(54,162,235,1)",
       pointBackgroundColor: "rgba(54,162,235,1)",
@@ -29,8 +35,7 @@ export default function CombinedRadar({
     },
     {
       label: "Stile",
-      // Erste 5 Werte (Fähigkeiten) werden mit 0 gefüllt, die restlichen 5 sind Stile
-      data: [0, 0, 0, 0, 0, ...safeStyles],
+      data: [...Array(ABILITY_COUNT).fill(null), ...styles],
       backgroundColor: "rgba(40,167,69,0.25)",
       borderColor: "rgba(40,167,69,1)",
       pointBackgroundColor: "rgba(40,167,69,1)",

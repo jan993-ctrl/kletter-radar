@@ -5,6 +5,16 @@ import RadarChart from "@/components/charts/RadarChart";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import {
+  ABILITY_LABELS,
+  ABILITY_COUNT,
+  DEFAULT_ABILITY_LEVEL,
+  DEFAULT_STYLE_LEVEL,
+  MAX_ABILITY_LEVEL,
+  STYLE_LABELS,
+  normalizeAbilities,
+  normalizeStyles,
+} from "@/lib/utils/profile-schema";
 
 // Deine definierten Grade
 const GRADES = [
@@ -13,19 +23,15 @@ const GRADES = [
   "7a", "7b", "7c", "8a", "8b", "8c", "9a"
 ];
 
-// Die 7 körperlichen Eigenschaften
 const ABILITY_CONFIG = [
-  { label: "Kraft", desc: "Fingerkraft (Relativ) & Schulter", key: "kraft" },
-  { label: "Explosive Strength", desc: "Schnelligkeit, Dynos" },
-  { label: "Technik", desc: "Präzision, Flagg, Smiring, Hook's, Fußarbeit" },
-  { label: "Körperspannung", desc: "Overhang, Toe Hooks, Compression" },
-  { label: "Mobilität", desc: "Flexibilität, Hüftöffnung" },
-  { label: "Balance", desc: "Postural Control" },
-  { label: "Mentalität", desc: "Headgame, Fokus, Mut" }
+  { label: ABILITY_LABELS[0], desc: "Fingerkraft (Relativ) & Schulter", key: "kraft" },
+  { label: ABILITY_LABELS[1], desc: "Schnelligkeit, Dynos" },
+  { label: ABILITY_LABELS[2], desc: "Präzision, Flagg, Smiring, Hook's, Fußarbeit" },
+  { label: ABILITY_LABELS[3], desc: "Overhang, Toe Hooks, Compression" },
+  { label: ABILITY_LABELS[4], desc: "Flexibilität, Hüftöffnung" },
+  { label: ABILITY_LABELS[5], desc: "Postural Control" },
+  { label: ABILITY_LABELS[6], desc: "Headgame, Fokus, Mut" },
 ];
-
-const abilityLabels = ABILITY_CONFIG.map(a => a.label);
-const styleLabels = ["Crimper", "Sloper", "Slab", "Dyno", "Pocket"];
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState(null);
@@ -60,9 +66,9 @@ export default function ProfilePage() {
             height: 180,
             arm_span: 185,
             notes: "",
-            abilities: [12, 12, 12, 12, 12, 12, 12],
+            abilities: Array(ABILITY_COUNT).fill(DEFAULT_ABILITY_LEVEL),
             ability_details: { finger_kg: 0, pullups: 10 },
-            styles: [12, 12, 12, 12, 12],
+            styles: Array(STYLE_LABELS.length).fill(DEFAULT_STYLE_LEVEL),
             image_url: ""
           });
         } else {
@@ -70,6 +76,8 @@ export default function ProfilePage() {
           const loadedProfile = { ...data };
           if (!loadedProfile.ability_details) loadedProfile.ability_details = { finger_kg: 0, pullups: 10 };
           if (!loadedProfile.weight) loadedProfile.weight = 75;
+          loadedProfile.abilities = normalizeAbilities(loadedProfile.abilities);
+          loadedProfile.styles = normalizeStyles(loadedProfile.styles);
           setProfile(loadedProfile);
         }
       } catch (err) {
@@ -143,13 +151,13 @@ export default function ProfilePage() {
     const newDetails = { ...profile.ability_details, [key]: newVal };
     
     // Fingerkraft Level: (Zusatzgewicht / Körpergewicht * 24)
-    const fingerLevel = profile.weight > 0 ? (newDetails.finger_kg / profile.weight) * 24 : 0;
+    const fingerLevel = profile.weight > 0 ? (newDetails.finger_kg / profile.weight) * MAX_ABILITY_LEVEL : 0;
     // Schulterkraft Level: (Klimmzüge / 30 * 24)
-    const shoulderLevel = (newDetails.pullups / 30) * 24;
+    const shoulderLevel = (newDetails.pullups / 30) * MAX_ABILITY_LEVEL;
 
-    const totalStrength = Math.round(Math.min(24, Math.max(0, (fingerLevel + shoulderLevel) / 2)));
+    const totalStrength = Math.round(Math.min(MAX_ABILITY_LEVEL, Math.max(0, (fingerLevel + shoulderLevel) / 2)));
     
-    const newAbilities = [...(profile.abilities || [12,12,12,12,12,12,12])];
+    const newAbilities = normalizeAbilities(profile.abilities);
     newAbilities[0] = totalStrength;
 
     setProfile({ ...profile, ability_details: newDetails, abilities: newAbilities });
@@ -158,13 +166,8 @@ export default function ProfilePage() {
   if (loading) return <div style={{ padding: 50, textAlign: "center" }}>Lade Profil...</div>;
   if (!profile) return <div style={{ padding: 50, textAlign: "center" }}>Fehler beim Laden der Profildaten.</div>;
 
-  const safeAbilities = Array.isArray(profile.abilities) && profile.abilities.length === 7 
-    ? profile.abilities 
-    : [12, 12, 12, 12, 12, 12, 12];
-
-  const safeStyles = Array.isArray(profile.styles) && profile.styles.length === 5 
-    ? profile.styles 
-    : [12, 12, 12, 12, 12];
+  const safeAbilities = normalizeAbilities(profile.abilities);
+  const safeStyles = normalizeStyles(profile.styles);
 
   return (
     <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", color: "#333" }}>
@@ -236,7 +239,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
               ) : (
-                <input type="range" min="0" max="24" step="1" style={{ width: "100%", marginTop: 5 }}
+                <input type="range" min="0" max={MAX_ABILITY_LEVEL} step="1" style={{ width: "100%", marginTop: 5 }}
                   value={safeAbilities[i]}
                   onChange={(e) => {
                     const v = parseInt(e.target.value, 10);
@@ -250,7 +253,7 @@ export default function ProfilePage() {
           ))}
 
           <h3 style={{ marginTop: 30 }}>Stile (Grad)</h3>
-          {styleLabels.map((lab, i) => (
+          {STYLE_LABELS.map((lab, i) => (
             <div key={lab} style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
                 <span>{lab}</span>
@@ -302,7 +305,7 @@ export default function ProfilePage() {
         <div style={{ flex: "0 0 400px", display: "flex", flexDirection: "column", gap: 30 }}>
           <div style={chartBoxStyle}>
             <RadarChart 
-              labels={abilityLabels} 
+              labels={ABILITY_LABELS} 
               dataSets={[{ 
                 label: "Fähigkeiten", 
                 data: safeAbilities, 
@@ -314,7 +317,7 @@ export default function ProfilePage() {
 
           <div style={chartBoxStyle}>
             <RadarChart 
-              labels={styleLabels} 
+              labels={STYLE_LABELS} 
               dataSets={[{ 
                 label: "Stile", 
                 data: safeStyles, 

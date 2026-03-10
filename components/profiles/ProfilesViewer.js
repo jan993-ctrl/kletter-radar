@@ -13,21 +13,17 @@ export default function ProfilesViewer({ initialProfiles = [] }) {
   const [selectedId, setSelectedId] = useState(initialProfiles[0]?.id || null);
 
   const selected = initialProfiles.find((p) => p.id === selectedId) || {
-    abilities: [0,0,0,0,0],
-    styles: [0,0,0,0,0],
+    abilities: normalizeAbilities(),
+    styles: normalizeStyles(),
     name: "",
-    notes: ""
+    notes: "",
   };
 
   return (
     <div>
-      {/* Profilauswahl */}
       <div style={{ margin: "16px 0" }}>
         <label>Profil wählen: </label>
-        <select
-          value={selectedId || ""}
-          onChange={(e) => setSelectedId(e.target.value)}
-        >
+        <select value={selectedId || ""} onChange={(e) => setSelectedId(e.target.value)}>
           {initialProfiles.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name || "(Neues Profil)"}
@@ -36,23 +32,18 @@ export default function ProfilesViewer({ initialProfiles = [] }) {
         </select>
       </div>
 
-      {/* Überlagerte Ansicht (responsive) */}
       <section
         style={{
           marginTop: 20,
           maxWidth: 600,
           marginLeft: "auto",
           marginRight: "auto",
-          height: 320, // Containerhöhe, Chart passt sich an
+          height: 320,
         }}
       >
-        <CombinedRadar
-          abilities={selected.abilities}
-          styles={selected.styles}
-        />
+        <CombinedRadar abilities={normalizeAbilities(selected.abilities)} styles={normalizeStyles(selected.styles)} />
       </section>
 
-      {/* Einzel-Radare (responsive) */}
       <section
         style={{
           display: "flex",
@@ -64,11 +55,11 @@ export default function ProfilesViewer({ initialProfiles = [] }) {
       >
         <div style={{ flex: 1, minWidth: 400, maxWidth: 320, height: 280 }}>
           <RadarChart
-            labels={abilityLabels}
+            labels={ABILITY_LABELS}
             dataSets={[
               {
-                label: "Fähigkeiten", // fixe Legende
-                data: selected.abilities,
+                label: "Fähigkeiten",
+                data: normalizeAbilities(selected.abilities),
                 backgroundColor: "rgba(54,162,235,0.3)",
                 borderColor: "rgba(54,162,235,1)",
               },
@@ -78,11 +69,11 @@ export default function ProfilesViewer({ initialProfiles = [] }) {
 
         <div style={{ flex: 1, minWidth: 280, maxWidth: 320, height: 280 }}>
           <RadarChart
-            labels={styleLabels}
+            labels={STYLE_LABELS}
             dataSets={[
               {
-                label: "Stile", // fixe Legende
-                data: selected.styles,
+                label: "Stile",
+                data: normalizeStyles(selected.styles),
                 backgroundColor: "rgba(255,159,64,0.3)",
                 borderColor: "rgba(255,159,64,1)",
               },
@@ -91,7 +82,6 @@ export default function ProfilesViewer({ initialProfiles = [] }) {
         </div>
       </section>
 
-      {/* Notizen */}
       <section style={{ marginTop: 20 }}>
         <p>{selected.notes || "—"}</p>
       </section>
