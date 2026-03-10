@@ -187,8 +187,9 @@ export default function AdminPage() {
             </div>
 
             <div style={{ marginBottom: 20 }}>
-                <label style={{ display: "block", fontWeight: "bold", marginBottom: 5 }}>Notizen:</label>
+                <label htmlFor="notes" style={{ display: "block", fontWeight: "bold", marginBottom: 5 }}>Notizen:</label>
                 <textarea
+                  id="notes"
                   style={{ width: '100%', height: 80, padding: 10, borderRadius: 4, border: "1px solid #ccc", boxSizing: "border-box", color: "black" }}
                   value={selected.notes || ""}
                   onChange={(e) => setSelected((s) => ({ ...s, notes: e.target.value }))}
