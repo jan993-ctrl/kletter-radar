@@ -18,7 +18,6 @@ export default function LoginPage() {
       e.preventDefault();
       e.stopPropagation();
     }
-
     setLoading(true);
     setMessage("");
 
@@ -29,26 +28,16 @@ export default function LoginPage() {
       });
 
       if (error) {
-        console.error("Login Fehler:", error.message);
         setMessage("Fehler: " + error.message);
         setLoading(false);
       } else if (data?.user) {
-        console.log("Login erfolgreich, synchronisiere...");
-        setMessage("Erfolgreich! Leite weiter...");
-
-        // Refresh löscht den alten Cache
         router.refresh();
-
-        // Wir warten 600ms, damit der Cookie sicher im Browser-Speicher landet
         setTimeout(() => {
           const target = data.user.email === ADMIN_EMAIL ? "/admin" : "/profile";
-
-          // REPLACE ist hier der Schlüssel. Es verhindert das Zurückspringen.
           window.location.replace(target);
         }, 600);
       }
     } catch (err) {
-      console.error("Unerwarteter Fehler:", err);
       setMessage("Ein Systemfehler ist aufgetreten.");
       setLoading(false);
     }
@@ -75,68 +64,215 @@ export default function LoginPage() {
 
   if (isChecking) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-black">Initialisierung...</span>
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4 max-w-md mx-auto mt-20 p-6 border rounded shadow bg-white text-black">
-      <h1 className="text-2xl font-bold mb-2 text-black">🧗 Kletter-Quartett</h1>
-      <p className="text-sm text-gray-600 mb-4">Melde dich an, um dein Profil zu verwalten.</p>
-      <button
-        type="button"
-        onClick={() => router.push("/")}
-        style={{ padding: "8px 15px", cursor: "pointer", borderRadius: 4, border: "1px solid #ccc", backgroundColor: "white", color: "black", alignSelf: "flex-start" }}
-      >
-        ← Zurück zur Startseite
-      </button>
-      
-      <div className="flex flex-col gap-4">
-        <input 
-          type="email" 
-          placeholder="E-Mail" 
-          className="p-2 border rounded bg-gray-50 text-black outline-none focus:border-blue-500"
-          value={email} 
-          onChange={(e) => setEmail(e.target.value)} 
-          autoComplete="email"
-        />
-        <input 
-          type="password" 
-          placeholder="Passwort" 
-          className="p-2 border rounded bg-gray-50 text-black outline-none focus:border-blue-500"
-          value={password} 
-          onChange={(e) => setPassword(e.target.value)} 
-          autoComplete="current-password"
-        />
-        
-        <div className="flex gap-2 mt-2">
-          <button 
-            type="button"
-            onClick={handleSignIn} 
-            disabled={loading} 
-            className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded flex-1 font-medium disabled:opacity-50 transition-all"
-          >
-            {loading ? "Lädt..." : "Login"}
-          </button>
-          <button 
-            type="button"
-            onClick={handleSignUp} 
-            disabled={loading} 
-            className="bg-green-600 hover:bg-green-700 text-white p-2 rounded flex-1 font-medium disabled:opacity-50 transition-all"
-          >
-            Registrieren
-          </button>
-        </div>
-      </div>
+    <div style={pageWrapper}>
+      <div style={loginCard}>
+        {/* Zurück-Button oben rechts */}
+        <button
+          type="button"
+          onClick={() => router.push("/")}
+          style={backButtonStyle}
+        >
+          ← Home
+        </button>
 
-      {message && (
-        <div className={`text-sm p-3 rounded mt-2 ${message.includes("Fehler") ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
-          {message}
+        <div style={headerSection}>
+          <div style={iconCircle}>🧗</div>
+          <h1 style={titleStyle}>Kletter-Quartett</h1>
+          <p style={subtitleStyle}>Bereit für die nächste Route?</p>
         </div>
-      )}
+        
+        <form onSubmit={handleSignIn} style={formStyle}>
+          <div style={inputGroup}>
+            <label style={labelStyle}>E-Mail Adresse</label>
+            <input 
+              type="email" 
+              placeholder="name@beispiel.de" 
+              style={inputStyle}
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              autoComplete="email"
+              required
+            />
+          </div>
+
+          <div style={inputGroup}>
+            <label style={labelStyle}>Passwort</label>
+            <input 
+              type="password" 
+              placeholder="••••••••" 
+              style={inputStyle}
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              autoComplete="current-password"
+              required
+            />
+          </div>
+          
+          <div style={buttonContainer}>
+            <button 
+              type="submit"
+              disabled={loading} 
+              style={{...primaryBtn, opacity: loading ? 0.7 : 1}}
+            >
+              {loading ? "Wird geladen..." : "Einloggen"}
+            </button>
+            
+            <button 
+              type="button"
+              onClick={handleSignUp} 
+              disabled={loading} 
+              style={secondaryBtn}
+            >
+              Konto erstellen
+            </button>
+          </div>
+        </form>
+
+        {message && (
+          <div style={{
+            ...messageBox,
+            backgroundColor: message.includes("Fehler") ? "#fff5f5" : "#f0f9ff",
+            color: message.includes("Fehler") ? "#c53030" : "#007bff",
+            border: `1px solid ${message.includes("Fehler") ? "#feb2b2" : "#bee3f8"}`
+          }}>
+            {message}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
+// STYLES
+const pageWrapper = {
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  minHeight: "100vh",
+  background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+  padding: "20px"
+};
+
+const loginCard = {
+  position: "relative",
+  width: "100%",
+  maxWidth: "420px",
+  backgroundColor: "#ffffff",
+  padding: "40px",
+  borderRadius: "24px",
+  boxShadow: "0 20px 40px rgba(0,0,0,0.1)",
+  textAlign: "center"
+};
+
+const backButtonStyle = {
+  position: "absolute",
+  top: "20px",
+  right: "20px",
+  background: "none",
+  border: "none",
+  color: "#888",
+  fontSize: "0.85rem",
+  cursor: "pointer",
+  fontWeight: "500"
+};
+
+const headerSection = {
+  marginBottom: "30px"
+};
+
+const iconCircle = {
+  fontSize: "2.5rem",
+  marginBottom: "10px",
+  display: "inline-block"
+};
+
+const titleStyle = {
+  fontSize: "1.8rem",
+  fontWeight: "800",
+  color: "#1a202c",
+  margin: "0 0 5px 0",
+  letterSpacing: "-0.5px"
+};
+
+const subtitleStyle = {
+  color: "#718096",
+  fontSize: "0.95rem",
+  margin: 0
+};
+
+const formStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "20px"
+};
+
+const inputGroup = {
+  textAlign: "left"
+};
+
+const labelStyle = {
+  display: "block",
+  fontSize: "0.85rem",
+  fontWeight: "600",
+  color: "#4a5568",
+  marginBottom: "6px",
+  marginLeft: "4px"
+};
+
+const inputStyle = {
+  width: "100%",
+  padding: "12px 16px",
+  borderRadius: "12px",
+  border: "2px solid #edf2f7",
+  backgroundColor: "#f7fafc",
+  fontSize: "1rem",
+  outline: "none",
+  transition: "border-color 0.2s ease",
+  color: "#2d3748"
+};
+
+const buttonContainer = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "12px",
+  marginTop: "10px"
+};
+
+const primaryBtn = {
+  padding: "14px",
+  borderRadius: "12px",
+  border: "none",
+  backgroundColor: "#007bff",
+  color: "white",
+  fontSize: "1rem",
+  fontWeight: "700",
+  cursor: "pointer",
+  boxShadow: "0 4px 12px rgba(0,123,255,0.3)",
+  transition: "transform 0.1s active"
+};
+
+const secondaryBtn = {
+  padding: "12px",
+  borderRadius: "12px",
+  border: "2px solid #edf2f7",
+  backgroundColor: "transparent",
+  color: "#4a5568",
+  fontSize: "0.95rem",
+  fontWeight: "600",
+  cursor: "pointer"
+};
+
+const messageBox = {
+  marginTop: "25px",
+  padding: "12px",
+  borderRadius: "12px",
+  fontSize: "0.85rem",
+  lineHeight: "1.4"
+};

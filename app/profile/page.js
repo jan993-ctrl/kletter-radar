@@ -165,11 +165,60 @@ export default function ProfilePage() {
 
   return (
     <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", color: "#333", backgroundColor: "#fff", minHeight: "100vh" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #eee", paddingBottom: 10 }}>
-        <h1 style={{ margin: 0 }}>👤 Mein Profil</h1>
-        <div>
-          <button onClick={() => router.push("/")} style={{ marginRight: 10, padding: "8px 15px", cursor: "pointer", borderRadius: 8, border: "1px solid #ccc", backgroundColor: "#fff", color: "#333" }}>← Zur Website</button>
-          <button onClick={signOut} style={{ padding: "8px 15px", cursor: "pointer", backgroundColor: "#f4f4f5", color: "#333", border: "1px solid #ccc", borderRadius: 8, fontWeight: "bold" }}>Abmelden</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #f1f1f1", paddingBottom: 15, marginBottom: 20 }}>
+        <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: "800" }}>👤 Mein Profil</h1>
+        <div style={{ display: "flex", gap: "12px" }}>
+          <button 
+            onClick={() => router.push("/")} 
+            style={{ 
+              padding: "10px 18px", 
+              cursor: "pointer", 
+              borderRadius: "12px", 
+              border: "2px solid #e2e8f0", 
+              backgroundColor: "#fff", 
+              color: "#4a5568", 
+              fontSize: "0.9rem", 
+              fontWeight: "600", 
+              transition: "all 0.2s",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+            }}
+            onMouseEnter={(e) => {
+                e.target.style.borderColor = "#cbd5e0";
+                e.target.style.backgroundColor = "#f8fafc";
+            }}
+            onMouseLeave={(e) => {
+                e.target.style.borderColor = "#e2e8f0";
+                e.target.style.backgroundColor = "#fff";
+            }}
+          >
+            ← Zur Website
+          </button>
+          
+          <button 
+            onClick={signOut} 
+            style={{ 
+              padding: "10px 18px", 
+              cursor: "pointer", 
+              backgroundColor: "#fff", 
+              color: "#e53e3e", 
+              border: "2px solid #feb2b2", 
+              borderRadius: "12px", 
+              fontSize: "0.9rem", 
+              fontWeight: "700", 
+              transition: "all 0.2s",
+              boxShadow: "0 2px 4px rgba(229, 62, 62, 0.05)"
+            }}
+            onMouseEnter={(e) => {
+                e.target.style.backgroundColor = "#fff5f5";
+                e.target.style.borderColor = "#fc8181";
+            }}
+            onMouseLeave={(e) => {
+                e.target.style.backgroundColor = "#fff";
+                e.target.style.borderColor = "#feb2b2";
+            }}
+          >
+            Abmelden
+          </button>
         </div>
       </div>
 
