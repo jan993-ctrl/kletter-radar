@@ -10,28 +10,31 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
-  const [isFlipping, setIsFlipping] = useState(false);
+  // flipPhase: 'idle' | 'out' | 'in'
+  const [flipPhase, setFlipPhase] = useState("idle");
   const isChecking = false;
   const router = useRouter();
 
   const ADMIN_EMAIL = "janstoll1993@googlemail.com";
 
-  // Flip-Animation auslösen und Modus wechseln
+  // Flip-Animation: erst rausdrehen, dann Inhalt wechseln & reindrehen
   const handleFlip = () => {
-    if (isFlipping) return;
-    setIsFlipping(true);
+    if (flipPhase !== "idle") return;
     setMessage("");
+    setFlipPhase("out");
 
-    // Nach halber Animationszeit (200ms) den Inhalt wechseln
     setTimeout(() => {
+      // Inhalt wechseln & Felder leeren
       setIsSignUp((prev) => !prev);
+      setEmail("");
+      setPassword("");
       setConfirmPassword("");
-    }, 200);
+      setFlipPhase("in");
+    }, 280);
 
-    // Animation nach 400ms beenden
     setTimeout(() => {
-      setIsFlipping(false);
-    }, 400);
+      setFlipPhase("idle");
+    }, 560);
   };
 
   const handleSignIn = async (e) => {
@@ -106,18 +109,18 @@ export default function LoginPage() {
       {/* Keyframes für Flip-Animation */}
       <style>{`
         @keyframes flipOut {
-          from { transform: perspective(800px) rotateY(0deg); }
-          to   { transform: perspective(800px) rotateY(90deg); }
+          0%   { transform: perspective(1000px) rotateY(0deg);   opacity: 1; }
+          100% { transform: perspective(1000px) rotateY(90deg);  opacity: 0; }
         }
         @keyframes flipIn {
-          from { transform: perspective(800px) rotateY(-90deg); }
-          to   { transform: perspective(800px) rotateY(0deg); }
+          0%   { transform: perspective(1000px) rotateY(-90deg); opacity: 0; }
+          100% { transform: perspective(1000px) rotateY(0deg);   opacity: 1; }
         }
-        .flipping-out {
-          animation: flipOut 0.2s ease-in forwards;
+        .flip-out {
+          animation: flipOut 0.28s cubic-bezier(0.4, 0, 1, 1) forwards;
         }
-        .flipping-in {
-          animation: flipIn 0.2s ease-out forwards;
+        .flip-in {
+          animation: flipIn 0.28s cubic-bezier(0, 0, 0.6, 1) forwards;
         }
       `}</style>
 
@@ -125,11 +128,9 @@ export default function LoginPage() {
         <div
           style={loginCard}
           className={
-            isFlipping
-              ? isSignUp
-                ? "flipping-out"   // war Login → dreht raus
-                : "flipping-in"    // neuer Inhalt dreht rein
-              : ""
+            flipPhase === "out" ? "flip-out"
+            : flipPhase === "in"  ? "flip-in"
+            : ""
           }
         >
           {/* Zurück-Button oben rechts */}
@@ -211,7 +212,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={handleFlip}
-                disabled={loading || isFlipping}
+                disabled={loading || flipPhase !== "idle"}
                 style={secondaryBtn}
               >
                 {isSignUp ? "Zurück zum Login" : "Konto erstellen"}
