@@ -200,7 +200,7 @@ export default function Frontpage() {
 
 // STYLES
 const mainStyle = { padding: "20px", fontFamily: "'Inter', sans-serif", maxWidth: "1200px", margin: "0 auto", backgroundColor: "transparent", minHeight: "100vh" };
-const headerStyle = { display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #e0e0e0", paddingBottom: "15px", marginBottom: "30px", height: "80px", backgroundColor: "transparent" };
+const headerStyle = { display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #e0e0e0", paddingBottom: "15px", marginBottom: "30px", height: "110px", backgroundColor: "transparent" };
 const logoStyle = { fontSize: "1.8rem", margin: 0, display: "flex", alignItems: "center", gap: "12px", color: "#2c3e50", fontWeight: "900" };
 const navBtnStyle = { padding: "12px 24px", borderRadius: "30px", border: "none", backgroundColor: "#007bff", color: "white", cursor: "pointer", fontWeight: "bold", boxShadow: "0 4px 12px rgba(0,123,255,0.25)" };
 const loaderContainer = { textAlign: "center", marginTop: "100px", color: "#666" };
