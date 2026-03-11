@@ -26,7 +26,7 @@ const GRADES = [
 const ABILITY_CONFIG = [
   { label: ABILITY_LABELS[0], desc: "Fingerkraft (Relativ) & Schulter", key: "kraft" },
   { label: ABILITY_LABELS[1], desc: "Schnelligkeit, Dynos" },
-  { label: ABILITY_LABELS[2], desc: "Präzision, Flagg, Smiring, Hook's, Fußarbeit" },
+  { label: ABILITY_LABELS[2], desc: "Präzision, Flagg, Smearing, Hook's, Fußarbeit" },
   { label: ABILITY_LABELS[3], desc: "Overhang, Toe Hooks, Compression" },
   { label: ABILITY_LABELS[4], desc: "Flexibilität, Hüftöffnung" },
   { label: ABILITY_LABELS[5], desc: "Postural Control" },
@@ -72,7 +72,6 @@ export default function ProfilePage() {
             image_url: ""
           });
         } else {
-          // Fallback falls neue Felder in DB noch leer sind
           const loadedProfile = { ...data };
           if (!loadedProfile.ability_details) loadedProfile.ability_details = { finger_kg: 0, pullups: 10 };
           if (!loadedProfile.weight) loadedProfile.weight = 75;
@@ -145,43 +144,37 @@ export default function ProfilePage() {
     }
   };
 
-  // Berechnung der Kraft-Logik (Relativkraft)
   const updateStrengthDetails = (key, val) => {
     const newVal = parseFloat(val) || 0;
     const newDetails = { ...profile.ability_details, [key]: newVal };
     
-    // Fingerkraft Level: (Zusatzgewicht / Körpergewicht * 24)
     const fingerLevel = profile.weight > 0 ? (newDetails.finger_kg / profile.weight) * MAX_ABILITY_LEVEL : 0;
-    // Schulterkraft Level: (Klimmzüge / 30 * 24)
     const shoulderLevel = (newDetails.pullups / 30) * MAX_ABILITY_LEVEL;
-
     const totalStrength = Math.round(Math.min(MAX_ABILITY_LEVEL, Math.max(0, (fingerLevel + shoulderLevel) / 2)));
     
-    const newAbilities = normalizeAbilities(profile.abilities);
+    const newAbilities = [...profile.abilities];
     newAbilities[0] = totalStrength;
 
     setProfile({ ...profile, ability_details: newDetails, abilities: newAbilities });
   };
 
   if (loading) return <div style={{ padding: 50, textAlign: "center" }}>Lade Profil...</div>;
-  if (!profile) return <div style={{ padding: 50, textAlign: "center" }}>Fehler beim Laden der Profildaten.</div>;
 
   const safeAbilities = normalizeAbilities(profile.abilities);
   const safeStyles = normalizeStyles(profile.styles);
 
   return (
-    <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "Inter, sans-serif", color: "#f4f4f5", backgroundColor: "#09090b", minHeight: "100vh" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #3f3f46", paddingBottom: 10 }}>
+    <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", color: "#333", backgroundColor: "#fff", minHeight: "100vh" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #eee", paddingBottom: 10 }}>
         <h1 style={{ margin: 0 }}>👤 Mein Profil</h1>
         <div>
-          <button onClick={() => router.push("/")} style={{ marginRight: 10, padding: "8px 15px", cursor: "pointer", borderRadius: 999, border: "1px solid #3f3f46", backgroundColor: "#18181b", color: "#f4f4f5" }}>← Zur Website</button>
-          <button onClick={signOut} style={{ padding: "8px 15px", cursor: "pointer", backgroundColor: "#3f3f46", color: "#f4f4f5", border: "1px solid #52525b", borderRadius: 999, fontWeight: "bold" }}>Abmelden</button>
+          <button onClick={() => router.push("/")} style={{ marginRight: 10, padding: "8px 15px", cursor: "pointer", borderRadius: 8, border: "1px solid #ccc", backgroundColor: "#fff", color: "#333" }}>← Zur Website</button>
+          <button onClick={signOut} style={{ padding: "8px 15px", cursor: "pointer", backgroundColor: "#f4f4f5", color: "#333", border: "1px solid #ccc", borderRadius: 8, fontWeight: "bold" }}>Abmelden</button>
         </div>
       </div>
 
       <div style={{ display: "flex", gap: 40, marginTop: 30, flexWrap: "wrap" }}>
         
-        {/* Linke Spalte: Formular */}
         <div style={{ flex: "1 1 400px" }}>
           
           <div style={{ marginBottom: 20 }}>
@@ -193,8 +186,7 @@ export default function ProfilePage() {
             />
           </div>
 
-          {/* Körperdaten Sektion */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: 25, backgroundColor: "#18181b", padding: "15px", borderRadius: "12px", border: "1px solid #3f3f46" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: 25, backgroundColor: "#f9f9f9", padding: "15px", borderRadius: "12px", border: "1px solid #eee" }}>
             <div>
               <label style={smallLabel}>Gewicht (kg)</label>
               <input type="number" style={inputStyle} value={profile.weight || ""} onChange={(e) => setProfile({...profile, weight: parseFloat(e.target.value) || 0})} />
@@ -209,20 +201,20 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <h3 style={{ color: "#fafafa" }}>Körperliche Eigenschaften (Level 0-24)</h3>
+          <h3>Körperliche Eigenschaften (Level 0-24)</h3>
           {ABILITY_CONFIG.map((cfg, i) => (
-            <div key={cfg.label} style={{ marginBottom: 18, padding: "12px", borderRadius: "12px", backgroundColor: expandedKey === cfg.key ? "#18181b" : "#111114", border: "1px solid #27272a" }}>
+            <div key={cfg.label} style={{ marginBottom: 18, padding: "12px", borderRadius: "12px", backgroundColor: expandedKey === cfg.key ? "#f0fdf4" : "#f9f9f9", border: "1px solid #eee" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                 <div>
                   <span style={{ fontWeight: "bold", display: "block" }}>{cfg.label}</span>
-                  <span style={{ fontSize: "0.75rem", color: "#888" }}>{cfg.desc}</span>
+                  <span style={{ fontSize: "0.75rem", color: "#666" }}>{cfg.desc}</span>
                   {cfg.key === "kraft" && (
                     <button onClick={() => setExpandedKey(expandedKey === "kraft" ? null : "kraft")} style={detailBtnStyle}>
                       {expandedKey === "kraft" ? "▲ Messwerte schließen" : "▼ Messwerte eintragen"}
                     </button>
                   )}
                 </div>
-                <span style={{ fontWeight: "bold", color: "#34d399" }}>Level {safeAbilities[i]}</span>
+                <span style={{ fontWeight: "bold", color: "#059669" }}>Level {safeAbilities[i]}</span>
               </div>
 
               {expandedKey === "kraft" && cfg.key === "kraft" ? (
@@ -252,12 +244,12 @@ export default function ProfilePage() {
             </div>
           ))}
 
-          <h3 style={{ marginTop: 30, color: "#fafafa" }}>Stile (Grad)</h3>
+          <h3 style={{ marginTop: 30 }}>Stile (Grad)</h3>
           {STYLE_LABELS.map((lab, i) => (
             <div key={lab} style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem" }}>
                 <span>{lab}</span>
-                <span style={{ fontWeight: "bold", color: "#f59e0b" }}>{GRADES[safeStyles[i]] || "1a"}</span>
+                <span style={{ fontWeight: "bold", color: "#d97706" }}>{GRADES[safeStyles[i]] || "1a"}</span>
               </div>
               <input type="range" min="0" max={GRADES.length - 1} step="1" style={{ width: "100%" }}
                 value={safeStyles[i]}
@@ -274,18 +266,18 @@ export default function ProfilePage() {
           <div style={{ marginBottom: 20, marginTop: 30 }}>
             <label style={{ display: "block", fontWeight: "bold", marginBottom: 5 }}>Notizen & Ziele:</label>
             <textarea
-              style={{ width: '100%', height: 80, padding: 10, borderRadius: 10, border: "1px solid #3f3f46", boxSizing: "border-box", color: "#f4f4f5", backgroundColor: "#18181b" }}
+              style={{ width: '100%', height: 80, padding: 10, borderRadius: 10, border: "1px solid #ccc", boxSizing: "border-box", color: "#333", backgroundColor: "#fff" }}
               value={profile.notes || ""}
               onChange={(e) => setProfile({ ...profile, notes: e.target.value })}
             />
           </div>
 
-          <div style={{ backgroundColor: "#18181b", padding: 15, borderRadius: 12, border: "1px solid #3f3f46", marginBottom: 25 }}>
+          <div style={{ backgroundColor: "#f9f9f9", padding: 15, borderRadius: 12, border: "1px solid #eee", marginBottom: 25 }}>
             <h3 style={{ marginTop: 0 }}>Profilfoto</h3>
             <input type="file" accept="image/*" onChange={handleImageUpload} disabled={saving} />
             {profile.image_url && (
               <div style={{ marginTop: 15 }}>
-                <Image src={profile.image_url} alt="Vorschau" width={120} height={120} style={{ objectFit: 'cover', borderRadius: 8, border: "2px solid #ddd" }} />
+                <Image src={profile.image_url} alt="Vorschau" width={120} height={120} style={{ objectFit: 'cover', borderRadius: 8, border: "1px solid #ddd" }} />
               </div>
             )}
           </div>
@@ -294,14 +286,13 @@ export default function ProfilePage() {
             <button 
               onClick={handleSave} 
               disabled={saving}
-              style={{ backgroundColor: '#10b981', color: '#052e16', padding: '15px 30px', border: 'none', borderRadius: 10, cursor: 'pointer', width: '100%', fontWeight: "bold", fontSize: "1rem" }}
+              style={{ backgroundColor: '#10b981', color: '#fff', padding: '15px 30px', border: 'none', borderRadius: 10, cursor: 'pointer', width: '100%', fontWeight: "bold", fontSize: "1rem" }}
             >
               {saving ? "Wird gespeichert..." : "Profil speichern"}
             </button>
           </div>
         </div>
 
-        {/* Rechte Spalte: Charts */}
         <div style={{ flex: "0 0 400px", display: "flex", flexDirection: "column", gap: 30 }}>
           <div style={chartBoxStyle}>
             <RadarChart 
@@ -332,9 +323,8 @@ export default function ProfilePage() {
   );
 }
 
-// Interne Styles für bessere Übersicht
-const inputStyle = { width: '100%', padding: 10, borderRadius: 10, border: "1px solid #3f3f46", boxSizing: "border-box", color: "#f4f4f5", backgroundColor: "#18181b", marginTop: "5px" };
-const smallLabel = { fontSize: "0.75rem", fontWeight: "bold", color: "#a1a1aa" };
-const detailBtnStyle = { display: "block", marginTop: "5px", background: "#18181b", border: "1px solid #34d399", color: "#34d399", cursor: "pointer", fontSize: "0.7rem", borderRadius: "8px", padding: "4px 8px" };
-const detailBoxStyle = { marginTop: "15px", padding: "15px", backgroundColor: "#18181b", borderRadius: "12px", border: "1px solid #3f3f46", boxShadow: "0 10px 24px rgba(0,0,0,0.25)" };
-const chartBoxStyle = { position: "relative", width: "400px", height: "350px", border: "1px solid #3f3f46", borderRadius: 12, padding: 10, backgroundColor: "#18181b" };
+const inputStyle = { width: '100%', padding: 10, borderRadius: 10, border: "1px solid #ccc", boxSizing: "border-box", color: "#333", backgroundColor: "#fff", marginTop: "5px" };
+const smallLabel = { fontSize: "0.75rem", fontWeight: "bold", color: "#666" };
+const detailBtnStyle = { display: "block", marginTop: "5px", background: "#fff", border: "1px solid #10b981", color: "#10b981", cursor: "pointer", fontSize: "0.7rem", borderRadius: "8px", padding: "4px 8px" };
+const detailBoxStyle = { marginTop: "15px", padding: "15px", backgroundColor: "#fff", borderRadius: "12px", border: "1px solid #eee", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" };
+const chartBoxStyle = { position: "relative", width: "400px", height: "350px", border: "1px solid #eee", borderRadius: 12, padding: 10, backgroundColor: "#fff" };
