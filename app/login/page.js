@@ -24,10 +24,12 @@ export default function LoginPage() {
     setFlipPhase("out");
 
     setTimeout(() => {
-      // Inhalt wechseln & Felder leeren
+      const goingToSignUp = !isSignUp;
       setIsSignUp((prev) => !prev);
-      setEmail("");
-      setPassword("");
+      if (goingToSignUp) {
+        setEmail("");
+        setPassword("");
+      }
       setConfirmPassword("");
       setFlipPhase("in");
     }, 280);
@@ -182,7 +184,6 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete={isSignUp ? "off" : "current-password"}
-
                 required
               />
             </div>
