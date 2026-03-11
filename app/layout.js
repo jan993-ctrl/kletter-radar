@@ -12,7 +12,7 @@ export default function RootLayout({ children }) {
       <body style={layoutBody}>
         {/* Dezente Animation im oberen Bereich */}
         <div style={animationLayer}>
-          <VisualGimmick size={200} showLabel={false} />
+          <VisualGimmick size={70} showLabel={false} />
         </div>
         
         {/* Seiteninhalt */}
@@ -35,15 +35,16 @@ const layoutBody = {
 
 const animationLayer = {
   position: "fixed",
-  top: "10px",
+  top: "20px",        // Gleicher padding wie mainStyle
   left: "50%",
   transform: "translateX(-50%)",
+  height: "80px",     // Gleiche Höhe wie der Header
   zIndex: 0,
   pointerEvents: "none",
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
-  opacity: 0.25,   // Sehr dezent damit es zum hellen Design passt
+  opacity: 0.35,
 };
 
 const contentWrapper = {
