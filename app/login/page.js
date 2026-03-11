@@ -108,6 +108,10 @@ export default function LoginPage() {
     <>
       {/* Keyframes für Flip-Animation */}
       <style>{`
+        input::placeholder {
+          color: #b0bac5;
+          opacity: 1;
+        }
         @keyframes flipOut {
           0%   { transform: perspective(1000px) rotateY(0deg);   opacity: 1; }
           100% { transform: perspective(1000px) rotateY(90deg);  opacity: 0; }
