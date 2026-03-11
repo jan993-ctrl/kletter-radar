@@ -10,8 +10,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
-  const [emailReadOnly, setEmailReadOnly] = useState(true);
-  const [passwordReadOnly, setPasswordReadOnly] = useState(true);
   // flipPhase: 'idle' | 'out' | 'in'
   const [flipPhase, setFlipPhase] = useState("idle");
   const isChecking = false;
@@ -31,8 +29,6 @@ export default function LoginPage() {
       setEmail("");
       setPassword("");
       setConfirmPassword("");
-      setEmailReadOnly(true);
-      setPasswordReadOnly(true);
       setFlipPhase("in");
     }, 280);
 
@@ -160,6 +156,7 @@ export default function LoginPage() {
           </div>
 
           <form
+            key={isSignUp ? "signup" : "login"}
             onSubmit={isSignUp ? handleSignUp : handleSignIn}
             style={formStyle}
           >
@@ -172,8 +169,6 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete={isSignUp ? "off" : "email"}
-                readOnly={isSignUp ? emailReadOnly : false}
-                onFocus={() => isSignUp && setEmailReadOnly(false)}
                 required
               />
             </div>
@@ -187,8 +182,6 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete={isSignUp ? "off" : "current-password"}
-                readOnly={isSignUp ? passwordReadOnly : false}
-                onFocus={() => isSignUp && setPasswordReadOnly(false)}
 
                 required
               />
