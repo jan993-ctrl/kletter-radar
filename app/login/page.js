@@ -8,6 +8,8 @@ export default function LoginPage() {
   const [loginPassword, setLoginPassword] = useState("");
   const [signUpEmail, setSignUpEmail] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
+  const [signUpEmailReadOnly, setSignUpEmailReadOnly] = useState(true);
+  const [signUpPasswordReadOnly, setSignUpPasswordReadOnly] = useState(true);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -29,6 +31,8 @@ export default function LoginPage() {
       setIsSignUp((prev) => !prev);
       setSignUpEmail("");
       setSignUpPassword("");
+      setSignUpEmailReadOnly(true);
+      setSignUpPasswordReadOnly(true);
       setConfirmPassword("");
       setFlipPhase("in");
     }, 280);
@@ -167,6 +171,8 @@ export default function LoginPage() {
                 type="email"
                 placeholder="name@beispiel.de"
                 style={inputStyle}
+                readOnly={isSignUp ? signUpEmailReadOnly : false}
+                onFocus={() => isSignUp && setSignUpEmailReadOnly(false)}
                 value={isSignUp ? signUpEmail : loginEmail}
                 onChange={(e) => isSignUp ? setSignUpEmail(e.target.value) : setLoginEmail(e.target.value)}
                 autoComplete={isSignUp ? "off" : "email"}
@@ -180,6 +186,8 @@ export default function LoginPage() {
                 type="password"
                 placeholder="••••••••"
                 style={inputStyle}
+                readOnly={isSignUp ? signUpPasswordReadOnly : false}
+                onFocus={() => isSignUp && setSignUpPasswordReadOnly(false)}
                 value={isSignUp ? signUpPassword : loginPassword}
                 onChange={(e) => isSignUp ? setSignUpPassword(e.target.value) : setLoginPassword(e.target.value)}
                 autoComplete={isSignUp ? "off" : "current-password"}
