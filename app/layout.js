@@ -10,12 +10,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="de">
       <body style={layoutBody}>
-        {/* Der fixierte Layer für die zentrierte, kleine Kugel oben */}
+        {/* Dezente Animation im oberen Bereich */}
         <div style={animationLayer}>
           <VisualGimmick size={200} showLabel={false} />
         </div>
         
-        {/* Der eigentliche Inhalt liegt darüber */}
+        {/* Seiteninhalt */}
         <div style={contentWrapper}>
           {children}
         </div>
@@ -27,11 +27,10 @@ export default function RootLayout({ children }) {
 const layoutBody = {
   margin: 0,
   padding: 0,
-  backgroundColor: "#020408", 
+  backgroundColor: "#f4f7f6",
   minHeight: "100vh",
   position: "relative",
   overflowX: "hidden",
-  color: "#f8fafc",
 };
 
 const animationLayer = {
@@ -39,18 +38,17 @@ const animationLayer = {
   top: "10px",
   left: "50%",
   transform: "translateX(-50%)",
-  zIndex: 2,       // ← Geändert: jetzt ÜBER dem Content
+  zIndex: 0,
   pointerEvents: "none",
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
-  opacity: 0.7,
+  opacity: 0.25,   // Sehr dezent damit es zum hellen Design passt
 };
 
 const contentWrapper = {
   position: "relative",
   zIndex: 1,
-  backgroundColor: "transparent", 
+  backgroundColor: "transparent",
   minHeight: "100vh",
-  paddingTop: "100px",
 };
