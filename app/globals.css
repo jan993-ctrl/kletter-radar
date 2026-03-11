@@ -6,4 +6,13 @@ html,
 body {
   margin: 0;
   padding: 0;
+  width: 100%;
+  height: 100%;
+  /* WICHTIG: Damit die Animation im Layout durchscheint */
+  background-color: transparent !important; 
+}
+
+/* Falls Next.js Standard-Wrapper nutzt */
+#__next, [data-nextjs-scroll-focus-boundary] {
+  background-color: transparent !important;
 }

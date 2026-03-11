@@ -158,30 +158,19 @@ export default function ProfilePage() {
     setProfile({ ...profile, ability_details: newDetails, abilities: newAbilities });
   };
 
-  if (loading) return <div style={{ padding: 50, textAlign: "center" }}>Lade Profil...</div>;
+  if (loading) return null; // Das Layout zeigt bereits das Gimmick während der kurzen Ladezeit
 
   const safeAbilities = normalizeAbilities(profile.abilities);
   const safeStyles = normalizeStyles(profile.styles);
 
   return (
-    <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", color: "#333", backgroundColor: "#fff", minHeight: "100vh" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #f1f1f1", paddingBottom: 15, marginBottom: 20 }}>
+    <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", color: "#333", backgroundColor: "transparent", minHeight: "100vh" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid rgba(0,0,0,0.05)", paddingBottom: 15, marginBottom: 20 }}>
         <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: "800" }}>👤 Mein Profil</h1>
         <div style={{ display: "flex", gap: "12px" }}>
           <button 
             onClick={() => router.push("/")} 
-            style={{ 
-              padding: "10px 18px", 
-              cursor: "pointer", 
-              borderRadius: "12px", 
-              border: "2px solid #e2e8f0", 
-              backgroundColor: "#fff", 
-              color: "#4a5568", 
-              fontSize: "0.9rem", 
-              fontWeight: "600", 
-              transition: "all 0.2s",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
-            }}
+            style={secondaryButtonStyle}
             onMouseEnter={(e) => {
                 e.target.style.borderColor = "#cbd5e0";
                 e.target.style.backgroundColor = "#f8fafc";
@@ -196,18 +185,7 @@ export default function ProfilePage() {
           
           <button 
             onClick={signOut} 
-            style={{ 
-              padding: "10px 18px", 
-              cursor: "pointer", 
-              backgroundColor: "#fff", 
-              color: "#e53e3e", 
-              border: "2px solid #feb2b2", 
-              borderRadius: "12px", 
-              fontSize: "0.9rem", 
-              fontWeight: "700", 
-              transition: "all 0.2s",
-              boxShadow: "0 2px 4px rgba(229, 62, 62, 0.05)"
-            }}
+            style={dangerButtonStyle}
             onMouseEnter={(e) => {
                 e.target.style.backgroundColor = "#fff5f5";
                 e.target.style.borderColor = "#fc8181";
@@ -235,7 +213,7 @@ export default function ProfilePage() {
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: 25, backgroundColor: "#f9f9f9", padding: "15px", borderRadius: "12px", border: "1px solid #eee" }}>
+          <div style={glassCardSmallStyle}>
             <div>
               <label style={smallLabel}>Gewicht (kg)</label>
               <input type="number" style={inputStyle} value={profile.weight || ""} onChange={(e) => setProfile({...profile, weight: parseFloat(e.target.value) || 0})} />
@@ -252,7 +230,7 @@ export default function ProfilePage() {
 
           <h3>Körperliche Eigenschaften (Level 0-24)</h3>
           {ABILITY_CONFIG.map((cfg, i) => (
-            <div key={cfg.label} style={{ marginBottom: 18, padding: "12px", borderRadius: "12px", backgroundColor: expandedKey === cfg.key ? "#f0fdf4" : "#f9f9f9", border: "1px solid #eee" }}>
+            <div key={cfg.label} style={{ marginBottom: 18, padding: "12px", borderRadius: "12px", backgroundColor: expandedKey === cfg.key ? "rgba(240, 253, 244, 0.7)" : "rgba(249, 249, 249, 0.6)", border: "1px solid rgba(0,0,0,0.05)", backdropFilter: "blur(4px)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                 <div>
                   <span style={{ fontWeight: "bold", display: "block" }}>{cfg.label}</span>
@@ -315,13 +293,13 @@ export default function ProfilePage() {
           <div style={{ marginBottom: 20, marginTop: 30 }}>
             <label style={{ display: "block", fontWeight: "bold", marginBottom: 5 }}>Notizen & Ziele:</label>
             <textarea
-              style={{ width: '100%', height: 80, padding: 10, borderRadius: 10, border: "1px solid #ccc", boxSizing: "border-box", color: "#333", backgroundColor: "#fff" }}
+              style={{ width: '100%', height: 80, padding: 10, borderRadius: 10, border: "1px solid #ccc", boxSizing: "border-box", color: "#333", backgroundColor: "rgba(255,255,255,0.8)" }}
               value={profile.notes || ""}
               onChange={(e) => setProfile({ ...profile, notes: e.target.value })}
             />
           </div>
 
-          <div style={{ backgroundColor: "#f9f9f9", padding: 15, borderRadius: 12, border: "1px solid #eee", marginBottom: 25 }}>
+          <div style={{ backgroundColor: "rgba(249, 249, 249, 0.6)", padding: 15, borderRadius: 12, border: "1px solid rgba(0,0,0,0.05)", marginBottom: 25, backdropFilter: "blur(4px)" }}>
             <h3 style={{ marginTop: 0 }}>Profilfoto</h3>
             <input type="file" accept="image/*" onChange={handleImageUpload} disabled={saving} />
             {profile.image_url && (
@@ -372,8 +350,36 @@ export default function ProfilePage() {
   );
 }
 
-const inputStyle = { width: '100%', padding: 10, borderRadius: 10, border: "1px solid #ccc", boxSizing: "border-box", color: "#333", backgroundColor: "#fff", marginTop: "5px" };
+// STYLES
+const inputStyle = { width: '100%', padding: 10, borderRadius: 10, border: "1px solid #ccc", boxSizing: "border-box", color: "#333", backgroundColor: "rgba(255,255,255,0.8)", marginTop: "5px" };
 const smallLabel = { fontSize: "0.75rem", fontWeight: "bold", color: "#666" };
 const detailBtnStyle = { display: "block", marginTop: "5px", background: "#fff", border: "1px solid #10b981", color: "#10b981", cursor: "pointer", fontSize: "0.7rem", borderRadius: "8px", padding: "4px 8px" };
-const detailBoxStyle = { marginTop: "15px", padding: "15px", backgroundColor: "#fff", borderRadius: "12px", border: "1px solid #eee", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" };
-const chartBoxStyle = { position: "relative", width: "400px", height: "350px", border: "1px solid #eee", borderRadius: 12, padding: 10, backgroundColor: "#fff" };
+const detailBoxStyle = { marginTop: "15px", padding: "15px", backgroundColor: "rgba(255,255,255,0.9)", borderRadius: "12px", border: "1px solid #eee", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" };
+const chartBoxStyle = { position: "relative", width: "400px", height: "350px", border: "1px solid rgba(0,0,0,0.05)", borderRadius: 12, padding: 10, backgroundColor: "rgba(255,255,255,0.7)", backdropFilter: "blur(8px)" };
+const glassCardSmallStyle = { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: 25, backgroundColor: "rgba(249, 249, 249, 0.6)", padding: "15px", borderRadius: "12px", border: "1px solid rgba(0,0,0,0.05)", backdropFilter: "blur(4px)" };
+
+const secondaryButtonStyle = { 
+  padding: "10px 18px", 
+  cursor: "pointer", 
+  borderRadius: "12px", 
+  border: "2px solid #e2e8f0", 
+  backgroundColor: "#fff", 
+  color: "#4a5568", 
+  fontSize: "0.9rem", 
+  fontWeight: "600", 
+  transition: "all 0.2s",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+};
+
+const dangerButtonStyle = { 
+  padding: "10px 18px", 
+  cursor: "pointer", 
+  backgroundColor: "#fff", 
+  color: "#e53e3e", 
+  border: "2px solid #feb2b2", 
+  borderRadius: "12px", 
+  fontSize: "0.9rem", 
+  fontWeight: "700", 
+  transition: "all 0.2s",
+  boxShadow: "0 2px 4px rgba(229, 62, 62, 0.05)"
+};
