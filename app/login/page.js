@@ -112,6 +112,7 @@ export default function LoginPage() {
           color: #b0bac5;
           opacity: 1;
         }
+
         @keyframes flipOut {
           0%   { transform: perspective(1000px) rotateY(0deg);   opacity: 1; }
           100% { transform: perspective(1000px) rotateY(90deg);  opacity: 0; }
@@ -166,7 +167,7 @@ export default function LoginPage() {
                 style={inputStyle}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
+                autoComplete={isSignUp ? "off" : "email"}
                 required
               />
             </div>
@@ -179,7 +180,8 @@ export default function LoginPage() {
                 style={inputStyle}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete={isSignUp ? "new-password" : "current-password"}
+                autoComplete={isSignUp ? "off" : "current-password"}
+
                 required
               />
             </div>
