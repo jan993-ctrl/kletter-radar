@@ -4,8 +4,10 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [signUpEmail, setSignUpEmail] = useState("");
+  const [signUpPassword, setSignUpPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -24,12 +26,9 @@ export default function LoginPage() {
     setFlipPhase("out");
 
     setTimeout(() => {
-      const goingToSignUp = !isSignUp;
       setIsSignUp((prev) => !prev);
-      if (goingToSignUp) {
-        setEmail("");
-        setPassword("");
-      }
+      setSignUpEmail("");
+      setSignUpPassword("");
       setConfirmPassword("");
       setFlipPhase("in");
     }, 280);
@@ -49,8 +48,8 @@ export default function LoginPage() {
 
     try {
       const { data, error } = await supabaseBrowser.auth.signInWithPassword({
-        email: email.trim(),
-        password,
+        email: loginEmail.trim(),
+        password: loginPassword,
       });
 
       if (error) {
@@ -75,7 +74,7 @@ export default function LoginPage() {
       e.stopPropagation();
     }
 
-    if (password !== confirmPassword) {
+    if (signUpPassword !== confirmPassword) {
       setMessage("Fehler: Die Passwörter stimmen nicht überein.");
       return;
     }
@@ -83,8 +82,8 @@ export default function LoginPage() {
     setLoading(true);
     setMessage("");
     const { error } = await supabaseBrowser.auth.signUp({
-      email: email.trim(),
-      password,
+      email: signUpEmail.trim(),
+      password: signUpPassword,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
@@ -168,8 +167,8 @@ export default function LoginPage() {
                 type="email"
                 placeholder="name@beispiel.de"
                 style={inputStyle}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={isSignUp ? signUpEmail : loginEmail}
+                onChange={(e) => isSignUp ? setSignUpEmail(e.target.value) : setLoginEmail(e.target.value)}
                 autoComplete={isSignUp ? "off" : "email"}
                 required
               />
@@ -181,8 +180,8 @@ export default function LoginPage() {
                 type="password"
                 placeholder="••••••••"
                 style={inputStyle}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={isSignUp ? signUpPassword : loginPassword}
+                onChange={(e) => isSignUp ? setSignUpPassword(e.target.value) : setLoginPassword(e.target.value)}
                 autoComplete={isSignUp ? "off" : "current-password"}
                 required
               />
