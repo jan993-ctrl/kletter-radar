@@ -37,16 +37,25 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+  const [gyms, setGyms] = useState([]);
+  const [newGymName, setNewGymName] = useState("");
+  const [newGymCity, setNewGymCity] = useState("");
+  const [creatingGym, setCreatingGym] = useState(false);
   const router = useRouter();
 
   // 1. Profile laden
   useEffect(() => {
     const loadProfiles = async () => {
       try {
-        const r = await fetch("/api/profiles");
-        const d = await r.json();
-        const arr = Array.isArray(d) ? d : [];
+        const [profilesRes, gymsRes] = await Promise.all([
+          fetch("/api/profiles"),
+          fetch("/api/gyms"),
+        ]);
+        const profilesData = await profilesRes.json();
+        const gymsData = gymsRes.ok ? await gymsRes.json() : [];
+        const arr = Array.isArray(profilesData) ? profilesData : [];
         setProfiles(arr);
+        setGyms(Array.isArray(gymsData) ? gymsData : []);
         if (arr.length > 0) setSelectedId(arr[0].id);
       } catch (e) {
         console.error("Failed to load profiles:", e);
@@ -175,11 +184,41 @@ export default function AdminPage() {
       notes: "", 
       abilities: Array(ABILITY_LABELS.length).fill(DEFAULT_ABILITY_LEVEL),
       styles: Array(STYLE_LABELS.length).fill(DEFAULT_STYLE_LEVEL),
-      image_url: "" 
+      image_url: "",
+      gym_id: null,
     };
     setProfiles((prev) => [...prev, newP]);
     setSelectedId(id);
     setSelected(newP);
+  };
+
+  const handleCreateGym = async () => {
+    if (!newGymName.trim()) return alert("Bitte einen Hallennamen eingeben.");
+
+    setCreatingGym(true);
+    try {
+      const res = await fetch("/api/gyms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newGymName, city: newGymCity }),
+      });
+
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload?.error || "Halle konnte nicht erstellt werden");
+
+      const createdGym = payload?.data;
+      if (createdGym) {
+        setGyms((prev) => [...prev, createdGym].sort((a, b) => a.name.localeCompare(b.name, "de")));
+        setSelected((prev) => (prev ? { ...prev, gym_id: createdGym.id } : prev));
+      }
+      setNewGymName("");
+      setNewGymCity("");
+      alert("Halle wurde erstellt.");
+    } catch (error) {
+      alert("Fehler beim Erstellen der Halle: " + error.message);
+    } finally {
+      setCreatingGym(false);
+    }
   };
 
   if (isLoading) return <div className="p-10 text-center">Lade Admin-Panel...</div>;
@@ -221,6 +260,45 @@ export default function AdminPage() {
                   value={selected.name || ""}
                   onChange={(e) => setSelected((s) => ({ ...s, name: e.target.value }))}
                 />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+                <label style={{ display: "block", fontWeight: "bold", marginBottom: 5 }}>Heimathalle:</label>
+                <select
+                  style={{ width: '100%', padding: 10, borderRadius: 4, border: "1px solid #ccc", boxSizing: "border-box", color: "black", backgroundColor: "white" }}
+                  value={selected.gym_id || ""}
+                  onChange={(e) => setSelected((s) => ({ ...s, gym_id: e.target.value || null }))}
+                >
+                  <option value="">-- Keine Halle ausgewählt --</option>
+                  {gyms.map((gym) => (
+                    <option key={gym.id} value={gym.id}>{gym.city ? `${gym.name} (${gym.city})` : gym.name}</option>
+                  ))}
+                </select>
+            </div>
+
+            <div style={{ marginBottom: 20, padding: 12, border: "1px dashed #94a3b8", borderRadius: 8, backgroundColor: "#f8fafc" }}>
+              <label style={{ display: "block", fontWeight: "bold", marginBottom: 8 }}>Neue Halle anlegen (nur Admin)</label>
+              <div style={{ display: "grid", gap: 8, gridTemplateColumns: "2fr 1fr auto" }}>
+                <input
+                  placeholder="Hallenname"
+                  style={{ width: '100%', padding: 10, borderRadius: 4, border: "1px solid #ccc", boxSizing: "border-box", color: "black" }}
+                  value={newGymName}
+                  onChange={(e) => setNewGymName(e.target.value)}
+                />
+                <input
+                  placeholder="Stadt (optional)"
+                  style={{ width: '100%', padding: 10, borderRadius: 4, border: "1px solid #ccc", boxSizing: "border-box", color: "black" }}
+                  value={newGymCity}
+                  onChange={(e) => setNewGymCity(e.target.value)}
+                />
+                <button
+                  onClick={handleCreateGym}
+                  disabled={creatingGym}
+                  style={{ padding: "10px 14px", cursor: "pointer", backgroundColor: "#0ea5e9", color: "white", border: "none", borderRadius: 4, fontWeight: "bold" }}
+                >
+                  {creatingGym ? "..." : "Anlegen"}
+                </button>
+              </div>
             </div>
 
             <div style={{ marginBottom: 20 }}>
