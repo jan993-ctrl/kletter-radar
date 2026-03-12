@@ -6,6 +6,18 @@ const ADMIN_EMAIL = 'janstoll1993@googlemail.com'
 export async function proxy(request) {
   const { pathname } = request.nextUrl
 
+  const clearSupabaseAuthCookies = () => {
+    const cookieNames = request.cookies
+      .getAll()
+      .map(({ name }) => name)
+      .filter((name) => name.startsWith('sb-') && name.includes('auth-token'))
+
+    for (const name of cookieNames) {
+      request.cookies.set({ name, value: '' })
+      response.cookies.set({ name, value: '', maxAge: 0, path: '/' })
+    }
+  }
+
   // Verhindert Laufzeit-Crashs in Dev/Preview, wenn Supabase ENV noch nicht gesetzt ist.
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -53,9 +65,29 @@ export async function proxy(request) {
   })
 
   // 3. User abrufen
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null
+
+  try {
+    const {
+      data: { user: resolvedUser },
+    } = await supabase.auth.getUser()
+
+    user = resolvedUser
+  } catch (error) {
+    const isStaleRefreshToken =
+      error?.__isAuthError === true &&
+      error?.status === 400 &&
+      error?.code === 'refresh_token_not_found'
+
+    // Nur bei genau diesem bekannten Supabase-Fehler (staler Refresh-Token)
+    // werden Auth-Cookies bereinigt und der Request als ausgeloggt behandelt.
+    if (isStaleRefreshToken) {
+      clearSupabaseAuthCookies()
+    } else {
+      // Unerwartete Fehler nicht verschlucken, damit sie sichtbar bleiben.
+      throw error
+    }
+  }
 
   // 4. Weiterleitungs-Logik
 
