@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import CombinedRadar from "@/components/charts/CombinedRadar";
 import VisualGimmick from "@/components/VisualGimmick";
+import ClimberPackOpening from "@/components/ClimberPackOpening";
 
 const GRADES = [
   "1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", 
@@ -22,6 +23,12 @@ export default function Frontpage() {
   const [flippedCards, setFlippedCards] = useState({});
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [viewMode, setViewMode] = useState("local");
+  const [inventoryIds, setInventoryIds] = useState([]);
+  const [fragments, setFragments] = useState(0);
+  const [isPackOpen, setIsPackOpen] = useState(false);
+  const [pendingPackCards, setPendingPackCards] = useState([]);
+  const [currentPackCards, setCurrentPackCards] = useState([]);
+  const [packStock, setPackStock] = useState(99);
 
   const ADMIN_EMAIL = "janstoll1993@googlemail.com";
 
@@ -36,6 +43,18 @@ export default function Frontpage() {
         const currentUser = authRes.data?.user ?? null;
         setUser(currentUser);
         setViewMode(currentUser ? "local" : "global");
+
+        const inventoryKey = `inventory:${currentUser?.id ?? "anon"}`;
+        const fragmentKey = `fragments:${currentUser?.id ?? "anon"}`;
+        const packStockKey = `pack-stock:${currentUser?.id ?? "anon"}`;
+
+        const cachedInventory = JSON.parse(localStorage.getItem(inventoryKey) || "[]");
+        const cachedFragments = Number(localStorage.getItem(fragmentKey) || 0);
+        const cachedPackStock = Number(localStorage.getItem(packStockKey) || 99);
+
+        setInventoryIds(Array.isArray(cachedInventory) ? cachedInventory : []);
+        setFragments(Number.isFinite(cachedFragments) ? cachedFragments : 0);
+        setPackStock(Number.isFinite(cachedPackStock) ? cachedPackStock : 99);
 
         if (Array.isArray(profileRes) && currentUser?.id) {
           const ownProfile = profileRes.find((profile) => profile.user_id === currentUser.id);
@@ -89,9 +108,109 @@ export default function Frontpage() {
 
   const profileLink = user?.email === ADMIN_EMAIL ? "/admin" : "/profile";
   const hasLocalContext = Boolean(userGymId);
-  const visibleClimbers = viewMode === "global" || !hasLocalContext
+  const baseVisibleClimbers = viewMode === "global" || !hasLocalContext
     ? climbers
     : climbers.filter((climber) => climber.gym_id && climber.gym_id === userGymId);
+
+  const rarityWeight = (power) => {
+    if (power >= 92) return 0;
+    if (power >= 75) return 1;
+    return 2;
+  };
+
+  const sortedInventoryClimbers = baseVisibleClimbers
+    .filter((climber) => inventoryIds.includes(climber.user_id || climber.id))
+    .sort((a, b) => {
+      const powerA = Math.round(((a.abilities || []).reduce((acc, val) => acc + val, 0) / 120) * 100);
+      const powerB = Math.round(((b.abilities || []).reduce((acc, val) => acc + val, 0) / 120) * 100);
+      const rarityDiff = rarityWeight(powerA) - rarityWeight(powerB);
+      if (rarityDiff !== 0) return rarityDiff;
+      return powerB - powerA;
+    });
+
+  const toPackAthlete = (climber) => {
+    const abilities = climber.abilities || [0, 0, 0, 0, 0];
+    const power = Math.round((abilities.reduce((a, b) => a + b, 0) / 120) * 100);
+    const rarity = power >= 92 ? "legendary" : power >= 75 ? "rare" : "common";
+    const gradeIndex = Math.max(0, Math.min(GRADES.length - 1, Math.round((power / 100) * (GRADES.length - 1))));
+
+    return {
+      id: climber.user_id || climber.id,
+      name: climber.name || "Kletter-Gast",
+      country: climber.gym_name || "GYM",
+      flag: "🧗",
+      grade: GRADES[gradeIndex],
+      discipline: "Boulder",
+      stats: {
+        power,
+        tech: Math.max(35, Math.round(((abilities[0] + abilities[1]) / 24) * 100)),
+        endurance: Math.max(35, Math.round(((abilities[3] + abilities[4]) / 24) * 100)),
+      },
+      rarity,
+      emoji: rarity === "legendary" ? "🔥" : rarity === "rare" ? "⚡" : "🪨",
+      quote: climber.notes || "Keep climbing.",
+    };
+  };
+
+  const packPool = viewMode === "global"
+    ? climbers
+    : climbers.filter((climber) => climber.gym_id && climber.gym_id === userGymId);
+  const packAthletes = packPool.map(toPackAthlete);
+  const maxPackCards = viewMode === "global" ? 5 : Math.min(3, packAthletes.length);
+
+  const drawPackCards = (pool, count) => {
+    const weights = { legendary: 10, rare: 30, common: 60 };
+    const copy = [...pool];
+    const result = [];
+
+    while (result.length < count && copy.length > 0) {
+      const weighted = copy.flatMap((card) => Array(weights[card.rarity] || 1).fill(card));
+      const pick = weighted[Math.floor(Math.random() * weighted.length)];
+      result.push(pick);
+      copy.splice(copy.findIndex((c) => c.id === pick.id), 1);
+    }
+
+    return result;
+  };
+
+  const onPackDone = (drawnCards) => {
+    setPendingPackCards(drawnCards || []);
+  };
+
+  const closePackOverlay = () => {
+    if (pendingPackCards.length > 0) {
+      const inventoryKey = `inventory:${user?.id ?? "anon"}`;
+      const fragmentKey = `fragments:${user?.id ?? "anon"}`;
+      const packStockKey = `pack-stock:${user?.id ?? "anon"}`;
+
+      const existing = new Set(inventoryIds);
+      let duplicateCount = 0;
+
+      pendingPackCards.forEach((card) => {
+        if (existing.has(card.id)) {
+          duplicateCount += 1;
+        } else {
+          existing.add(card.id);
+        }
+      });
+
+      const nextInventory = Array.from(existing);
+      const nextFragments = fragments + duplicateCount * (1 / 20);
+
+      setInventoryIds(nextInventory);
+      setFragments(nextFragments);
+      localStorage.setItem(inventoryKey, JSON.stringify(nextInventory));
+      localStorage.setItem(fragmentKey, String(nextFragments));
+
+      const nextPackStock = Math.max(0, packStock - 1);
+      setPackStock(nextPackStock);
+      localStorage.setItem(packStockKey, String(nextPackStock));
+    }
+
+    setPendingPackCards([]);
+    setCurrentPackCards([]);
+    setIsPackOpen(false);
+  };
 
   const switchViewMode = () => {
     setViewMode((prev) => (prev === "local" ? "global" : "local"));
@@ -134,6 +253,27 @@ export default function Frontpage() {
           <p style={taglineStyle}>Deine Boulder-Community auf einen Blick</p>
         </div>
         <div>
+          <button
+            type="button"
+            onClick={() => {
+              if (packStock > 0 && packAthletes.length > 0) {
+                const drawn = drawPackCards(packAthletes, maxPackCards);
+                setCurrentPackCards(drawn);
+                setPendingPackCards([]);
+                setIsPackOpen(true);
+              }
+            }}
+            style={{
+              ...navBtnStyle,
+              marginRight: "10px",
+              opacity: packStock <= 0 ? 0.5 : 1,
+              cursor: packStock <= 0 ? "not-allowed" : "pointer",
+            }}
+            title={packStock <= 0 ? "Keine Packs mehr verfügbar" : "Kartenpack öffnen"}
+            aria-label="Kartenpack öffnen"
+          >
+            🃏 Karten
+          </button>
           <Link href={user ? profileLink : "/login"}>
             <button style={navBtnStyle}>
               {user ? "Mein Profil" : "Login"}
@@ -156,6 +296,8 @@ export default function Frontpage() {
             >
               {viewMode === "global" ? "🌍" : "🏠"}
             </span>
+            <span style={inventoryMetaStyle}>Inventar: {sortedInventoryClimbers.length} Karten · Fragmente: {fragments.toFixed(2)}</span>
+            {<span style={inventoryHintStyle}>Packs verfügbar: {packStock} / 99</span>}
           </div>
 
           <div style={gridSwitchViewportStyle}>
@@ -168,6 +310,7 @@ export default function Frontpage() {
                   {hasLocalContext
                     ? climbers
                       .filter((climber) => climber.gym_id && climber.gym_id === userGymId)
+                      .filter((climber) => inventoryIds.includes(climber.user_id || climber.id))
                       .map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))
                     : (
                       <div style={emptyStateStyle}>Lege zuerst eine Heimathalle in deinem Profil fest, um lokale Karten zu sehen.</div>
@@ -177,16 +320,26 @@ export default function Frontpage() {
 
               <section style={gridPanelStyle}>
                 <div style={gridStyle}>
-                  {climbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
+                  {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
                 </div>
               </section>
             </div>
           </div>
 
-          {visibleClimbers.length === 0 && (
-            <div style={emptyStateStyle}>Noch keine passenden Kletterer für diese Ansicht gefunden.</div>
+          {sortedInventoryClimbers.length === 0 && (
+            <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
           )}
         </>
+      )}
+      {isPackOpen && (
+        <div style={packOverlayStyle}>
+          <button type="button" style={packCloseBtnStyle} onClick={closePackOverlay} aria-label="Pack Overlay schließen">✕</button>
+          <ClimberPackOpening
+            cards={currentPackCards}
+            onDone={onPackDone}
+            onDismiss={closePackOverlay}
+          />
+        </div>
       )}
       </main>
     </div>
@@ -362,6 +515,37 @@ const modeIconStyle = {
   fontSize: "1rem",
   background: "rgba(30,41,59,0.85)",
   border: "1px solid rgba(147,197,253,0.4)",
+};
+const inventoryMetaStyle = {
+  color: "#1e293b",
+  fontSize: "0.82rem",
+  fontWeight: 700,
+};
+const inventoryHintStyle = {
+  color: "#b91c1c",
+  fontSize: "0.75rem",
+  fontWeight: 700,
+};
+const packOverlayStyle = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 1200,
+  background: "radial-gradient(circle at 20% 20%, rgba(30,58,138,0.26), transparent 45%), radial-gradient(circle at 80% 80%, rgba(120,53,15,0.24), transparent 45%), rgba(2,6,23,0.78)",
+  backdropFilter: "blur(4px)",
+};
+const packCloseBtnStyle = {
+  position: "fixed",
+  top: "20px",
+  right: "20px",
+  width: "42px",
+  height: "42px",
+  borderRadius: "999px",
+  border: "1px solid rgba(226,232,240,0.35)",
+  background: "rgba(15,23,42,0.72)",
+  color: "#e2e8f0",
+  fontSize: "1.1rem",
+  cursor: "pointer",
+  zIndex: 1300,
 };
 const gridSwitchViewportStyle = {
   overflow: "hidden",

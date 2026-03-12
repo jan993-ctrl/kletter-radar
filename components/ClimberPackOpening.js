@@ -1,0 +1,339 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+const RARITY_META = {
+  legendary: {
+    label: "LEGENDARY",
+    color: "#FFB300",
+    shadow: "0 0 24px #FFB30088, 0 0 48px #FF8F0044",
+    badge: "#7B5800",
+    bgFrom: "#3D2000",
+  },
+  rare: {
+    label: "RARE",
+    color: "#42A5F5",
+    shadow: "0 0 16px #42A5F566, 0 0 32px #1565C033",
+    badge: "#0D47A1",
+    bgFrom: "#001A3D",
+  },
+  common: {
+    label: "COMMON",
+    color: "#9E9E9E",
+    shadow: "0 4px 16px rgba(0,0,0,.5)",
+    badge: "#212121",
+    bgFrom: "#1C1C1C",
+  },
+};
+
+const SPREAD = [
+  { x: -44, y: -16, rot: -24 },
+  { x: -22, y: -26, rot: -11 },
+  { x: 0, y: -30, rot: 1 },
+  { x: 22, y: -26, rot: 13 },
+  { x: 44, y: -16, rot: 23 },
+];
+
+const CRUMBLE_DIRS = [
+  { tx: "-55vw", ty: "60vh", rot: "-180deg" },
+  { tx: "-25vw", ty: "80vh", rot: "-120deg" },
+  { tx: "0vw", ty: "90vh", rot: "90deg" },
+  { tx: "25vw", ty: "75vh", rot: "150deg" },
+  { tx: "55vw", ty: "65vh", rot: "200deg" },
+];
+
+export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
+  const [phase, setPhase] = useState("idle");
+  const [activeCards, setActive] = useState([]);
+  const [launched, setLaunched] = useState([]);
+  const [revealed, setRevealed] = useState([]);
+  const timeouts = useRef([]);
+
+  const clear = () => {
+    timeouts.current.forEach(clearTimeout);
+    timeouts.current = [];
+  };
+  const later = (fn, ms) => {
+    const id = setTimeout(fn, ms);
+    timeouts.current.push(id);
+    return id;
+  };
+
+  const startAnimation = useCallback(() => {
+    if (cards.length === 0) return;
+
+    clear();
+    setActive([]);
+    setLaunched([]);
+    setRevealed([]);
+    setPhase("shake");
+
+    later(() => setPhase("slice"), 650);
+    later(() => setPhase("open"), 1150);
+    later(() => {
+      setActive(cards);
+      setPhase("cards");
+      cards.forEach((_, i) => later(() => setLaunched((prev) => [...prev, i]), i * 130));
+    }, 1750);
+    later(() => {
+      setPhase("done");
+      onDone?.(cards);
+    }, 3600);
+  }, [cards, onDone]);
+
+  const triggerCrumble = useCallback(() => {
+    setPhase("crumble");
+    later(() => {
+      setPhase("idle");
+      setActive([]);
+      setLaunched([]);
+      setRevealed([]);
+      onDismiss?.();
+    }, 900);
+  }, [onDismiss]);
+
+  useEffect(() => () => clear(), []);
+
+  const allRevealed = activeCards.length > 0 && revealed.length === activeCards.length;
+  const remaining = activeCards.length - revealed.length;
+
+  const toggleReveal = (i) => {
+    if (phase !== "done") return;
+    setRevealed((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]));
+  };
+
+  const handleRootClick = () => {
+    if (phase === "idle") {
+      startAnimation();
+      return;
+    }
+    if (phase === "done" && allRevealed) {
+      triggerCrumble();
+    }
+  };
+
+  return (
+    <div className="cr-root" onClick={handleRootClick}>
+      <style>{CSS}</style>
+
+      {activeCards.map((card, i) => (
+        <ClimberCard
+          key={card.id}
+          card={card}
+          index={i}
+          isLaunched={launched.includes(i)}
+          isRevealed={revealed.includes(i)}
+          isCrumbling={phase === "crumble"}
+          isDone={phase === "done"}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleReveal(i);
+          }}
+        />
+      ))}
+
+      <div className={`cr-pack ${phase}`} role="button" aria-label="Open pack">
+        <div className="cr-pack-top" />
+        <div className={`cr-slice ${["slice", "open", "cards", "done", "crumble"].includes(phase) ? "vis" : ""}`} />
+        <div className="cr-pack-body">
+          <div className="cr-pack-shine" />
+          <div className="cr-pack-noise" />
+          <div className="cr-pack-content">
+            <span className="cr-pack-eyebrow">SEASON 1 · PRO SERIES</span>
+            <span className="cr-pack-title">CRUX<br />CARDS</span>
+            <MountainClimberIcon />
+            <span className="cr-pack-sub">{cards.length} CLIMBER{cards.length !== 1 ? "S" : ""} INSIDE</span>
+          </div>
+        </div>
+      </div>
+
+      {phase === "idle" && cards.length > 0 && <p className="cr-cta cr-cta-pulse">TAP TO OPEN PACK</p>}
+      {phase === "idle" && cards.length === 0 && <p className="cr-hint">no cards available</p>}
+      {phase === "done" && !allRevealed && (
+        <p className="cr-hint">{revealed.length === 0 ? "tap each card to reveal" : `${remaining} card${remaining !== 1 ? "s" : ""} left to reveal`}</p>
+      )}
+      {phase === "done" && allRevealed && <p className="cr-cta cr-cta-pulse">tap anywhere to dismiss</p>}
+    </div>
+  );
+}
+
+function ClimberCard({ card, index, isLaunched, isRevealed, isCrumbling, isDone, onClick }) {
+  const pos = SPREAD[index] || SPREAD[0];
+  const cd = CRUMBLE_DIRS[index] || CRUMBLE_DIRS[0];
+  const meta = RARITY_META[card.rarity] || RARITY_META.common;
+
+  return (
+    <div
+      className={["cr-card-wrap", isLaunched ? "fly" : "", isRevealed ? "flipped" : "", isCrumbling ? "crumble" : ""].join(" ")}
+      style={{
+        "--tx": `${pos.x}vw`,
+        "--ty": `${pos.y}vh`,
+        "--rot": `${pos.rot}deg`,
+        "--delay": `${index * 0.1}s`,
+        "--r-color": meta.color,
+        "--r-shadow": meta.shadow,
+        "--cx": cd.tx,
+        "--cy": cd.ty,
+        "--cr": cd.rot,
+        "--cd": `${index * 0.06}s`,
+      }}
+      onClick={isDone && !isCrumbling ? onClick : undefined}
+    >
+      <div className="cr-card-face cr-card-back">
+        <MountainClimberIcon size={42} />
+        <span className="cr-back-label">CRUX</span>
+      </div>
+      <div className="cr-card-face cr-card-front" style={{ "--card-bg-from": meta.bgFrom }}>
+        <div className="cr-card-glow" />
+        <div className="cr-card-head">
+          <span className="cr-rarity-badge" style={{ background: meta.badge, color: meta.color }}>{meta.label}</span>
+          <span className="cr-discipline">{card.discipline}</span>
+        </div>
+        <div className="cr-art-zone">
+          <div className="cr-art-bg" style={{ background: `radial-gradient(circle at 60% 40%, ${meta.color}22 0%, transparent 70%)` }} />
+          {card.discipline === "Boulder" ? <BoulderIcon color={meta.color} /> : <LeadIcon color={meta.color} />}
+          <span className="cr-grade-overlay">{card.grade}</span>
+        </div>
+        <div className="cr-name-row">
+          <span className="cr-athlete-name">{card.name}</span>
+          <span className="cr-flag">{card.flag} {card.country}</span>
+        </div>
+        <p className="cr-quote">&ldquo;{card.quote}&rdquo;</p>
+        <div className="cr-stats">
+          <StatBar label="POW" value={card.stats.power} color={meta.color} />
+          <StatBar label="TEC" value={card.stats.tech} color={meta.color} />
+          <StatBar label="END" value={card.stats.endurance} color={meta.color} />
+        </div>
+        <div className="cr-holo" />
+      </div>
+    </div>
+  );
+}
+
+function StatBar({ label, value, color }) {
+  return (
+    <div className="cr-stat-row">
+      <span className="cr-stat-label">{label}</span>
+      <div className="cr-stat-track"><div className="cr-stat-fill" style={{ "--fill": `${value}%`, "--fill-color": color }} /></div>
+      <span className="cr-stat-val">{value}</span>
+    </div>
+  );
+}
+
+function MountainClimberIcon({ size = 44 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 52 52" fill="none" className="cr-carabiner">
+      <path d="M2 46 L20 10 L26 20 L32 10 L50 46 Z" fill="currentColor" opacity=".18" />
+      <path d="M2 46 L20 10 L26 20 L32 10 L50 46" stroke="currentColor" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" fill="none" opacity=".7" />
+      <path d="M32 10 L28.5 17 L35.5 17 Z" fill="currentColor" opacity=".5" />
+      <circle cx="20" cy="7" r="2.2" fill="currentColor" opacity=".95" />
+      <line x1="20" y1="9.2" x2="20" y2="13.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <line x1="20" y1="10.5" x2="17" y2="8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="20" y1="10.5" x2="23" y2="7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="20" y1="13.5" x2="18" y2="16.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="20" y1="13.5" x2="22" y2="16.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M20 13.5 Q17 18 18 22" stroke="currentColor" strokeWidth="1.3" fill="none" opacity=".45" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BoulderIcon({ color = "#fff", size = 56 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 56 56" fill="none">
+      <path d="M4 44 Q8 28 16 24 Q20 22 24 26 Q28 30 36 22 Q44 14 52 20 L52 52 L4 52 Z" fill={color} opacity=".12" />
+      <path d="M4 44 Q8 28 16 24 Q20 22 24 26 Q28 30 36 22 Q44 14 52 20" stroke={color} strokeWidth="2" fill="none" opacity=".5" strokeLinejoin="round" />
+      <rect x="25" y="28" width="7" height="9" rx="3.5" fill={color} opacity=".9" />
+      <circle cx="28.5" cy="25" r="3.5" fill={color} opacity=".9" />
+      <line x1="25" y1="30" x2="18" y2="24" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+      <circle cx="18" cy="24" r="2" fill={color} opacity=".7" />
+      <line x1="32" y1="30" x2="39" y2="23" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+      <circle cx="39" cy="23" r="2" fill={color} opacity=".7" />
+      <line x1="26" y1="37" x2="22" y2="46" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="31" y1="37" x2="35" y2="44" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function LeadIcon({ color = "#fff", size = 56 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 56 56" fill="none">
+      <line x1="4" y1="8" x2="4" y2="52" stroke={color} strokeWidth="1.5" opacity=".15" strokeLinecap="round" />
+      <line x1="12" y1="4" x2="12" y2="52" stroke={color} strokeWidth="1.5" opacity=".15" strokeLinecap="round" />
+      <rect x="2" y="20" width="8" height="4" rx="2" fill={color} opacity=".2" />
+      <rect x="2" y="36" width="8" height="4" rx="2" fill={color} opacity=".2" />
+      <path d="M20 4 L20 14 Q20 16 22 16 L24 16 Q26 16 26 18 L26 28 Q26 30 28 30 L30 30 Q32 30 32 32 L32 38" stroke={color} strokeWidth="1.8" fill="none" opacity=".55" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="19" y="13" width="2" height="5" rx="1" fill={color} opacity=".5" />
+      <rect x="19" y="27" width="2" height="5" rx="1" fill={color} opacity=".5" />
+      <circle cx="20" cy="4" r="2.5" fill={color} opacity=".6" />
+      <rect x="28" y="26" width="7" height="10" rx="3.5" fill={color} opacity=".9" />
+      <circle cx="31.5" cy="23" r="3.5" fill={color} opacity=".9" />
+      <line x1="28" y1="29" x2="22" y2="24" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+      <circle cx="22" cy="24" r="1.8" fill={color} opacity=".6" />
+      <line x1="35" y1="28" x2="40" y2="20" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+      <circle cx="40" cy="20" r="2" fill={color} opacity=".7" />
+      <line x1="29" y1="36" x2="24" y2="44" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="34" y1="36" x2="38" y2="43" stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Rajdhani:wght@400;600;700&display=swap');
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.cr-root { position: relative; width: 100%; height: 100%; min-height: 100dvh; background: transparent; display: flex; align-items: center; justify-content: center; overflow: hidden; font-family: 'Rajdhani', sans-serif; }
+.cr-pack { position: relative; z-index: 10; width: clamp(130px, 22vw, 175px); height: clamp(210px, 36vw, 285px); display: flex; flex-direction: column; cursor: pointer; filter: drop-shadow(0 20px 50px rgba(0,0,0,.75)); }
+.cr-pack.shake { animation: packShake .65s ease forwards; }
+@keyframes packShake { 0% { transform: rotate(0deg) translateX(0); } 15% { transform: rotate(-2.5deg) translateX(-11px);} 30% { transform: rotate(2deg) translateX(11px);} 45% { transform: rotate(-2deg) translateX(-8px);} 60% { transform: rotate(1.5deg) translateX(8px);} 75% { transform: rotate(-1deg) translateX(-4px);} 90% { transform: rotate(.6deg) translateX(3px);} 100% { transform: rotate(0) translateX(0);} }
+.cr-pack-top { height: 16%; background: linear-gradient(135deg, #2D2208 0%, #3D3010 100%); border-radius: 12px 12px 0 0; border-bottom: 2px solid #BF8C00; position: relative; z-index: 2; transition: transform .45s cubic-bezier(.22,.61,.36,1), opacity .45s ease; overflow: hidden; }
+.cr-pack-top::after { content:''; position:absolute; inset:0; background: linear-gradient(105deg,transparent 55%,rgba(255,220,100,.1) 62%,transparent 68%); }
+.cr-pack.open .cr-pack-top,.cr-pack.cards .cr-pack-top,.cr-pack.done .cr-pack-top,.cr-pack.crumble .cr-pack-top { transform: translateY(-160%) rotate(20deg) translateX(20%); opacity: 0; }
+.cr-slice { position: absolute; top: 16%; left: 50%; width: 0; height: 2px; background: linear-gradient(90deg, transparent, #FFD166, #fff, #FFD166, transparent); transform: translateX(-50%); border-radius: 2px; box-shadow: 0 0 10px 4px rgba(255,209,102,.5); opacity: 0; transition: width .38s ease, opacity .2s ease; z-index: 5; }
+.cr-slice.vis { width: 100%; opacity: 1; }
+.cr-pack-body { flex: 1; background: linear-gradient(160deg, #2A1F06 0%, #1C1505 60%, #0E1020 100%); border-radius: 0 0 12px 12px; position: relative; overflow: hidden; border: 1px solid rgba(191,140,0,.35); border-top: none; }
+.cr-pack-noise { position:absolute; inset:0; background-image: repeating-linear-gradient(-45deg, transparent 0px, transparent 3px, rgba(255,255,255,.015) 3px, rgba(255,255,255,.015) 4px); pointer-events:none; }
+.cr-pack-shine { position:absolute; top:0; bottom:0; left:70%; width:12%; background: linear-gradient(180deg, transparent 0%, rgba(255,220,100,.08) 30%, rgba(255,255,255,.06) 60%, transparent 100%); border-radius: 3px; }
+.cr-pack-content { position:absolute; inset:0; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; padding: 8% 8% 10%; }
+.cr-pack-eyebrow { font-size: clamp(6px, 1.3vw, 8px); font-weight: 700; letter-spacing: .22em; color: rgba(191,140,0,.8); text-transform: uppercase; font-family: 'Rajdhani', sans-serif; }
+.cr-pack-title { font-family: 'Oswald', sans-serif; font-size: clamp(20px, 4.5vw, 30px); font-weight: 700; line-height: .95; text-align: center; color: #FFD166; text-shadow: 0 0 20px rgba(255,209,102,.4); letter-spacing: .05em; }
+.cr-carabiner { color: rgba(255,209,102,.7); }
+.cr-pack-sub { font-size: clamp(6px, 1.3vw, 8px); font-weight: 600; letter-spacing: .2em; color: rgba(255,255,255,.3); text-transform: uppercase; }
+.cr-pack.crumble { animation: packCrumble .7s .1s cubic-bezier(.55,0,1,.45) forwards; pointer-events: none; }
+@keyframes packCrumble { 0% { transform: scale(1) rotate(0deg); opacity: 1; } 20% { transform: scale(1.04) rotate(-3deg); } 100% { transform: scale(0) rotate(25deg) translateY(40px); opacity: 0; } }
+.cr-card-wrap { position: absolute; z-index: 20; width: clamp(100px, 17vw, 148px); height: clamp(150px, 25vw, 215px); transform: translate(0,0) rotate(0deg) scale(0); opacity: 0; pointer-events: none; perspective: 800px; transform-style: preserve-3d; }
+.cr-card-wrap.fly { animation: cardFly .8s cubic-bezier(.22,.61,.36,1) forwards; animation-delay: var(--delay); pointer-events: auto; }
+@keyframes cardFly { 0% { transform: translate(0,0) rotate(0deg) scale(.15); opacity:0; } 20% { opacity: 1; } 65% { transform: translate(calc(var(--tx)*.75), calc(var(--ty)*1.3 - 7vh)) rotate(calc(var(--rot)*.6)) scale(1.08); } 100% { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(1); opacity:1; } }
+.cr-card-wrap.fly:hover { z-index: 50; filter: drop-shadow(var(--r-shadow)); transform: translate(var(--tx), calc(var(--ty) - 1vh)) rotate(var(--rot)) scale(1.06) !important; transition: transform .25s ease, filter .25s ease; }
+.cr-card-wrap.fly:active { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(.97) !important; }
+.cr-card-wrap.crumble { animation: cardCrumble .8s cubic-bezier(.55,0,1,.45) forwards !important; animation-delay: var(--cd) !important; pointer-events: none !important; }
+@keyframes cardCrumble { 0% { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(1); opacity: 1; } 30% { transform: translate(var(--tx), var(--ty)) rotate(calc(var(--rot) + 15deg)) scale(1.05); opacity: 1; } 100% { transform: translate(calc(var(--tx) + var(--cx)), calc(var(--ty) + var(--cy))) rotate(calc(var(--rot) + var(--cr))) scale(0.05); opacity: 0; } }
+.cr-card-face { position: absolute; inset: 0; border-radius: 10px; backface-visibility: hidden; -webkit-backface-visibility: hidden; transition: transform .55s cubic-bezier(.4,0,.2,1); }
+.cr-card-back { transform: rotateY(0deg); background: linear-gradient(145deg, #2A1F06, #0E1020); border: 1.5px solid rgba(191,140,0,.4); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+.cr-card-front { transform: rotateY(180deg); background: linear-gradient(155deg, var(--card-bg-from, #1C1C1C) 0%, #0D0D14 100%); border: 1.5px solid var(--r-color); display: flex; flex-direction: column; overflow: hidden; }
+.cr-card-wrap.flipped .cr-card-back { transform: rotateY(-180deg); }
+.cr-card-wrap.flipped .cr-card-front { transform: rotateY(0deg); }
+.cr-back-label { font-family: 'Oswald', sans-serif; font-size: clamp(11px, 2.2vw, 15px); letter-spacing: .3em; color: rgba(255,209,102,.6); }
+.cr-card-glow { position: absolute; inset: -1px; border-radius: 10px; box-shadow: inset 0 0 12px rgba(0,0,0,.7), var(--r-shadow); pointer-events: none; z-index: 10; }
+.cr-card-head { display: flex; justify-content: space-between; align-items: center; padding: 5px 7px 3px; background: rgba(0,0,0,.4); }
+.cr-rarity-badge { font-family: 'Oswald', sans-serif; font-size: clamp(6px, 1.2vw, 8px); font-weight: 500; letter-spacing: .15em; padding: 1px 5px; border-radius: 3px; text-transform: uppercase; }
+.cr-discipline { font-size: clamp(6px, 1.1vw, 8px); font-weight: 600; letter-spacing: .15em; color: rgba(255,255,255,.4); text-transform: uppercase; }
+.cr-art-zone { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; margin: 4px 5px; border-radius: 5px; background: rgba(0,0,0,.3); border: 1px solid rgba(255,255,255,.06); overflow: hidden; min-height: 0; }
+.cr-art-bg { position:absolute; inset:0; pointer-events:none; }
+.cr-grade-overlay { position: absolute; bottom: 4px; right: 6px; font-family: 'Oswald', sans-serif; font-size: clamp(14px, 3vw, 20px); font-weight: 700; color: var(--r-color); text-shadow: 0 0 10px var(--r-color), 0 2px 4px rgba(0,0,0,.9); z-index: 3; line-height: 1; }
+.cr-name-row { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 6px 1px; }
+.cr-athlete-name { font-family: 'Oswald', sans-serif; font-size: clamp(9px, 1.9vw, 12px); font-weight: 700; color: #fff; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 68%; }
+.cr-flag { font-size: clamp(7px, 1.3vw, 9px); font-weight: 600; color: rgba(255,255,255,.5); letter-spacing: .05em; white-space: nowrap; }
+.cr-quote { font-size: clamp(6px, 1.1vw, 7.5px); color: rgba(255,255,255,.3); font-style: italic; padding: 0 6px 3px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cr-stats { padding: 0 5px 5px; display: flex; flex-direction: column; gap: 2px; }
+.cr-stat-row { display: flex; align-items: center; gap: 4px; }
+.cr-stat-label { font-family: 'Oswald', sans-serif; font-size: clamp(5.5px, 1.1vw, 7.5px); font-weight: 500; color: rgba(255,255,255,.4); letter-spacing: .1em; width: 22px; }
+.cr-stat-track { flex: 1; height: 4px; background: rgba(255,255,255,.08); border-radius: 2px; overflow: hidden; }
+.cr-stat-fill { height: 100%; width: var(--fill); background: var(--fill-color); border-radius: 2px; box-shadow: 0 0 4px var(--fill-color); animation: statGrow .6s ease forwards; transform-origin: left; }
+@keyframes statGrow { from { width: 0; } to { width: var(--fill); } }
+.cr-stat-val { font-family: 'Rajdhani', sans-serif; font-size: clamp(6px, 1.1vw, 8px); font-weight: 700; color: rgba(255,255,255,.55); width: 18px; text-align: right; }
+.cr-holo { position:absolute; inset:0; border-radius:10px; pointer-events:none; z-index:9; background: linear-gradient(110deg, transparent 38%, rgba(255,255,255,.05) 44%, rgba(255,255,255,.09) 50%, transparent 56%); }
+.cr-cta { position: absolute; bottom: 5%; left: 50%; transform: translateX(-50%); z-index: 30; font-family: 'Oswald', sans-serif; font-size: clamp(11px, 2.2vw, 14px); font-weight: 500; letter-spacing: .25em; color: rgba(255,255,255,.45); text-transform: uppercase; animation: fadeUp .5s ease forwards; white-space: nowrap; cursor: pointer; }
+.cr-cta-pulse { animation: fadeUp .5s ease forwards, ctaPulse 2s ease infinite; }
+@keyframes ctaPulse { 0%,100% { opacity: .3; } 50% { opacity: .75; } }
+.cr-hint { position: absolute; bottom: 1.5%; left:50%; transform: translateX(-50%); z-index:30; font-family:'Rajdhani',sans-serif; font-size: clamp(8px,1.5vw,10px); letter-spacing:.18em; color:rgba(255,255,255,.35); text-transform:uppercase; animation: fadeUp .8s .4s ease both; white-space:nowrap; }
+@keyframes fadeUp { from { opacity:0; transform: translateX(-50%) translateY(12px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+`;
