@@ -233,12 +233,14 @@ const headerStyle = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  borderBottom: "1px solid #27272a",
-  padding: "15px 0",
+  border: "1px solid rgba(255,255,255,0.08)",
+  padding: "15px 18px",
   marginBottom: "30px",
   minHeight: "110px",
-  backgroundColor: "rgba(9,9,11,0.92)",
-  backdropFilter: "blur(6px)",
+  borderRadius: "18px",
+  backgroundColor: "rgba(9,9,11,0.88)",
+  backdropFilter: "blur(8px)",
+  boxShadow: "0 10px 25px rgba(0,0,0,0.22)",
   zIndex: 20,
   transition: "transform 320ms ease, opacity 260ms ease",
 };
@@ -267,12 +269,16 @@ const baseFaceStyle = {
   borderRadius: "24px",
   boxShadow: "0 18px 40px rgba(0,0,0,0.45)",
   overflow: "hidden",
-  backgroundColor: "#18181b",
-  border: "1px solid #3f3f46"
+  background: "linear-gradient(165deg, #111827 0%, #1f2937 48%, #0f172a 100%)",
+  border: "1px solid rgba(148,163,184,0.35)"
 };
 
 const cardFrontStyle = { ...baseFaceStyle };
-const cardBackStyle = { ...baseFaceStyle, transform: "rotateY(180deg)", backgroundColor: "#18181b" };
+const cardBackStyle = {
+  ...baseFaceStyle,
+  transform: "rotateY(180deg)",
+  background: "linear-gradient(165deg, #0f172a 0%, #1e293b 52%, #020617 100%)",
+};
 
 const rankBadgeStyle = { position: "absolute", top: "15px", left: "15px", backgroundColor: "rgba(16,185,129,0.15)", color: "#6ee7b7", padding: "6px 12px", borderRadius: "12px", fontSize: "0.9rem", fontWeight: "bold", zIndex: 10, border: "1px solid rgba(16,185,129,0.45)" };
 const imgContainerStyle = { position: "relative", height: "210px", width: "100%", backgroundColor: "#27272a" };
