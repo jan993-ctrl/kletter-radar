@@ -27,6 +27,7 @@ export default function Frontpage() {
   const [fragments, setFragments] = useState(0);
   const [isPackOpen, setIsPackOpen] = useState(false);
   const [lastPackDate, setLastPackDate] = useState(null);
+  const [pendingPackCards, setPendingPackCards] = useState([]);
 
   const ADMIN_EMAIL = "janstoll1993@googlemail.com";
 
@@ -109,6 +110,35 @@ export default function Frontpage() {
   const baseVisibleClimbers = viewMode === "global" || !hasLocalContext
     ? climbers
     : climbers.filter((climber) => climber.gym_id && climber.gym_id === userGymId);
+  const packAthletes = packPool.map(toPackAthlete);
+  const maxPackCards = viewMode === "global" ? 5 : Math.min(3, packAthletes.length);
+
+  const onPackDone = (drawnCards) => {
+    const todayStamp = new Date().toISOString();
+    const inventoryKey = `inventory:${user?.id ?? "anon"}`;
+    const lastPackKey = `last-pack:${user?.id ?? "anon"}`;
+    const fragmentKey = `fragments:${user?.id ?? "anon"}`;
+
+    const existing = new Set(inventoryIds);
+    let duplicateCount = 0;
+    drawnCards.forEach((card) => {
+      if (existing.has(card.id)) {
+        duplicateCount += 1;
+      } else {
+        existing.add(card.id);
+      }
+    });
+
+    const nextInventory = Array.from(existing);
+    const nextFragments = fragments + duplicateCount * (1 / 20);
+
+    setInventoryIds(nextInventory);
+    setFragments(nextFragments);
+    setLastPackDate(todayStamp);
+    localStorage.setItem(inventoryKey, JSON.stringify(nextInventory));
+    localStorage.setItem(lastPackKey, todayStamp);
+    localStorage.setItem(fragmentKey, String(nextFragments));
+  };
 
   const rarityWeight = (power) => {
     if (power >= 92) return 0;
@@ -164,30 +194,40 @@ export default function Frontpage() {
   const maxPackCards = viewMode === "global" ? 5 : Math.min(3, packAthletes.length);
 
   const onPackDone = (drawnCards) => {
-    const todayStamp = new Date().toISOString();
-    const inventoryKey = `inventory:${user?.id ?? "anon"}`;
-    const lastPackKey = `last-pack:${user?.id ?? "anon"}`;
-    const fragmentKey = `fragments:${user?.id ?? "anon"}`;
+    setPendingPackCards(drawnCards || []);
+  };
 
-    const existing = new Set(inventoryIds);
-    let duplicateCount = 0;
-    drawnCards.forEach((card) => {
-      if (existing.has(card.id)) {
-        duplicateCount += 1;
-      } else {
-        existing.add(card.id);
-      }
-    });
+  const closePackOverlay = () => {
+    if (pendingPackCards.length > 0) {
+      const todayStamp = new Date().toISOString();
+      const inventoryKey = `inventory:${user?.id ?? "anon"}`;
+      const lastPackKey = `last-pack:${user?.id ?? "anon"}`;
+      const fragmentKey = `fragments:${user?.id ?? "anon"}`;
 
-    const nextInventory = Array.from(existing);
-    const nextFragments = fragments + duplicateCount * (1 / 20);
+      const existing = new Set(inventoryIds);
+      let duplicateCount = 0;
 
-    setInventoryIds(nextInventory);
-    setFragments(nextFragments);
-    setLastPackDate(todayStamp);
-    localStorage.setItem(inventoryKey, JSON.stringify(nextInventory));
-    localStorage.setItem(lastPackKey, todayStamp);
-    localStorage.setItem(fragmentKey, String(nextFragments));
+      pendingPackCards.forEach((card) => {
+        if (existing.has(card.id)) {
+          duplicateCount += 1;
+        } else {
+          existing.add(card.id);
+        }
+      });
+
+      const nextInventory = Array.from(existing);
+      const nextFragments = fragments + duplicateCount * (1 / 20);
+
+      setInventoryIds(nextInventory);
+      setFragments(nextFragments);
+      setLastPackDate(todayStamp);
+      localStorage.setItem(inventoryKey, JSON.stringify(nextInventory));
+      localStorage.setItem(lastPackKey, todayStamp);
+      localStorage.setItem(fragmentKey, String(nextFragments));
+    }
+
+    setPendingPackCards([]);
+    setIsPackOpen(false);
   };
 
   const switchViewMode = () => {
@@ -235,6 +275,7 @@ export default function Frontpage() {
             type="button"
             onClick={() => {
               if (!todayAlreadyOpened && packAthletes.length > 0) {
+                setPendingPackCards([]);
                 setIsPackOpen(true);
               }
             }}
@@ -307,12 +348,14 @@ export default function Frontpage() {
         </>
       )}
       {isPackOpen && (
-        <ClimberPackOpening
-          athletes={packAthletes}
-          maxCards={maxPackCards}
-          onDone={onPackDone}
-          onClose={() => setIsPackOpen(false)}
-        />
+        <div style={packOverlayStyle}>
+          <button type="button" style={packCloseBtnStyle} onClick={closePackOverlay} aria-label="Pack Overlay schließen">✕</button>
+          <ClimberPackOpening
+            athletes={packAthletes}
+            maxCards={maxPackCards}
+            onDone={onPackDone}
+          />
+        </div>
       )}
       </main>
     </div>
@@ -498,6 +541,27 @@ const inventoryHintStyle = {
   color: "#b91c1c",
   fontSize: "0.75rem",
   fontWeight: 700,
+};
+const packOverlayStyle = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 1200,
+  background: "radial-gradient(circle at 20% 20%, rgba(30,58,138,0.26), transparent 45%), radial-gradient(circle at 80% 80%, rgba(120,53,15,0.24), transparent 45%), rgba(2,6,23,0.78)",
+  backdropFilter: "blur(4px)",
+};
+const packCloseBtnStyle = {
+  position: "fixed",
+  top: "20px",
+  right: "20px",
+  width: "42px",
+  height: "42px",
+  borderRadius: "999px",
+  border: "1px solid rgba(226,232,240,0.35)",
+  background: "rgba(15,23,42,0.72)",
+  color: "#e2e8f0",
+  fontSize: "1.1rem",
+  cursor: "pointer",
+  zIndex: 1300,
 };
 const gridSwitchViewportStyle = {
   overflow: "hidden",
