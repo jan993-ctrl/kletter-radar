@@ -79,8 +79,24 @@ export async function POST(req) {
       styles: normalizeStyles(profileData.styles),
       notes: profileData.notes || "",
       image_url: profileData.image_url || "",
+      gym_id: null,
       updated_at: new Date().toISOString(),
     };
+
+    if (profileData.gym_id) {
+      const { data: gym, error: gymError } = await getSupabaseAdmin()
+        .from("gyms")
+        .select("id")
+        .eq("id", profileData.gym_id)
+        .maybeSingle();
+
+      if (gymError) throw gymError;
+      if (!gym) {
+        return NextResponse.json({ error: "Ungültige Halle ausgewählt" }, { status: 400 });
+      }
+
+      upsertData.gym_id = gym.id;
+    }
 
     if (isAdmin) {
       // Admin identifiziert Profile über die UUID (id)
