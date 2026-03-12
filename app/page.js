@@ -35,6 +35,7 @@ export default function Frontpage() {
 
         const currentUser = authRes.data?.user ?? null;
         setUser(currentUser);
+        setViewMode(currentUser ? "local" : "global");
 
         if (Array.isArray(profileRes) && currentUser?.id) {
           const ownProfile = profileRes.find((profile) => profile.user_id === currentUser.id);
