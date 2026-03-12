@@ -17,9 +17,11 @@ const styleLabels = ["Crimper", "Sloper", "Slab", "Dyno", "Pocket"];
 export default function Frontpage() {
   const [climbers, setClimbers] = useState([]);
   const [user, setUser] = useState(null);
+  const [userGymId, setUserGymId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [flippedCards, setFlippedCards] = useState({});
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+  const [viewMode, setViewMode] = useState("local");
 
   const ADMIN_EMAIL = "janstoll1993@googlemail.com";
 
@@ -31,7 +33,13 @@ export default function Frontpage() {
           fetch("/api/profiles").then(res => res.json())
         ]);
 
-        setUser(authRes.data?.user ?? null);
+        const currentUser = authRes.data?.user ?? null;
+        setUser(currentUser);
+
+        if (Array.isArray(profileRes) && currentUser?.id) {
+          const ownProfile = profileRes.find((profile) => profile.user_id === currentUser.id);
+          setUserGymId(ownProfile?.gym_id ?? null);
+        }
 
         if (Array.isArray(profileRes)) {
           const sorted = profileRes.sort((a, b) => {
@@ -79,6 +87,15 @@ export default function Frontpage() {
   };
 
   const profileLink = user?.email === ADMIN_EMAIL ? "/admin" : "/profile";
+  const hasLocalContext = Boolean(userGymId);
+  const visibleClimbers = viewMode === "global" || !hasLocalContext
+    ? climbers
+    : climbers.filter((climber) => climber.gym_id && climber.gym_id === userGymId);
+
+  const switchViewMode = () => {
+    setViewMode((prev) => (prev === "local" ? "global" : "local"));
+    setFlippedCards({});
+  };
 
   return (
     <div style={pageWrapperStyle}>
@@ -89,7 +106,25 @@ export default function Frontpage() {
         opacity: isHeaderCollapsed ? 0 : 1,
       }}>
         <div style={headerAnimationStyle}>
-          <VisualGimmick size={100} showLabel={false} />
+          <button
+            style={{
+              ...gimmickToggleBtn,
+              transform: viewMode === "global" ? "scale(1.06)" : "scale(1)",
+            }}
+            onClick={switchViewMode}
+            type="button"
+            aria-label={viewMode === "local" ? "Zu allen Karten wechseln" : "Zu lokalen Karten wechseln"}
+            title={viewMode === "local" ? "Alle Karten anzeigen" : "Lokale Karten anzeigen"}
+          >
+            <div
+              style={{
+                ...gimmickInner,
+                transform: viewMode === "global" ? "rotate(180deg)" : "rotate(0deg)",
+              }}
+            >
+              <VisualGimmick size={100} showLabel={false} />
+            </div>
+          </button>
         </div>
         <div style={titleBlockStyle}>
           <h1 style={logoStyle}>
@@ -111,8 +146,62 @@ export default function Frontpage() {
           <p>Lade Kletterer-Community...</p>
         </div>
       ) : (
-        <div style={gridStyle}>
-          {climbers.length > 0 ? climbers.map((c, index) => {
+        <>
+          <div style={modeInfoStyle}>
+            <span style={modeBadgeStyle}>
+              {viewMode === "local" && hasLocalContext ? "Lokale Karten" : "Weltweite Karten"}
+            </span>
+            <p style={modeInfoTextStyle}>
+              {viewMode === "local" && hasLocalContext
+                ? "Du siehst aktuell nur Kletterkarten aus deiner Heimathalle."
+                : "Du siehst aktuell alle registrierten Kletterkarten."}
+            </p>
+            {!hasLocalContext && (
+              <p style={modeHintStyle}>
+                Tipp: Wenn du in deinem Profil eine Heimathalle hinterlegst, funktioniert der lokale Filter automatisch.
+              </p>
+            )}
+          </div>
+
+          <div style={{
+            ...gridSwitchViewportStyle,
+            borderColor: viewMode === "global" ? "rgba(129,140,248,0.45)" : "rgba(148,163,184,0.38)",
+          }}>
+            <div style={{
+              ...gridSwitchTrackStyle,
+              transform: viewMode === "global" ? "translateX(-50%)" : "translateX(0)",
+            }}>
+              <section style={gridPanelStyle}>
+                <div style={gridStyle}>
+                  {hasLocalContext
+                    ? climbers
+                      .filter((climber) => climber.gym_id && climber.gym_id === userGymId)
+                      .map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))
+                    : (
+                      <div style={emptyStateStyle}>Lege zuerst eine Heimathalle in deinem Profil fest, um lokale Karten zu sehen.</div>
+                    )}
+                </div>
+              </section>
+
+              <section style={gridPanelStyle}>
+                <div style={gridStyle}>
+                  {climbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
+                </div>
+              </section>
+            </div>
+          </div>
+
+          {visibleClimbers.length === 0 && (
+            <div style={emptyStateStyle}>Noch keine passenden Kletterer für diese Ansicht gefunden.</div>
+          )}
+        </>
+      )}
+      </main>
+    </div>
+  );
+}
+
+function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
             const safeAbilities = c.abilities || [0, 0, 0, 0, 0];
             const safeStyles = c.styles || [0, 0, 0, 0, 0];
             const sumAbilities = safeAbilities.reduce((a, b) => a + b, 0);
@@ -124,16 +213,17 @@ export default function Frontpage() {
             const uniqueCardKey = `${dbId}-${index}`;
             const isFlipped = !!flippedCards[uniqueCardKey];
 
-            return (
-              <div 
-                key={uniqueCardKey} 
-                style={cardContainerStyle} 
+            return (<div 
+                key={uniqueCardKey}
+                style={cardContainerStyle}
                 onClick={() => toggleFlip(uniqueCardKey)}
               >
-                <div style={{
-                  ...cardInnerStyle,
-                  transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)"
-                }}>
+                <div
+                  style={{
+                    ...cardInnerStyle,
+                    transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+                  }}
+                >
                   
                   {/* VORDERSEITE */}
                   <div style={cardFrontStyle}>
@@ -208,18 +298,7 @@ export default function Frontpage() {
                   </div>
 
                 </div>
-              </div>
-            );
-          }) : (
-            <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "50px", color: "#a1a1aa" }}>
-              Noch keine Kletterer angemeldet.
-            </div>
-          )}
-        </div>
-      )}
-      </main>
-    </div>
-  );
+              </div>);
 }
 
 // STYLES
@@ -252,15 +331,65 @@ const headerAnimationStyle = {
   top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
-  pointerEvents: "none",
+  pointerEvents: "auto",
   opacity: 0.42,
+};
+const gimmickToggleBtn = {
+  border: "1px solid rgba(191,219,254,0.42)",
+  borderRadius: "999px",
+  padding: "4px",
+  background: "rgba(15,23,42,0.4)",
+  cursor: "pointer",
+  transition: "transform 280ms ease, box-shadow 280ms ease",
+  boxShadow: "0 8px 25px rgba(59,130,246,0.22)",
+};
+const gimmickInner = {
+  transition: "transform 520ms cubic-bezier(0.22, 1, 0.36, 1)",
+  borderRadius: "50%",
 };
 const titleBlockStyle = { display: "flex", flexDirection: "column", gap: "6px", zIndex: 1 };
 const logoStyle = { fontSize: "1.95rem", margin: 0, display: "flex", alignItems: "center", gap: "12px", color: "#f8fafc", fontWeight: "900", letterSpacing: "-0.6px" };
 const taglineStyle = { margin: 0, color: "#cbd5e1", fontSize: "0.9rem", fontWeight: "600" };
 const navBtnStyle = { padding: "12px 24px", borderRadius: "999px", border: "1px solid rgba(165,180,252,0.55)", background: "linear-gradient(135deg, #312e81 0%, #4338ca 100%)", color: "#f8fafc", cursor: "pointer", fontWeight: "700", boxShadow: "0 10px 20px rgba(49,46,129,0.4)" };
 const loaderContainer = { textAlign: "center", marginTop: "100px", color: "#a1a1aa" };
+const modeInfoStyle = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: "8px",
+  marginBottom: "18px",
+  textAlign: "center",
+};
+const modeBadgeStyle = {
+  fontSize: "0.75rem",
+  fontWeight: "800",
+  letterSpacing: "1px",
+  textTransform: "uppercase",
+  color: "#dbeafe",
+  background: "rgba(30,41,59,0.8)",
+  border: "1px solid rgba(147,197,253,0.4)",
+  borderRadius: "999px",
+  padding: "6px 14px",
+};
+const modeInfoTextStyle = { margin: 0, color: "#334155", fontWeight: "600" };
+const modeHintStyle = { margin: 0, color: "#64748b", fontSize: "0.85rem" };
+const gridSwitchViewportStyle = {
+  overflow: "hidden",
+  borderRadius: "24px",
+  border: "1px solid rgba(148,163,184,0.38)",
+  boxShadow: "0 14px 30px rgba(15,23,42,0.16)",
+  background: "rgba(248,250,252,0.58)",
+  backdropFilter: "blur(4px)",
+};
+const gridSwitchTrackStyle = {
+  width: "200%",
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  transition: "transform 620ms cubic-bezier(0.22, 1, 0.36, 1)",
+};
+const gridPanelStyle = { padding: "12px" };
 const gridStyle = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "25px" };
+const emptyStateStyle = { gridColumn: "1/-1", textAlign: "center", padding: "50px", color: "#64748b", fontWeight: "600" };
 
 const cardContainerStyle = { perspective: "1000px", WebkitPerspective: "1000px", height: "550px", cursor: "pointer" };
 const cardInnerStyle = { position: "relative", width: "100%", height: "100%", transition: "transform 0.6s", transformStyle: "preserve-3d", WebkitTransformStyle: "preserve-3d" };
