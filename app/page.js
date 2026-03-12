@@ -148,25 +148,21 @@ export default function Frontpage() {
       ) : (
         <>
           <div style={modeInfoStyle}>
-            <span style={modeBadgeStyle}>
-              {viewMode === "local" && hasLocalContext ? "Lokale Karten" : "Weltweite Karten"}
+            <span
+              style={modeIconStyle}
+              title={viewMode === "global" ? "Weltweite Ansicht" : "Lokale Ansicht"}
+              aria-label={viewMode === "global" ? "Weltweite Ansicht" : "Lokale Ansicht"}
+            >
+              {viewMode === "global" ? "🌍" : "🏠"}
             </span>
-            <p style={modeInfoTextStyle}>
-              {viewMode === "local" && hasLocalContext
-                ? "Du siehst aktuell nur Kletterkarten aus deiner Heimathalle."
-                : "Du siehst aktuell alle registrierten Kletterkarten."}
-            </p>
-            {!hasLocalContext && (
+            {viewMode === "local" && !hasLocalContext && (
               <p style={modeHintStyle}>
                 Tipp: Wenn du in deinem Profil eine Heimathalle hinterlegst, funktioniert der lokale Filter automatisch.
               </p>
             )}
           </div>
 
-          <div style={{
-            ...gridSwitchViewportStyle,
-            borderColor: viewMode === "global" ? "rgba(129,140,248,0.45)" : "rgba(148,163,184,0.38)",
-          }}>
+          <div style={gridSwitchViewportStyle}>
             <div style={{
               ...gridSwitchTrackStyle,
               transform: viewMode === "global" ? "translateX(-50%)" : "translateX(0)",
@@ -360,26 +356,20 @@ const modeInfoStyle = {
   marginBottom: "18px",
   textAlign: "center",
 };
-const modeBadgeStyle = {
-  fontSize: "0.75rem",
-  fontWeight: "800",
-  letterSpacing: "1px",
-  textTransform: "uppercase",
-  color: "#dbeafe",
-  background: "rgba(30,41,59,0.8)",
+const modeIconStyle = {
+  width: "32px",
+  height: "32px",
+  borderRadius: "50%",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "1rem",
+  background: "rgba(30,41,59,0.85)",
   border: "1px solid rgba(147,197,253,0.4)",
-  borderRadius: "999px",
-  padding: "6px 14px",
 };
-const modeInfoTextStyle = { margin: 0, color: "#334155", fontWeight: "600" };
 const modeHintStyle = { margin: 0, color: "#64748b", fontSize: "0.85rem" };
 const gridSwitchViewportStyle = {
   overflow: "hidden",
-  borderRadius: "24px",
-  border: "1px solid rgba(148,163,184,0.38)",
-  boxShadow: "0 14px 30px rgba(15,23,42,0.16)",
-  background: "rgba(248,250,252,0.58)",
-  backdropFilter: "blur(4px)",
 };
 const gridSwitchTrackStyle = {
   width: "200%",
