@@ -156,9 +156,6 @@ export default function Frontpage() {
               {viewMode === "global" ? "🌍" : "🏠"}
             </span>
             {viewMode === "local" && !hasLocalContext && (
-              <p style={modeHintStyle}>
-                Tipp: Wenn du in deinem Profil eine Heimathalle hinterlegst, funktioniert der lokale Filter automatisch.
-              </p>
             )}
           </div>
 
