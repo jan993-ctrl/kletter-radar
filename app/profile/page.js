@@ -48,6 +48,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [expandedKey, setExpandedKey] = useState(null);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+  const [gyms, setGyms] = useState([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -58,6 +59,12 @@ export default function ProfilePage() {
         if (authError || !user) {
           router.push("/login");
           return;
+        }
+
+        const gymsRes = await fetch('/api/gyms');
+        if (gymsRes.ok) {
+          const gymsData = await gymsRes.json();
+          setGyms(Array.isArray(gymsData) ? gymsData : []);
         }
 
         const { data, error } = await supabaseBrowser
@@ -79,12 +86,14 @@ export default function ProfilePage() {
             abilities: Array(ABILITY_COUNT).fill(DEFAULT_ABILITY_LEVEL),
             ability_details: { finger_kg: 0, pullups: 10 },
             styles: Array(STYLE_LABELS.length).fill(DEFAULT_STYLE_LEVEL),
-            image_url: ""
+            image_url: "",
+            gym_id: null,
           });
         } else {
           const loadedProfile = { ...data };
           if (!loadedProfile.ability_details) loadedProfile.ability_details = { finger_kg: 0, pullups: 10 };
           if (!loadedProfile.weight) loadedProfile.weight = 75;
+          if (!Object.hasOwn(loadedProfile, "gym_id")) loadedProfile.gym_id = null;
           loadedProfile.abilities = normalizeAbilities(loadedProfile.abilities);
           loadedProfile.styles = normalizeStyles(loadedProfile.styles);
           setProfile(loadedProfile);
@@ -243,6 +252,22 @@ export default function ProfilePage() {
               value={profile.name || ""}
               onChange={(e) => setProfile({ ...profile, name: e.target.value })}
             />
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <label style={{ display: "block", fontWeight: "bold", marginBottom: 5 }}>Heimathalle:</label>
+            <select
+              style={inputStyle}
+              value={profile.gym_id || ""}
+              onChange={(e) => setProfile({ ...profile, gym_id: e.target.value || null })}
+            >
+              <option value="">-- Keine Halle ausgewählt --</option>
+              {gyms.map((gym) => (
+                <option key={gym.id} value={gym.id}>
+                  {gym.city ? `${gym.name} (${gym.city})` : gym.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div style={glassCardSmallStyle}>
