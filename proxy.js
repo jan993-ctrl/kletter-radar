@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 
 const ADMIN_EMAIL = 'janstoll1993@googlemail.com'
 
-export async function middleware(request) {
+export async function proxy(request) {
   const { pathname } = request.nextUrl
 
   // Verhindert Laufzeit-Crashs in Dev/Preview, wenn Supabase ENV noch nicht gesetzt ist.
