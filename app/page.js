@@ -53,7 +53,7 @@ export default function Frontpage() {
 
   useEffect(() => {
     const onScroll = () => {
-      setIsHeaderCollapsed(window.scrollY > 1);
+      setIsHeaderCollapsed(window.scrollY > 15);
     };
 
     onScroll();
