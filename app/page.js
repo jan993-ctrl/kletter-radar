@@ -4,6 +4,7 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
 import CombinedRadar from "@/components/charts/CombinedRadar";
+import VisualGimmick from "@/components/VisualGimmick";
 
 const GRADES = [
   "1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", 
@@ -18,6 +19,7 @@ export default function Frontpage() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [flippedCards, setFlippedCards] = useState({});
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
   const ADMIN_EMAIL = "janstoll1993@googlemail.com";
 
@@ -49,6 +51,16 @@ export default function Frontpage() {
     initPage();
   }, []);
 
+  useEffect(() => {
+    const onScroll = () => {
+      setIsHeaderCollapsed(window.scrollY > 90);
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const toggleFlip = (id) => {
     setFlippedCards(prev => ({
       ...prev,
@@ -70,7 +82,14 @@ export default function Frontpage() {
 
   return (
     <main style={mainStyle}>
-      <header style={headerStyle}>
+      <header style={{
+        ...headerStyle,
+        transform: isHeaderCollapsed ? "translateY(-130%)" : "translateY(0)",
+        opacity: isHeaderCollapsed ? 0 : 1,
+      }}>
+        <div style={headerAnimationStyle}>
+          <VisualGimmick size={100} showLabel={false} />
+        </div>
         <h1 style={logoStyle}>
           <span style={{ fontSize: "2rem" }}>🧗</span> Kletter-Quartett
         </h1>
@@ -200,7 +219,29 @@ export default function Frontpage() {
 
 // STYLES
 const mainStyle = { padding: "20px", fontFamily: "'Inter', sans-serif", maxWidth: "1200px", margin: "0 auto", backgroundColor: "transparent", minHeight: "100vh" };
-const headerStyle = { display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #e0e0e0", paddingBottom: "15px", marginBottom: "30px", height: "110px", backgroundColor: "transparent" };
+const headerStyle = {
+  position: "sticky",
+  top: "0",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  borderBottom: "2px solid #e0e0e0",
+  padding: "15px 0",
+  marginBottom: "30px",
+  minHeight: "110px",
+  backgroundColor: "rgba(244,247,246,0.96)",
+  backdropFilter: "blur(6px)",
+  zIndex: 20,
+  transition: "transform 320ms ease, opacity 260ms ease",
+};
+const headerAnimationStyle = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  pointerEvents: "none",
+  opacity: 0.6,
+};
 const logoStyle = { fontSize: "1.8rem", margin: 0, display: "flex", alignItems: "center", gap: "12px", color: "#2c3e50", fontWeight: "900" };
 const navBtnStyle = { padding: "12px 24px", borderRadius: "30px", border: "none", backgroundColor: "#007bff", color: "white", cursor: "pointer", fontWeight: "bold", boxShadow: "0 4px 12px rgba(0,123,255,0.25)" };
 const loaderContainer = { textAlign: "center", marginTop: "100px", color: "#666" };
