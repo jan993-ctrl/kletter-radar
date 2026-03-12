@@ -110,6 +110,35 @@ export default function Frontpage() {
   const baseVisibleClimbers = viewMode === "global" || !hasLocalContext
     ? climbers
     : climbers.filter((climber) => climber.gym_id && climber.gym_id === userGymId);
+  const packAthletes = packPool.map(toPackAthlete);
+  const maxPackCards = viewMode === "global" ? 5 : Math.min(3, packAthletes.length);
+
+  const onPackDone = (drawnCards) => {
+    const todayStamp = new Date().toISOString();
+    const inventoryKey = `inventory:${user?.id ?? "anon"}`;
+    const lastPackKey = `last-pack:${user?.id ?? "anon"}`;
+    const fragmentKey = `fragments:${user?.id ?? "anon"}`;
+
+    const existing = new Set(inventoryIds);
+    let duplicateCount = 0;
+    drawnCards.forEach((card) => {
+      if (existing.has(card.id)) {
+        duplicateCount += 1;
+      } else {
+        existing.add(card.id);
+      }
+    });
+
+    const nextInventory = Array.from(existing);
+    const nextFragments = fragments + duplicateCount * (1 / 20);
+
+    setInventoryIds(nextInventory);
+    setFragments(nextFragments);
+    setLastPackDate(todayStamp);
+    localStorage.setItem(inventoryKey, JSON.stringify(nextInventory));
+    localStorage.setItem(lastPackKey, todayStamp);
+    localStorage.setItem(fragmentKey, String(nextFragments));
+  };
 
   const rarityWeight = (power) => {
     if (power >= 92) return 0;
