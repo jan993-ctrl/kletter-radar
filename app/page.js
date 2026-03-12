@@ -91,9 +91,12 @@ export default function Frontpage() {
         <div style={headerAnimationStyle}>
           <VisualGimmick size={100} showLabel={false} />
         </div>
-        <h1 style={logoStyle}>
-          <span style={{ fontSize: "2rem" }}>🧗</span> Kletter-Quartett
-        </h1>
+        <div style={titleBlockStyle}>
+          <h1 style={logoStyle}>
+            <span style={{ fontSize: "2rem" }}>🧗</span> Climbers
+          </h1>
+          <p style={taglineStyle}>Deine Boulder-Community auf einen Blick</p>
+        </div>
         <div>
           <Link href={user ? profileLink : "/login"}>
             <button style={navBtnStyle}>
@@ -148,7 +151,7 @@ export default function Frontpage() {
                     </div>
                     
                     <div style={{ padding: "18px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", gap: "12px" }}>
                         <h2 style={nameStyle}>{c.name || "Kletter-Gast"}</h2>
                         <div style={powerBadge}>
                           <span style={{ fontSize: "0.55rem", fontWeight: "bold", color: "#aaa" }}>POWER</span>
@@ -233,14 +236,14 @@ const headerStyle = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  border: "1px solid rgba(255,255,255,0.08)",
+  border: "1px solid rgba(99,102,241,0.35)",
   padding: "15px 18px",
   marginBottom: "30px",
   minHeight: "110px",
-  borderRadius: "18px",
-  backgroundColor: "rgba(9,9,11,0.88)",
-  backdropFilter: "blur(8px)",
-  boxShadow: "0 10px 25px rgba(0,0,0,0.22)",
+  borderRadius: "22px",
+  background: "linear-gradient(115deg, rgba(2,6,23,0.92) 0%, rgba(30,41,59,0.85) 60%, rgba(67,56,202,0.45) 100%)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 14px 34px rgba(15,23,42,0.34)",
   zIndex: 20,
   transition: "transform 320ms ease, opacity 260ms ease",
 };
@@ -250,10 +253,12 @@ const headerAnimationStyle = {
   left: "50%",
   transform: "translate(-50%, -50%)",
   pointerEvents: "none",
-  opacity: 0.6,
+  opacity: 0.42,
 };
-const logoStyle = { fontSize: "1.8rem", margin: 0, display: "flex", alignItems: "center", gap: "12px", color: "#fafafa", fontWeight: "900" };
-const navBtnStyle = { padding: "12px 24px", borderRadius: "999px", border: "1px solid #3f3f46", backgroundColor: "#18181b", color: "#f4f4f5", cursor: "pointer", fontWeight: "bold", boxShadow: "0 0 0 1px rgba(255,255,255,0.03) inset" };
+const titleBlockStyle = { display: "flex", flexDirection: "column", gap: "6px", zIndex: 1 };
+const logoStyle = { fontSize: "1.95rem", margin: 0, display: "flex", alignItems: "center", gap: "12px", color: "#f8fafc", fontWeight: "900", letterSpacing: "-0.6px" };
+const taglineStyle = { margin: 0, color: "#cbd5e1", fontSize: "0.9rem", fontWeight: "600" };
+const navBtnStyle = { padding: "12px 24px", borderRadius: "999px", border: "1px solid rgba(165,180,252,0.55)", background: "linear-gradient(135deg, #312e81 0%, #4338ca 100%)", color: "#f8fafc", cursor: "pointer", fontWeight: "700", boxShadow: "0 10px 20px rgba(49,46,129,0.4)" };
 const loaderContainer = { textAlign: "center", marginTop: "100px", color: "#a1a1aa" };
 const gridStyle = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "25px" };
 
@@ -266,26 +271,26 @@ const baseFaceStyle = {
   height: "100%",
   backfaceVisibility: "hidden",
   WebkitBackfaceVisibility: "hidden",
-  borderRadius: "24px",
-  boxShadow: "0 18px 40px rgba(0,0,0,0.45)",
+  borderRadius: "26px",
+  boxShadow: "0 20px 45px rgba(15,23,42,0.42)",
   overflow: "hidden",
-  background: "linear-gradient(165deg, #111827 0%, #1f2937 48%, #0f172a 100%)",
-  border: "1px solid rgba(148,163,184,0.35)"
+  background: "linear-gradient(165deg, #0b1120 0%, #18233a 46%, #0f172a 100%)",
+  border: "1px solid rgba(129,140,248,0.45)"
 };
 
 const cardFrontStyle = { ...baseFaceStyle };
 const cardBackStyle = {
   ...baseFaceStyle,
   transform: "rotateY(180deg)",
-  background: "linear-gradient(165deg, #0f172a 0%, #1e293b 52%, #020617 100%)",
+  background: "linear-gradient(165deg, #020617 0%, #172554 52%, #020617 100%)",
 };
 
-const rankBadgeStyle = { position: "absolute", top: "15px", left: "15px", backgroundColor: "rgba(16,185,129,0.15)", color: "#6ee7b7", padding: "6px 12px", borderRadius: "12px", fontSize: "0.9rem", fontWeight: "bold", zIndex: 10, border: "1px solid rgba(16,185,129,0.45)" };
+const rankBadgeStyle = { position: "absolute", top: "15px", left: "15px", backgroundColor: "rgba(79,70,229,0.25)", color: "#c7d2fe", padding: "6px 12px", borderRadius: "12px", fontSize: "0.9rem", fontWeight: "bold", zIndex: 10, border: "1px solid rgba(165,180,252,0.65)" };
 const imgContainerStyle = { position: "relative", height: "210px", width: "100%", backgroundColor: "#27272a" };
 const imgStyle = { width: "100%", height: "100%", objectFit: "cover" };
-const nameStyle = { margin: "0", fontSize: "1.4rem", color: "#fafafa", fontWeight: "800", letterSpacing: "-0.5px" };
-const powerBadge = { display: "flex", flexDirection: "column", alignItems: "center", backgroundColor: "#0a0a0a", color: "#fff", padding: "8px", borderRadius: "16px", minWidth: "60px", lineHeight: "1", border: "1px solid #3f3f46" };
-const mentalCenterBox = { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundColor: "#27272a", padding: "12px", borderRadius: "16px", marginBottom: "20px", border: "1px solid #3f3f46" };
+const nameStyle = { margin: "0", fontSize: "1.35rem", color: "#f8fafc", fontWeight: "800", letterSpacing: "-0.4px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
+const powerBadge = { display: "flex", flexDirection: "column", alignItems: "center", background: "linear-gradient(145deg, #1e1b4b 0%, #312e81 100%)", color: "#fff", padding: "8px", borderRadius: "16px", minWidth: "60px", lineHeight: "1", border: "1px solid rgba(165,180,252,0.45)" };
+const mentalCenterBox = { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "linear-gradient(160deg, rgba(51,65,85,0.75), rgba(30,41,59,0.95))", padding: "12px", borderRadius: "16px", marginBottom: "20px", border: "1px solid rgba(148,163,184,0.35)" };
 const mentalLabel = { fontSize: "0.7rem", fontWeight: "bold", color: "#a1a1aa", letterSpacing: "1.5px", marginBottom: "4px" };
 const mentalValueDisplay = { fontSize: "1.3rem", fontWeight: "900", color: "#34d399" };
 const stylesGrid = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", borderTop: "1px solid #3f3f46", paddingTop: "15px" };
