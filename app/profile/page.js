@@ -205,7 +205,8 @@ export default function ProfilePage() {
   const safeStyles = normalizeStyles(profile.styles);
 
   return (
-    <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", color: "#333", backgroundColor: "transparent", minHeight: "100vh" }}>
+    <div style={pageWrapperStyle}>
+      <main style={mainStyle}>
       <div style={{ ...pageHeaderStyle, transform: isHeaderCollapsed ? "translateY(-130%)" : "translateY(0)", opacity: isHeaderCollapsed ? 0 : 1 }}>
         <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: "800" }}>👤 Mein Profil</h1>
         <div style={{ display: "flex", gap: "12px" }}>
@@ -403,11 +404,27 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-    </main>
+      </main>
+    </div>
   );
 }
 
 // STYLES
+const pageWrapperStyle = {
+  minHeight: "100vh",
+  width: "100%",
+  padding: 20,
+  background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+};
+
+const mainStyle = {
+  maxWidth: "1200px",
+  margin: "0 auto",
+  fontFamily: "sans-serif",
+  color: "#333",
+  backgroundColor: "transparent",
+  minHeight: "100vh",
+};
 const inputStyle = { width: '100%', padding: 10, borderRadius: 10, border: "1px solid #ccc", boxSizing: "border-box", color: "#333", backgroundColor: "rgba(255,255,255,0.8)", marginTop: "5px" };
 const smallLabel = { fontSize: "0.75rem", fontWeight: "bold", color: "#666" };
 const detailBtnStyle = { display: "block", marginTop: "5px", background: "#fff", border: "1px solid #10b981", color: "#10b981", cursor: "pointer", fontSize: "0.7rem", borderRadius: "8px", padding: "4px 8px" };
