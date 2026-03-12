@@ -26,8 +26,9 @@ export default function Frontpage() {
   const [inventoryIds, setInventoryIds] = useState([]);
   const [fragments, setFragments] = useState(0);
   const [isPackOpen, setIsPackOpen] = useState(false);
-  const [lastPackDate, setLastPackDate] = useState(null);
   const [pendingPackCards, setPendingPackCards] = useState([]);
+  const [currentPackCards, setCurrentPackCards] = useState([]);
+  const [packStock, setPackStock] = useState(99);
 
   const ADMIN_EMAIL = "janstoll1993@googlemail.com";
 
@@ -44,16 +45,16 @@ export default function Frontpage() {
         setViewMode(currentUser ? "local" : "global");
 
         const inventoryKey = `inventory:${currentUser?.id ?? "anon"}`;
-        const lastPackKey = `last-pack:${currentUser?.id ?? "anon"}`;
         const fragmentKey = `fragments:${currentUser?.id ?? "anon"}`;
+        const packStockKey = `pack-stock:${currentUser?.id ?? "anon"}`;
 
         const cachedInventory = JSON.parse(localStorage.getItem(inventoryKey) || "[]");
-        const cachedLastPack = localStorage.getItem(lastPackKey);
         const cachedFragments = Number(localStorage.getItem(fragmentKey) || 0);
+        const cachedPackStock = Number(localStorage.getItem(packStockKey) || 99);
 
         setInventoryIds(Array.isArray(cachedInventory) ? cachedInventory : []);
-        setLastPackDate(cachedLastPack);
         setFragments(Number.isFinite(cachedFragments) ? cachedFragments : 0);
+        setPackStock(Number.isFinite(cachedPackStock) ? cachedPackStock : 99);
 
         if (Array.isArray(profileRes) && currentUser?.id) {
           const ownProfile = profileRes.find((profile) => profile.user_id === currentUser.id);
@@ -230,6 +231,106 @@ export default function Frontpage() {
     setIsPackOpen(false);
   };
 
+  const rarityWeight = (power) => {
+    if (power >= 92) return 0;
+    if (power >= 75) return 1;
+    return 2;
+  };
+
+  const sortedInventoryClimbers = baseVisibleClimbers
+    .filter((climber) => inventoryIds.includes(climber.user_id || climber.id))
+    .sort((a, b) => {
+      const powerA = Math.round(((a.abilities || []).reduce((acc, val) => acc + val, 0) / 120) * 100);
+      const powerB = Math.round(((b.abilities || []).reduce((acc, val) => acc + val, 0) / 120) * 100);
+      const rarityDiff = rarityWeight(powerA) - rarityWeight(powerB);
+      if (rarityDiff !== 0) return rarityDiff;
+      return powerB - powerA;
+    });
+
+  const toPackAthlete = (climber) => {
+    const abilities = climber.abilities || [0, 0, 0, 0, 0];
+    const power = Math.round((abilities.reduce((a, b) => a + b, 0) / 120) * 100);
+    const rarity = power >= 92 ? "legendary" : power >= 75 ? "rare" : "common";
+    const gradeIndex = Math.max(0, Math.min(GRADES.length - 1, Math.round((power / 100) * (GRADES.length - 1))));
+
+    return {
+      id: climber.user_id || climber.id,
+      name: climber.name || "Kletter-Gast",
+      country: climber.gym_name || "GYM",
+      flag: "🧗",
+      grade: GRADES[gradeIndex],
+      discipline: "Boulder",
+      stats: {
+        power,
+        tech: Math.max(35, Math.round(((abilities[0] + abilities[1]) / 24) * 100)),
+        endurance: Math.max(35, Math.round(((abilities[3] + abilities[4]) / 24) * 100)),
+      },
+      rarity,
+      emoji: rarity === "legendary" ? "🔥" : rarity === "rare" ? "⚡" : "🪨",
+      quote: climber.notes || "Keep climbing.",
+    };
+  };
+
+  const packPool = viewMode === "global"
+    ? climbers
+    : climbers.filter((climber) => climber.gym_id && climber.gym_id === userGymId);
+  const packAthletes = packPool.map(toPackAthlete);
+  const maxPackCards = viewMode === "global" ? 5 : Math.min(3, packAthletes.length);
+
+  const drawPackCards = (pool, count) => {
+    const weights = { legendary: 10, rare: 30, common: 60 };
+    const copy = [...pool];
+    const result = [];
+
+    while (result.length < count && copy.length > 0) {
+      const weighted = copy.flatMap((card) => Array(weights[card.rarity] || 1).fill(card));
+      const pick = weighted[Math.floor(Math.random() * weighted.length)];
+      result.push(pick);
+      copy.splice(copy.findIndex((c) => c.id === pick.id), 1);
+    }
+
+    return result;
+  };
+
+  const onPackDone = (drawnCards) => {
+    setPendingPackCards(drawnCards || []);
+  };
+
+  const closePackOverlay = () => {
+    if (pendingPackCards.length > 0) {
+      const inventoryKey = `inventory:${user?.id ?? "anon"}`;
+      const fragmentKey = `fragments:${user?.id ?? "anon"}`;
+      const packStockKey = `pack-stock:${user?.id ?? "anon"}`;
+
+      const existing = new Set(inventoryIds);
+      let duplicateCount = 0;
+
+      pendingPackCards.forEach((card) => {
+        if (existing.has(card.id)) {
+          duplicateCount += 1;
+        } else {
+          existing.add(card.id);
+        }
+      });
+
+      const nextInventory = Array.from(existing);
+      const nextFragments = fragments + duplicateCount * (1 / 20);
+
+      setInventoryIds(nextInventory);
+      setFragments(nextFragments);
+      localStorage.setItem(inventoryKey, JSON.stringify(nextInventory));
+      localStorage.setItem(fragmentKey, String(nextFragments));
+
+      const nextPackStock = Math.max(0, packStock - 1);
+      setPackStock(nextPackStock);
+      localStorage.setItem(packStockKey, String(nextPackStock));
+    }
+
+    setPendingPackCards([]);
+    setCurrentPackCards([]);
+    setIsPackOpen(false);
+  };
+
   const switchViewMode = () => {
     setViewMode((prev) => (prev === "local" ? "global" : "local"));
     setFlippedCards({});
@@ -274,7 +375,9 @@ export default function Frontpage() {
           <button
             type="button"
             onClick={() => {
-              if (!todayAlreadyOpened && packAthletes.length > 0) {
+              if (packStock > 0 && packAthletes.length > 0) {
+                const drawn = drawPackCards(packAthletes, maxPackCards);
+                setCurrentPackCards(drawn);
                 setPendingPackCards([]);
                 setIsPackOpen(true);
               }
@@ -282,10 +385,10 @@ export default function Frontpage() {
             style={{
               ...navBtnStyle,
               marginRight: "10px",
-              opacity: todayAlreadyOpened ? 0.5 : 1,
-              cursor: todayAlreadyOpened ? "not-allowed" : "pointer",
+              opacity: packStock <= 0 ? 0.5 : 1,
+              cursor: packStock <= 0 ? "not-allowed" : "pointer",
             }}
-            title={todayAlreadyOpened ? "Daily Pack bereits geöffnet" : "Kartenpack öffnen"}
+            title={packStock <= 0 ? "Keine Packs mehr verfügbar" : "Kartenpack öffnen"}
             aria-label="Kartenpack öffnen"
           >
             🃏 Karten
@@ -313,7 +416,7 @@ export default function Frontpage() {
               {viewMode === "global" ? "🌍" : "🏠"}
             </span>
             <span style={inventoryMetaStyle}>Inventar: {sortedInventoryClimbers.length} Karten · Fragmente: {fragments.toFixed(2)}</span>
-            {todayAlreadyOpened && <span style={inventoryHintStyle}>Daily Spin verbraucht – nächstes Pack morgen.</span>}
+            {<span style={inventoryHintStyle}>Packs verfügbar: {packStock} / 99</span>}
           </div>
 
           <div style={gridSwitchViewportStyle}>
@@ -351,9 +454,9 @@ export default function Frontpage() {
         <div style={packOverlayStyle}>
           <button type="button" style={packCloseBtnStyle} onClick={closePackOverlay} aria-label="Pack Overlay schließen">✕</button>
           <ClimberPackOpening
-            athletes={packAthletes}
-            maxCards={maxPackCards}
+            cards={currentPackCards}
             onDone={onPackDone}
+            onDismiss={closePackOverlay}
           />
         </div>
       )}
