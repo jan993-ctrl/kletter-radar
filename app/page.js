@@ -81,7 +81,8 @@ export default function Frontpage() {
   const profileLink = user?.email === ADMIN_EMAIL ? "/admin" : "/profile";
 
   return (
-    <main style={mainStyle}>
+    <div style={pageWrapperStyle}>
+      <main style={mainStyle}>
       <header style={{
         ...headerStyle,
         transform: isHeaderCollapsed ? "translateY(-130%)" : "translateY(0)",
@@ -213,12 +214,19 @@ export default function Frontpage() {
           )}
         </div>
       )}
-    </main>
+      </main>
+    </div>
   );
 }
 
 // STYLES
-const mainStyle = { padding: "20px", fontFamily: "'Inter', sans-serif", maxWidth: "1200px", margin: "0 auto", backgroundColor: "transparent", minHeight: "100vh", color: "#f4f4f5" };
+const pageWrapperStyle = {
+  minHeight: "100vh",
+  width: "100%",
+  padding: "20px",
+  background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+};
+const mainStyle = { fontFamily: "'Inter', sans-serif", maxWidth: "1200px", margin: "0 auto", backgroundColor: "transparent", minHeight: "100vh", color: "#f4f4f5" };
 const headerStyle = {
   position: "sticky",
   top: "0",
