@@ -221,13 +221,22 @@ export default function AdminPage() {
     }
   };
 
-  if (isLoading) return <div className="p-10 text-center">Lade Admin-Panel...</div>;
+  if (isLoading) {
+    return (
+      <div style={pageWrapperStyle}>
+        <main style={mainStyle}>
+          <div className="p-10 text-center">Lade Admin-Panel...</div>
+        </main>
+      </div>
+    );
+  }
 
   const safeAbilities = normalizeAbilities(selected?.abilities);
   const safeStyles = normalizeStyles(selected?.styles);
 
   return (
-    <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", color: "#333" }}>
+    <div style={pageWrapperStyle}>
+      <main style={mainStyle}>
       <div style={{ ...pageHeaderStyle, transform: isHeaderCollapsed ? "translateY(-130%)" : "translateY(0)", opacity: isHeaderCollapsed ? 0 : 1 }}>
         <h1 style={{ margin: 0 }}>🧗 Admin Panel</h1>
         <div>
@@ -404,10 +413,24 @@ export default function AdminPage() {
           </div>
         </div>
       )}
-    </main>
+      </main>
+    </div>
   );
 }
 
+const pageWrapperStyle = {
+  minHeight: "100vh",
+  width: "100%",
+  padding: 20,
+  background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+};
+
+const mainStyle = {
+  maxWidth: "1200px",
+  margin: "0 auto",
+  fontFamily: "sans-serif",
+  color: "#333",
+};
 
 const pageHeaderStyle = {
   position: "sticky",
@@ -415,11 +438,13 @@ const pageHeaderStyle = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  borderBottom: "1px solid #ccc",
-  padding: "0 0 10px 0",
+  border: "1px solid rgba(0,0,0,0.12)",
+  padding: "12px 16px",
   marginBottom: 16,
-  backgroundColor: "rgba(244,247,246,0.96)",
-  backdropFilter: "blur(6px)",
+  borderRadius: "16px",
+  backgroundColor: "rgba(244,247,246,0.9)",
+  backdropFilter: "blur(8px)",
+  boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
   zIndex: 20,
   transition: "transform 220ms ease, opacity 180ms ease",
 };

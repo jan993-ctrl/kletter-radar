@@ -205,7 +205,8 @@ export default function ProfilePage() {
   const safeStyles = normalizeStyles(profile.styles);
 
   return (
-    <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", color: "#333", backgroundColor: "transparent", minHeight: "100vh" }}>
+    <div style={pageWrapperStyle}>
+      <main style={mainStyle}>
       <div style={{ ...pageHeaderStyle, transform: isHeaderCollapsed ? "translateY(-130%)" : "translateY(0)", opacity: isHeaderCollapsed ? 0 : 1 }}>
         <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: "800" }}>👤 Mein Profil</h1>
         <div style={{ display: "flex", gap: "12px" }}>
@@ -403,11 +404,27 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-    </main>
+      </main>
+    </div>
   );
 }
 
 // STYLES
+const pageWrapperStyle = {
+  minHeight: "100vh",
+  width: "100%",
+  padding: 20,
+  background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+};
+
+const mainStyle = {
+  maxWidth: "1200px",
+  margin: "0 auto",
+  fontFamily: "sans-serif",
+  color: "#333",
+  backgroundColor: "transparent",
+  minHeight: "100vh",
+};
 const inputStyle = { width: '100%', padding: 10, borderRadius: 10, border: "1px solid #ccc", boxSizing: "border-box", color: "#333", backgroundColor: "rgba(255,255,255,0.8)", marginTop: "5px" };
 const smallLabel = { fontSize: "0.75rem", fontWeight: "bold", color: "#666" };
 const detailBtnStyle = { display: "block", marginTop: "5px", background: "#fff", border: "1px solid #10b981", color: "#10b981", cursor: "pointer", fontSize: "0.7rem", borderRadius: "8px", padding: "4px 8px" };
@@ -448,11 +465,13 @@ const pageHeaderStyle = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  borderBottom: "2px solid rgba(0,0,0,0.05)",
-  padding: "0 0 15px 0",
+  border: "1px solid rgba(0,0,0,0.08)",
+  padding: "12px 16px",
   marginBottom: 20,
-  backgroundColor: "rgba(244,247,246,0.96)",
-  backdropFilter: "blur(6px)",
+  borderRadius: "16px",
+  backgroundColor: "rgba(244,247,246,0.9)",
+  backdropFilter: "blur(8px)",
+  boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
   zIndex: 20,
   transition: "transform 220ms ease, opacity 180ms ease",
 };
