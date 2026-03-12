@@ -221,13 +221,22 @@ export default function AdminPage() {
     }
   };
 
-  if (isLoading) return <div className="p-10 text-center">Lade Admin-Panel...</div>;
+  if (isLoading) {
+    return (
+      <div style={pageWrapperStyle}>
+        <main style={mainStyle}>
+          <div className="p-10 text-center">Lade Admin-Panel...</div>
+        </main>
+      </div>
+    );
+  }
 
   const safeAbilities = normalizeAbilities(selected?.abilities);
   const safeStyles = normalizeStyles(selected?.styles);
 
   return (
-    <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", color: "#333" }}>
+    <div style={pageWrapperStyle}>
+      <main style={mainStyle}>
       <div style={{ ...pageHeaderStyle, transform: isHeaderCollapsed ? "translateY(-130%)" : "translateY(0)", opacity: isHeaderCollapsed ? 0 : 1 }}>
         <h1 style={{ margin: 0 }}>🧗 Admin Panel</h1>
         <div>
@@ -404,10 +413,24 @@ export default function AdminPage() {
           </div>
         </div>
       )}
-    </main>
+      </main>
+    </div>
   );
 }
 
+const pageWrapperStyle = {
+  minHeight: "100vh",
+  width: "100%",
+  padding: 20,
+  background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+};
+
+const mainStyle = {
+  maxWidth: "1200px",
+  margin: "0 auto",
+  fontFamily: "sans-serif",
+  color: "#333",
+};
 
 const pageHeaderStyle = {
   position: "sticky",
