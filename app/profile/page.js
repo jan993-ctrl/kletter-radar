@@ -17,6 +17,15 @@ import {
 } from "@/lib/utils/profile-schema";
 
 // Deine definierten Grade
+
+const getStoragePathFromPublicUrl = (publicUrl) => {
+  if (!publicUrl) return null;
+  const marker = "/storage/v1/object/public/profiles/";
+  const idx = publicUrl.indexOf(marker);
+  if (idx === -1) return null;
+  return decodeURIComponent(publicUrl.slice(idx + marker.length));
+};
+
 const GRADES = [
   "1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", 
   "4a", "4b", "4c", "5a", "5b", "5c", "6a", "6b", "6c", 
@@ -100,10 +109,21 @@ export default function ProfilePage() {
     if (!file || !profile?.user_id) return;
 
     setSaving(true);
-    const fileExt = file.name.split('.').pop();
+    const fileExt = (file.name.split('.').pop() || 'jpg').toLowerCase();
     const fileName = `${profile.user_id}/${Date.now()}.${fileExt}`;
 
     try {
+      const oldPath = getStoragePathFromPublicUrl(profile.image_url);
+      if (oldPath && oldPath !== fileName) {
+        const { error: removeError } = await supabaseBrowser.storage
+          .from('profiles')
+          .remove([oldPath]);
+
+        if (removeError && removeError.statusCode !== '404') {
+          throw removeError;
+        }
+      }
+
       const { error: uploadError } = await supabaseBrowser.storage
         .from('profiles')
         .upload(fileName, file, { upsert: true });

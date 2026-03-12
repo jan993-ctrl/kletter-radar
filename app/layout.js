@@ -1,5 +1,4 @@
 import "./globals.css";
-import VisualGimmick from "@/components/VisualGimmick";
 
 export const metadata = {
   title: "Kletter Radar",
@@ -10,15 +9,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="de">
       <body style={layoutBody}>
-        {/* Dezente Animation im oberen Bereich */}
-        <div style={animationLayer}>
-          <VisualGimmick size={100} showLabel={false} />
-        </div>
-        
-        {/* Seiteninhalt */}
-        <div style={contentWrapper}>
-          {children}
-        </div>
+        <div style={contentWrapper}>{children}</div>
       </body>
     </html>
   );
@@ -29,27 +20,9 @@ const layoutBody = {
   padding: 0,
   backgroundColor: "#f4f7f6",
   minHeight: "100vh",
-  position: "relative",
   overflowX: "hidden",
 };
 
-const animationLayer = {
-  position: "fixed",
-  top: "20px",
-  left: "50%",
-  transform: "translateX(-50%)",
-  height: "110px",
-  zIndex: 0,
-  pointerEvents: "none",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  opacity: 0.75,
-};
-
 const contentWrapper = {
-  position: "relative",
-  zIndex: 1,
-  backgroundColor: "transparent",
   minHeight: "100vh",
 };
