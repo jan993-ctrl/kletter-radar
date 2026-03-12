@@ -36,6 +36,7 @@ export default function AdminPage() {
   const [selected, setSelected] = useState(null);
   const [saving, setSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const router = useRouter();
 
   // 1. Profile laden
@@ -65,6 +66,17 @@ export default function AdminPage() {
     const p = profiles.find((x) => x.id === selectedId);
     if (p) setSelected({ ...p });
   }, [selectedId, profiles]);
+
+
+  useEffect(() => {
+    const onScroll = () => {
+      setIsHeaderCollapsed(window.scrollY > 0);
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const signOut = async () => {
     await supabaseBrowser.auth.signOut();
@@ -177,7 +189,7 @@ export default function AdminPage() {
 
   return (
     <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", color: "#333" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #ccc", paddingBottom: 10 }}>
+      <div style={{ ...pageHeaderStyle, transform: isHeaderCollapsed ? "translateY(-130%)" : "translateY(0)", opacity: isHeaderCollapsed ? 0 : 1 }}>
         <h1 style={{ margin: 0 }}>🧗 Admin Panel</h1>
         <div>
           <button onClick={() => router.push("/")} style={{ marginRight: 10, padding: "8px 15px", cursor: "pointer", borderRadius: 4, border: "1px solid #ccc", backgroundColor: "white", color: "black" }}>← Zur Website</button>
@@ -317,3 +329,19 @@ export default function AdminPage() {
     </main>
   );
 }
+
+
+const pageHeaderStyle = {
+  position: "sticky",
+  top: 0,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  borderBottom: "1px solid #ccc",
+  padding: "0 0 10px 0",
+  marginBottom: 16,
+  backgroundColor: "rgba(244,247,246,0.96)",
+  backdropFilter: "blur(6px)",
+  zIndex: 20,
+  transition: "transform 220ms ease, opacity 180ms ease",
+};

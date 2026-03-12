@@ -47,6 +47,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [expandedKey, setExpandedKey] = useState(null);
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -97,6 +98,17 @@ export default function ProfilePage() {
 
     loadData();
   }, [router]);
+
+
+  useEffect(() => {
+    const onScroll = () => {
+      setIsHeaderCollapsed(window.scrollY > 0);
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const signOut = async () => {
     await supabaseBrowser.auth.signOut();
@@ -185,7 +197,7 @@ export default function ProfilePage() {
 
   return (
     <main style={{ padding: 20, maxWidth: "1200px", margin: "0 auto", fontFamily: "sans-serif", color: "#333", backgroundColor: "transparent", minHeight: "100vh" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid rgba(0,0,0,0.05)", paddingBottom: 15, marginBottom: 20 }}>
+      <div style={{ ...pageHeaderStyle, transform: isHeaderCollapsed ? "translateY(-130%)" : "translateY(0)", opacity: isHeaderCollapsed ? 0 : 1 }}>
         <h1 style={{ margin: 0, fontSize: "1.5rem", fontWeight: "800" }}>👤 Mein Profil</h1>
         <div style={{ display: "flex", gap: "12px" }}>
           <button 
@@ -402,4 +414,20 @@ const dangerButtonStyle = {
   fontWeight: "700", 
   transition: "all 0.2s",
   boxShadow: "0 2px 4px rgba(229, 62, 62, 0.05)"
+};
+
+
+const pageHeaderStyle = {
+  position: "sticky",
+  top: 0,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  borderBottom: "2px solid rgba(0,0,0,0.05)",
+  padding: "0 0 15px 0",
+  marginBottom: 20,
+  backgroundColor: "rgba(244,247,246,0.96)",
+  backdropFilter: "blur(6px)",
+  zIndex: 20,
+  transition: "transform 220ms ease, opacity 180ms ease",
 };
