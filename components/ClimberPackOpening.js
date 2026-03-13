@@ -159,8 +159,10 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
   const allRevealed = activeCards.length > 0 && revealed.length === activeCards.length;
   const remaining = activeCards.length - revealed.length;
 
+  const canRevealCards = phase === "cards" || phase === "done";
+
   const toggleReveal = (i) => {
-    if (phase !== "done") return;
+    if (!canRevealCards || !launched.includes(i)) return;
     setRevealed((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]));
   };
 
@@ -186,7 +188,7 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
           isLaunched={launched.includes(i)}
           isRevealed={revealed.includes(i)}
           isCrumbling={phase === "crumble"}
-          isDone={phase === "done"}
+          isDone={canRevealCards}
           onClick={(e) => {
             e.stopPropagation();
             toggleReveal(i);
