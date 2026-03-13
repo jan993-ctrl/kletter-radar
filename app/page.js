@@ -586,8 +586,7 @@ const baseFaceStyle = {
   borderRadius: "26px",
   boxShadow: "0 20px 45px rgba(15,23,42,0.42)",
   overflow: "hidden",
-  background: "linear-gradient(165deg, #0b1120 0%, #18233a 46%, #0f172a 100%)",
-  border: "1px solid rgba(129,140,248,0.45)"
+  background: "linear-gradient(165deg, #0b1120 0%, #18233a 46%, #0f172a 100%)"
 };
 
 const cardFrontStyle = { ...baseFaceStyle };
