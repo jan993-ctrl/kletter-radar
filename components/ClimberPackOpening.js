@@ -228,92 +228,93 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
 }
 
 function ClimberCard({ card, index, isLaunched, isRevealed, isCrumbling, isDone, onClick }) {
-  const pos = SPREAD[index] || SPREAD[0];
-  const cd = CRUMBLE_DIRS[index] || CRUMBLE_DIRS[0];
+  const pos = SPREAD[index] || SPREAD[0];
+  const cd = CRUMBLE_DIRS[index] || CRUMBLE_DIRS[0];
 
-  const safeAbilities = Array.isArray(card.abilities) && card.abilities.length === 7 ? card.abilities : [0, 0, 0, 0, 0, 0, 0];
-  const safeStyles = Array.isArray(card.styles) && card.styles.length === 5 ? card.styles : [0, 0, 0, 0, 0];
+  const safeAbilities = Array.isArray(card.abilities) && card.abilities.length === 7 ? card.abilities : [0, 0, 0, 0, 0, 0, 0];
+  const safeStyles = Array.isArray(card.styles) && card.styles.length === 5 ? card.styles : [0, 0, 0, 0, 0];
 
-  const powerScore = getPowerScore(safeAbilities);
-  const rarity = getRarity(powerScore);
-  const bestGrade = getBestGrade(safeStyles);
-  const discipline = getDiscipline(safeStyles);
-  const meta = RARITY_META[rarity];
-  const imgSrc = card.image_url || fallbackAvatar(card.name);
+  const powerScore = getPowerScore(safeAbilities);
+  const rarity = getRarity(powerScore);
+  const bestGrade = getBestGrade(safeStyles);
+  const discipline = getDiscipline(safeStyles);
+  const meta = RARITY_META[rarity];
+  const imgSrc = card.image_url || fallbackAvatar(card.name);
 
-  const bestStyleIdx = safeStyles.indexOf(Math.max(...safeStyles));
-  const bestStyleLabel = STYLE_LABELS[bestStyleIdx] || "Boulder";
+  const bestStyleIdx = safeStyles.indexOf(Math.max(...safeStyles));
+  const bestStyleLabel = STYLE_LABELS[bestStyleIdx] || "Boulder";
 
-  return (
-    <div
-      className={["cr-card-wrap", isLaunched ? "fly" : "", isRevealed ? "flipped" : "", isCrumbling ? "crumble" : ""].join(" ")}
-      style={{
-        "--tx": `${pos.x}vw`,
-        "--ty": `${pos.y}vh`,
-        "--rot": `${pos.rot}deg`,
-        "--delay": `${index * 0.1}s`,
-        "--r-color": meta.color,
-        "--r-shadow": meta.shadow,
-        "--cx": cd.tx,
-        "--cy": cd.ty,
-        "--cr": cd.rot,
-        "--cd": `${index * 0.06}s`,
-      }}
-      onClick={isDone && !isCrumbling ? onClick : undefined}
-    >
-      <div className="cr-card-face cr-card-back">
-        <MountainClimberIcon size={42} />
-        <span className="cr-back-label">CRUX</span>
-      </div>
+  return (
+    <div
+      className={["cr-card-wrap", isLaunched ? "fly" : "", isRevealed ? "flipped" : "", isCrumbling ? "crumble" : ""].join(" ")}
+      style={{
+        "--tx": `${pos.x}vw`,
+        "--ty": `${pos.y}vh`,
+        "--rot": `${pos.rot}deg`,
+        "--delay": `${index * 0.1}s`,
+        "--r-color": meta.color,
+        "--r-shadow": meta.shadow,
+        "--cx": cd.tx,
+        "--cy": cd.ty,
+        "--cr": cd.rot,
+        "--cd": `${index * 0.06}s`,
+      }}
+      onClick={isDone && !isCrumbling ? onClick : undefined}
+    >
+      <div className="cr-card-face cr-card-back">
+        <MountainClimberIcon size={42} />
+        <span className="cr-back-label">CRUX</span>
+      </div>
 
-      <div className="cr-card-face cr-card-front" style={{ "--card-bg-from": meta.bgFrom }}>
-        <div className="cr-card-glow" />
+      <div className="cr-card-face cr-card-front" style={{ "--card-bg-from": meta.bgFrom }}>
+        <div className="cr-card-glow" />
 
-        <div className="cr-card-head">
-          <span className="cr-rarity-badge" style={{ background: meta.badge, color: meta.color }}>
-            {meta.label}
-          </span>
-          <span className="cr-discipline">
-            {discipline} · {bestStyleLabel}
-          </span>
-        </div>
+        <div className="cr-card-head">
+          <span className="cr-rarity-badge" style={{ background: meta.badge, color: meta.color }}>
+            {meta.label}
+          </span>
+          <div className="cr-card-tags">
+            <span className="cr-tag">{discipline}</span>
+            <span className="cr-tag">{bestStyleLabel}</span>
+          </div>
+        </div>
 
-        <div className="cr-art-zone">
-          <div
-            className="cr-art-bg"
-            style={{ background: `radial-gradient(circle at 60% 40%, ${meta.color}22 0%, transparent 70%)` }}
-          />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imgSrc}
-            alt={card.name || "Kletterer"}
-            className="cr-profile-img"
-            onError={(e) => {
-              e.currentTarget.src = fallbackAvatar(card.name);
-            }}
-          />
-          <span className="cr-grade-overlay">{bestGrade}</span>
-        </div>
+        <div className="cr-art-zone">
+          <div
+            className="cr-art-bg"
+            style={{ background: `radial-gradient(circle at 60% 40%, ${meta.color}22 0%, transparent 70%)` }}
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imgSrc}
+            alt={card.name || "Kletterer"}
+            className="cr-profile-img"
+            onError={(e) => {
+              e.currentTarget.src = fallbackAvatar(card.name);
+            }}
+          />
+          <span className="cr-grade-overlay">{bestGrade}</span>
+        </div>
 
-        <div className="cr-name-row">
-          <span className="cr-athlete-name">{card.name || "Kletterer"}</span>
-          <span className="cr-power-badge" style={{ color: meta.color }}>
-            ⚡{powerScore}
-          </span>
-        </div>
+        <div className="cr-name-row">
+          <span className="cr-athlete-name">{card.name || "Kletterer"}</span>
+          <span className="cr-power-badge" style={{ color: meta.color }}>
+            ⚡{powerScore}
+          </span>
+        </div>
 
-        <p className="cr-quote">{card.notes ? `“${card.notes}”` : "“Kraxelt seit Level 1a hoch.”"}</p>
+        <p className="cr-quote">{card.notes ? `“${card.notes}”` : "“Kraxelt seit Level 1a hoch.”"}</p>
 
-        <div className="cr-stats">
-          {STAT_CONFIG.map(({ label, idx }) => (
-            <StatBar key={label} label={label} value={toPercent(safeAbilities[idx])} color={meta.color} />
-          ))}
-        </div>
+        <div className="cr-stats">
+          {STAT_CONFIG.map(({ label, idx }) => (
+            <StatBar key={label} label={label} value={toPercent(safeAbilities[idx])} color={meta.color} />
+          ))}
+        </div>
 
-        <div className="cr-holo" />
-      </div>
-    </div>
-  );
+        <div className="cr-holo" />
+      </div>
+    </div>
+  );
 }
 
 function StatBar({ label, value, color }) {
@@ -549,17 +550,33 @@ const CSS = `
   pointer-events: none; z-index: 10;
 }
 .cr-card-head {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 5px 7px 3px; background: rgba(0,0,0,.4); flex-shrink: 0;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 7px 3px; background: rgba(0,0,0,.45); flex-shrink: 0;
 }
 .cr-rarity-badge {
-  font-family: 'Oswald', sans-serif;
-  font-size: clamp(6px, 1.2vw, 8px); font-weight: 500;
-  letter-spacing: .15em; padding: 1px 5px; border-radius: 3px; text-transform: uppercase;
+  font-size: clamp(6px, 1.15vw, 7.5px);
+  font-weight: 700;
+  letter-spacing: .14em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  border: 1px solid rgba(255,255,255,.18);
 }
-.cr-discipline {
-  font-size: clamp(6px, 1.1vw, 8px); font-weight: 600;
-  letter-spacing: .1em; color: rgba(255,255,255,.4); text-transform: uppercase;
+.cr-card-tags {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.cr-tag {
+  font-size: clamp(5.8px, 1.05vw, 7px);
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  padding: 1px 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,.45);
+  background: rgba(15,23,42,.55);
 }
 
 .cr-art-zone {
@@ -607,9 +624,13 @@ const CSS = `
 .cr-stats { padding: 0 5px 5px; display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
 .cr-stat-row { display: flex; align-items: center; gap: 4px; }
 .cr-stat-label {
-  font-family: 'Oswald', sans-serif;
-  font-size: clamp(5.5px, 1.1vw, 7.5px); font-weight: 500;
-  color: rgba(255,255,255,.4); letter-spacing: .1em; width: 22px; flex-shrink: 0;
+  font-size: clamp(5.8px, 1.08vw, 7px);
+  font-weight: 700;
+  color: #a1a1aa;
+  letter-spacing: .12em;
+  width: 24px;
+  flex-shrink: 0;
+  text-transform: uppercase;
 }
 .cr-stat-track {
   flex: 1; height: 4px; background: rgba(255,255,255,.08); border-radius: 2px; overflow: hidden;
@@ -621,9 +642,13 @@ const CSS = `
 }
 @keyframes statGrow { from { width: 0; } to { width: var(--fill); } }
 .cr-stat-val {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: clamp(6px, 1.1vw, 8px); font-weight: 700;
-  color: rgba(255,255,255,.55); width: 18px; text-align: right; flex-shrink: 0;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: clamp(6.6px, 1.16vw, 8.2px);
+  font-weight: 800;
+  color: #e2e8f0;
+  width: 20px;
+  text-align: right;
+  flex-shrink: 0;
 }
 .cr-holo {
   position:absolute; inset:0; border-radius:10px; pointer-events:none; z-index:9;
