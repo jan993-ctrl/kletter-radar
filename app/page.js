@@ -89,6 +89,14 @@ export default function Frontpage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+
+  useEffect(() => {
+    if (!user && viewMode !== "global") {
+      setViewMode("global");
+      setFlippedCards({});
+    }
+  }, [user, viewMode]);
+
   const toggleFlip = (id) => {
     setFlippedCards(prev => ({
       ...prev,
@@ -213,6 +221,7 @@ export default function Frontpage() {
   };
 
   const switchViewMode = () => {
+    if (!user) return;
     setViewMode((prev) => (prev === "local" ? "global" : "local"));
     setFlippedCards({});
   };
@@ -230,11 +239,14 @@ export default function Frontpage() {
             style={{
               ...gimmickToggleBtn,
               transform: viewMode === "global" ? "scale(1.06)" : "scale(1)",
+              opacity: user ? 1 : 0.65,
+              cursor: user ? "pointer" : "not-allowed",
             }}
             onClick={switchViewMode}
             type="button"
-            aria-label={viewMode === "local" ? "Zu allen Karten wechseln" : "Zu lokalen Karten wechseln"}
-            title={viewMode === "local" ? "Alle Karten anzeigen" : "Lokale Karten anzeigen"}
+            disabled={!user}
+            aria-label={user ? (viewMode === "local" ? "Zu allen Karten wechseln" : "Zu lokalen Karten wechseln") : "Lokale Ansicht nur für eingeloggte Nutzer"}
+            title={user ? (viewMode === "local" ? "Alle Karten anzeigen" : "Lokale Karten anzeigen") : "Lokale Ansicht nur mit Login verfügbar"}
           >
             <div
               style={{
@@ -290,36 +302,47 @@ export default function Frontpage() {
         </div>
       ) : (
         <>
-          {viewMode === "global" && (
-            <div style={modeInfoStyle}>
-              <span
-                style={modeIconStyle}
-                title="Weltweite Ansicht"
-                aria-label="Weltweite Ansicht"
-              >
-                🌍
-              </span>
-              <span style={inventoryMetaStyle}>Inventar: {sortedInventoryClimbers.length} Karten · Fragmente: {fragments.toFixed(2)}</span>
-              <span style={inventoryHintStyle}>Packs verfügbar: {packStock} / 99</span>
-            </div>
-          )}
+          <div style={modeInfoStyle}>
+            <span
+              style={modeIconStyle}
+              title={viewMode === "global" ? "Weltweite Ansicht" : "Lokale Ansicht"}
+              aria-label={viewMode === "global" ? "Weltweite Ansicht" : "Lokale Ansicht"}
+            >
+              {viewMode === "global" ? "🌍" : "🏠"}
+            </span>
+            {viewMode === "global" ? (
+              <>
+                <span style={inventoryMetaStyle}>Inventar: {sortedInventoryClimbers.length} Karten · Fragmente: {fragments.toFixed(2)}</span>
+                <span style={inventoryHintStyle}>Packs verfügbar: {packStock} / 99</span>
+              </>
+            ) : (
+              <span style={inventoryMetaStyle}>Lokale Karten aus deiner Heimathalle</span>
+            )}
+          </div>
 
-          {viewMode === "local" ? (
-            <div style={gridStyle}>
-              {hasLocalContext
-                ? localVisibleClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))
-                : <div style={emptyStateStyle}>Lege zuerst eine Heimathalle in deinem Profil fest, um lokale Karten zu sehen.</div>}
+          <div style={gridSwitchViewportStyle}>
+            <div style={{
+              ...gridSwitchTrackStyle,
+              transform: viewMode === "global" ? "translateX(-50%)" : "translateX(0)",
+            }}>
+              <section style={gridPanelStyle}>
+                <div style={gridStyle}>
+                  {hasLocalContext
+                    ? localVisibleClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))
+                    : <div style={emptyStateStyle}>Lege zuerst eine Heimathalle in deinem Profil fest, um lokale Karten zu sehen.</div>}
+                </div>
+              </section>
+
+              <section style={gridPanelStyle}>
+                <div style={gridStyle}>
+                  {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
+                </div>
+                {sortedInventoryClimbers.length === 0 && (
+                  <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
+                )}
+              </section>
             </div>
-          ) : (
-            <>
-              <div style={gridStyle}>
-                {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
-              </div>
-              {sortedInventoryClimbers.length === 0 && (
-                <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
-              )}
-            </>
-          )}
+          </div>
         </>
       )}
       {isPackOpen && (
