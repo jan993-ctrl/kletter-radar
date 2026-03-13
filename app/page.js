@@ -252,8 +252,8 @@ export default function Frontpage() {
               }}
               onClick={switchViewMode}
               type="button"
-              aria-label={viewMode === "local" ? "Zu allen Karten wechseln" : "Zu lokalen Karten wechseln"}
-              title={viewMode === "local" ? "Alle Karten anzeigen" : "Lokale Karten anzeigen"}
+              aria-label={undefined}
+              title={undefined}
             >
               <div
                 style={{
@@ -310,8 +310,8 @@ export default function Frontpage() {
                 opacity: packStock <= 0 ? 0.5 : 1,
                 cursor: packStock <= 0 ? "not-allowed" : "pointer",
               }}
-              title={packStock <= 0 ? "Keine Packs mehr verfügbar" : "Kartenpack öffnen"}
-              aria-label="Kartenpack öffnen"
+              title={user ? undefined : (packStock <= 0 ? "Keine Packs mehr verfügbar" : "Kartenpack öffnen")}
+              aria-label={user ? undefined : "Kartenpack öffnen"}
             >
               🃏 Karten
             </button>
@@ -333,8 +333,8 @@ export default function Frontpage() {
           <div style={modeInfoStyle}>
             <span
               style={modeIconStyle}
-              title={viewMode === "global" ? "Weltweite Ansicht" : "Lokale Ansicht"}
-              aria-label={viewMode === "global" ? "Weltweite Ansicht" : "Lokale Ansicht"}
+              title={user ? undefined : (viewMode === "global" ? "Weltweite Ansicht" : "Lokale Ansicht")}
+              aria-label={user ? undefined : (viewMode === "global" ? "Weltweite Ansicht" : "Lokale Ansicht")}
             >
               {viewMode === "global" ? "🌍" : "🏠"}
             </span>
@@ -395,7 +395,6 @@ function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
             const powerScore = Math.round((sumAbilities / 120) * 100);
             const mentalValue = safeAbilities[2];
             
-            // FEHLERBEHEBUNG: Eindeutiger Key durch Kombination von ID und Index
             const dbId = c.user_id || c.id || "climber";
             const uniqueCardKey = `${dbId}-${index}`;
             const isFlipped = !!flippedCards[uniqueCardKey];
