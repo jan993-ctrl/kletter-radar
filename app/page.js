@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import Link from "next/link";
 import Image from "next/image";
@@ -117,9 +117,11 @@ export default function Frontpage() {
 
   const profileLink = user?.email === ADMIN_EMAIL ? "/admin" : "/profile";
   const hasLocalContext = Boolean(userGymId);
-  const localVisibleClimbers = hasLocalContext
-    ? climbers.filter((climber) => climber.gym_id && climber.gym_id === userGymId)
-    : [];
+  const localVisibleClimbers = useMemo(() => {
+    return hasLocalContext
+      ? climbers.filter((climber) => climber.gym_id && climber.gym_id === userGymId)
+      : [];
+  }, [climbers, userGymId, hasLocalContext]);
 
   const rarityWeight = (power) => {
     if (power >= 92) return 0;
@@ -129,18 +131,20 @@ export default function Frontpage() {
 
   const isRegisteredUserCard = (climber) => Boolean(climber?.user_id);
 
-  const sortedInventoryClimbers = climbers
-    .filter((climber) => inventoryIds.includes(climber.user_id || climber.id))
-    .sort((a, b) => {
-      const powerA = Math.round(((a.abilities || []).reduce((acc, val) => acc + val, 0) / 120) * 100);
-      const powerB = Math.round(((b.abilities || []).reduce((acc, val) => acc + val, 0) / 120) * 100);
-      const rarityDiff = rarityWeight(powerA) - rarityWeight(powerB);
-      if (rarityDiff !== 0) return rarityDiff;
-      return powerB - powerA;
-    });
+  const sortedInventoryClimbers = useMemo(() => {
+    return climbers
+      .filter((climber) => inventoryIds.includes(climber.user_id || climber.id))
+      .sort((a, b) => {
+        const powerA = Math.round(((a.abilities || []).reduce((acc, val) => acc + val, 0) / 120) * 100);
+        const powerB = Math.round(((b.abilities || []).reduce((acc, val) => acc + val, 0) / 120) * 100);
+        const rarityDiff = rarityWeight(powerA) - rarityWeight(powerB);
+        if (rarityDiff !== 0) return rarityDiff;
+        return powerB - powerA;
+      });
+  }, [climbers, inventoryIds]);
 
   const toPackAthlete = (climber) => {
-    const abilities = normalizeAbilities(climber.abilities, 0);
+    const abilities = climber.abilities || [0, 0, 0, 0, 0];
     const power = Math.round((abilities.reduce((a, b) => a + b, 0) / 120) * 100);
     const rarity = power >= 92 ? "legendary" : power >= 75 ? "rare" : "common";
     const gradeIndex = Math.max(0, Math.min(GRADES.length - 1, Math.round((power / 100) * (GRADES.length - 1))));
@@ -160,11 +164,13 @@ export default function Frontpage() {
       rarity,
       emoji: rarity === "legendary" ? "🔥" : rarity === "rare" ? "⚡" : "🪨",
       quote: climber.notes || "Keep climbing.",
+      image_url: climber.image_url,
     };
   };
 
-  const packPool = climbers.filter(isRegisteredUserCard);
-  const packAthletes = packPool.map(toPackAthlete);
+  const packAthletes = useMemo(() => {
+    return climbers.filter(isRegisteredUserCard).map(toPackAthlete);
+  }, [climbers]);
   const maxPackCards = Math.min(5, packAthletes.length);
 
   const drawPackCards = (pool, count) => {
@@ -175,8 +181,10 @@ export default function Frontpage() {
     while (result.length < count && copy.length > 0) {
       const weighted = copy.flatMap((card) => Array(weights[card.rarity] || 1).fill(card));
       const pick = weighted[Math.floor(Math.random() * weighted.length)];
-      result.push(pick);
-      copy.splice(copy.findIndex((c) => c.id === pick.id), 1);
+      if (!result.find((r) => r.id === pick.id)) {
+        result.push(pick);
+        copy.splice(copy.findIndex((c) => c.id === pick.id), 1);
+      }
     }
 
     return result;
