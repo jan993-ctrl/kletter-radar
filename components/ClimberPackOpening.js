@@ -89,13 +89,33 @@ const RARITY_META = {
   },
 };
 
-const SPREAD = [
-  { x: -44, y: -16, rot: -24 },
-  { x: -22, y: -26, rot: -11 },
-  { x: 0, y: -30, rot: 1 },
-  { x: 22, y: -26, rot: 13 },
-  { x: 44, y: -16, rot: 23 },
-];
+const SPREAD_BY_COUNT = {
+  1: [{ x: 0, y: -28, rot: 0 }],
+  2: [
+    { x: -18, y: -25, rot: -8 },
+    { x: 18, y: -25, rot: 8 },
+  ],
+  3: [
+    { x: -24, y: -22, rot: -12 },
+    { x: 0, y: -30, rot: 0 },
+    { x: 24, y: -22, rot: 12 },
+  ],
+  4: [
+    { x: -32, y: -18, rot: -16 },
+    { x: -10, y: -28, rot: -6 },
+    { x: 10, y: -28, rot: 6 },
+    { x: 32, y: -18, rot: 16 },
+  ],
+  5: [
+    { x: -44, y: -16, rot: -24 },
+    { x: -22, y: -26, rot: -11 },
+    { x: 0, y: -30, rot: 1 },
+    { x: 22, y: -26, rot: 13 },
+    { x: 44, y: -16, rot: 23 },
+  ],
+};
+
+const DEFAULT_SPREAD = SPREAD_BY_COUNT[5];
 
 const CRUMBLE_DIRS = [
   { tx: "-55vw", ty: "60vh", rot: "-180deg" },
@@ -185,6 +205,7 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
           key={card.user_id || card.id || i}
           card={card}
           index={i}
+          totalCards={activeCards.length}
           isLaunched={launched.includes(i)}
           isRevealed={revealed.includes(i)}
           isCrumbling={phase === "crumble"}
@@ -231,8 +252,9 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
   );
 }
 
-function ClimberCard({ card, index, isLaunched, isRevealed, isCrumbling, isDone, onClick }) {
-  const pos = SPREAD[index] || SPREAD[0];
+function ClimberCard({ card, index, totalCards, isLaunched, isRevealed, isCrumbling, isDone, onClick }) {
+  const spread = SPREAD_BY_COUNT[totalCards] || DEFAULT_SPREAD;
+  const pos = spread[index] || DEFAULT_SPREAD[index] || DEFAULT_SPREAD[0];
   const cd = CRUMBLE_DIRS[index] || CRUMBLE_DIRS[0];
 
   const safeAbilities = Array.isArray(card.abilities) && card.abilities.length === 7 ? card.abilities : [0, 0, 0, 0, 0, 0, 0];
