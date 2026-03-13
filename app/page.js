@@ -115,6 +115,7 @@ export default function Frontpage() {
 
   const profileLink = user?.email === ADMIN_EMAIL ? "/admin" : "/profile";
   const hasLocalContext = Boolean(userGymId);
+  const isGuestUser = !user;
   
   const localVisibleClimbers = useMemo(() => {
     return hasLocalContext
@@ -243,27 +244,39 @@ export default function Frontpage() {
         opacity: isHeaderCollapsed ? 0 : 1,
       }}>
         <div style={headerAnimationStyle}>
-          <button
-            style={{
-              ...gimmickToggleBtn,
-              transform: viewMode === "global" ? "scale(1.06)" : "scale(1)",
-              opacity: user ? 1 : 0.65,
-              cursor: user ? "pointer" : "not-allowed",
-            }}
-            onClick={switchViewMode}
-            type="button"
-            disabled={!user}
-            aria-label={user ? (viewMode === "local" ? "Zu allen Karten wechseln" : "Zu lokalen Karten wechseln") : "Lokale Ansicht nur für eingeloggte Nutzer"}
-          >
+          {isGuestUser ? (
             <div
               style={{
-                ...gimmickInner,
-                transform: viewMode === "global" ? "rotate(180deg)" : "rotate(0deg)",
+                ...gimmickToggleBtn,
+                opacity: 0.65,
+                cursor: "default",
               }}
+              aria-hidden="true"
             >
-              <VisualGimmick size={100} showLabel={false} />
+              <div style={gimmickInner}>
+                <VisualGimmick size={100} showLabel={false} />
+              </div>
             </div>
-          </button>
+          ) : (
+            <button
+              style={{
+                ...gimmickToggleBtn,
+                transform: viewMode === "global" ? "scale(1.06)" : "scale(1)",
+              }}
+              onClick={switchViewMode}
+              type="button"
+              aria-label={viewMode === "local" ? "Zu allen Karten wechseln" : "Zu lokalen Karten wechseln"}
+            >
+              <div
+                style={{
+                  ...gimmickInner,
+                  transform: viewMode === "global" ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              >
+                <VisualGimmick size={100} showLabel={false} />
+              </div>
+            </button>
+          )}
         </div>
         <div style={titleBlockStyle}>
           <h1 style={logoStyle}>
@@ -321,29 +334,40 @@ export default function Frontpage() {
             )}
           </div>
 
-          <div style={gridSwitchViewportStyle}>
-            <div style={{
-              ...gridSwitchTrackStyle,
-              transform: viewMode === "global" ? "translateX(-50%)" : "translateX(0)",
-            }}>
-              <section style={gridPanelStyle}>
-                <div style={gridStyle}>
-                  {hasLocalContext
-                    ? localVisibleClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))
-                    : <div style={emptyStateStyle}>Lege zuerst eine Heimathalle in deinem Profil fest, um lokale Karten zu sehen.</div>}
-                </div>
-              </section>
+          {isGuestUser ? (
+            <section style={gridPanelStyle}>
+              <div style={gridStyle}>
+                {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
+              </div>
+              {sortedInventoryClimbers.length === 0 && (
+                <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
+              )}
+            </section>
+          ) : (
+            <div style={gridSwitchViewportStyle}>
+              <div style={{
+                ...gridSwitchTrackStyle,
+                transform: viewMode === "global" ? "translateX(-50%)" : "translateX(0)",
+              }}>
+                <section style={gridPanelStyle}>
+                  <div style={gridStyle}>
+                    {hasLocalContext
+                      ? localVisibleClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))
+                      : <div style={emptyStateStyle}>Lege zuerst eine Heimathalle in deinem Profil fest, um lokale Karten zu sehen.</div>}
+                  </div>
+                </section>
 
-              <section style={gridPanelStyle}>
-                <div style={gridStyle}>
-                  {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
-                </div>
-                {sortedInventoryClimbers.length === 0 && (
-                  <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
-                )}
-              </section>
+                <section style={gridPanelStyle}>
+                  <div style={gridStyle}>
+                    {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
+                  </div>
+                  {sortedInventoryClimbers.length === 0 && (
+                    <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
+                  )}
+                </section>
+              </div>
             </div>
-          </div>
+          )}
         </>
       )}
       {isPackOpen && (
@@ -465,9 +489,7 @@ const pageWrapperStyle = {
   minHeight: "100vh",
   width: "100%",
   padding: "20px",
-  background: `radial-gradient(ellipse at 30% 20%, #1a0a0022 0%, transparent 55%), 
-               radial-gradient(ellipse at 70% 80%, #001a3a22 0%, transparent 55%), 
-               #0E0E12`,
+  background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
 };
 
 const mainStyle = { fontFamily: "'Inter', sans-serif", maxWidth: "1200px", margin: "0 auto", backgroundColor: "transparent", minHeight: "100vh", color: "#f4f4f5" };
