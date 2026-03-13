@@ -118,6 +118,8 @@ export default function Frontpage() {
     return 2;
   };
 
+  const isRegisteredUserCard = (climber) => Boolean(climber?.user_id);
+
   const sortedInventoryClimbers = baseVisibleClimbers
     .filter((climber) => inventoryIds.includes(climber.user_id || climber.id))
     .sort((a, b) => {
@@ -152,9 +154,10 @@ export default function Frontpage() {
     };
   };
 
-  const packPool = viewMode === "global"
+  const packPoolBase = viewMode === "global"
     ? climbers
     : climbers.filter((climber) => climber.gym_id && climber.gym_id === userGymId);
+  const packPool = packPoolBase.filter(isRegisteredUserCard);
   const packAthletes = packPool.map(toPackAthlete);
   const maxPackCards = viewMode === "global" ? 5 : Math.min(3, packAthletes.length);
 
