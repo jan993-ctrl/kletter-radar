@@ -125,7 +125,15 @@ const CRUMBLE_DIRS = [
   { tx: "55vw", ty: "65vh", rot: "200deg" },
 ];
 
-export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
+const SETTLE_POSITIONS = [
+  { x: -9, y: -3, rot: -6 },
+  { x: 0, y: 0, rot: 0 },
+  { x: 9, y: -3, rot: 5 },
+  { x: -5, y: 4, rot: -3 },
+  { x: 6, y: 5, rot: 2 },
+];
+
+export default function ClimberPackOpening({ cards = [], onDone }) {
   const [phase, setPhase] = useState("idle");
   const [activeCards, setActive] = useState([]);
   const [launched, setLaunched] = useState([]);
@@ -163,16 +171,9 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
     }, 3600);
   }, [cards, onDone]);
 
-  const triggerCrumble = useCallback(() => {
-    setPhase("crumble");
-    later(() => {
-      setPhase("idle");
-      setActive([]);
-      setLaunched([]);
-      setRevealed([]);
-      onDismiss?.();
-    }, 900);
-  }, [onDismiss]);
+  const triggerResolve = useCallback(() => {
+    setPhase("resolve");
+  }, []);
 
   useEffect(() => () => clear(), []);
 
@@ -192,7 +193,7 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
       return;
     }
     if (phase === "done" && allRevealed) {
-      triggerCrumble();
+      triggerResolve();
     }
   };
 
@@ -208,7 +209,8 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
           totalCards={activeCards.length}
           isLaunched={launched.includes(i)}
           isRevealed={revealed.includes(i)}
-          isCrumbling={phase === "crumble"}
+          isOwned={Boolean(card.isOwned)}
+          isResolving={phase === "resolve"}
           isDone={canRevealCards}
           onClick={(e) => {
             e.stopPropagation();
@@ -219,7 +221,7 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
 
       <div className={`cr-pack ${phase}`} role="button" aria-label="Pack öffnen">
         <div className="cr-pack-top" />
-        <div className={`cr-slice ${["slice", "open", "cards", "done", "crumble"].includes(phase) ? "vis" : ""}`} />
+        <div className={`cr-slice ${["slice", "open", "cards", "done", "resolve"].includes(phase) ? "vis" : ""}`} />
         <div className="cr-pack-body">
           <div className="cr-pack-shine" />
           <div className="cr-pack-noise" />
@@ -247,15 +249,17 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
             : `Noch ${remaining} Karte${remaining !== 1 ? "n" : ""} übrig`}
         </p>
       )}
-      {phase === "done" && allRevealed && <p className="cr-cta cr-cta-pulse">Tippen zum Beenden</p>}
+      {phase === "done" && allRevealed && <p className="cr-cta cr-cta-pulse">Tippen zum Einsammeln</p>}
+      {phase === "resolve" && <p className="cr-hint">Duplikate zerfallen · neue Karten sammeln sich in der Mitte</p>}
     </div>
   );
 }
 
-function ClimberCard({ card, index, totalCards, isLaunched, isRevealed, isCrumbling, isDone, onClick }) {
+function ClimberCard({ card, index, totalCards, isLaunched, isRevealed, isOwned, isResolving, isDone, onClick }) {
   const spread = SPREAD_BY_COUNT[totalCards] || DEFAULT_SPREAD;
   const pos = spread[index] || DEFAULT_SPREAD[index] || DEFAULT_SPREAD[0];
   const cd = CRUMBLE_DIRS[index] || CRUMBLE_DIRS[0];
+  const settle = SETTLE_POSITIONS[index] || SETTLE_POSITIONS[0];
 
   const safeAbilities = Array.isArray(card.abilities) && card.abilities.length === 7 ? card.abilities : [0, 0, 0, 0, 0, 0, 0];
   const safeStyles = Array.isArray(card.styles) && card.styles.length === 5 ? card.styles : [0, 0, 0, 0, 0];
@@ -272,7 +276,13 @@ function ClimberCard({ card, index, totalCards, isLaunched, isRevealed, isCrumbl
 
   return (
     <div
-      className={["cr-card-wrap", isLaunched ? "fly" : "", isRevealed ? "flipped" : "", isCrumbling ? "crumble" : ""].join(" ")}
+      className={[
+        "cr-card-wrap",
+        isLaunched ? "fly" : "",
+        isRevealed ? "flipped" : "",
+        isResolving && isOwned ? "split" : "",
+        isResolving && !isOwned ? "settle" : "",
+      ].join(" ")}
       style={{
         "--tx": `${pos.x}vw`,
         "--ty": `${pos.y}vh`,
@@ -284,9 +294,21 @@ function ClimberCard({ card, index, totalCards, isLaunched, isRevealed, isCrumbl
         "--cy": cd.ty,
         "--cr": cd.rot,
         "--cd": `${index * 0.06}s`,
+        "--sx": `${settle.x}vw`,
+        "--sy": `${settle.y}vh`,
+        "--sr": `${settle.rot}deg`,
       }}
-      onClick={isDone && !isCrumbling ? onClick : undefined}
+      onClick={isDone && !isResolving ? onClick : undefined}
     >
+      {isOwned && (
+        <div className="cr-shards" aria-hidden="true">
+          <span className="cr-shard shard-a" />
+          <span className="cr-shard shard-b" />
+          <span className="cr-shard shard-c" />
+          <span className="cr-shard shard-d" />
+        </div>
+      )}
+
       <div className="cr-card-face cr-card-back">
         <MountainClimberIcon size={42} />
         <span className="cr-back-label">CRUX</span>
@@ -429,7 +451,7 @@ const CSS = `
 .cr-pack.open    .cr-pack-top,
 .cr-pack.cards   .cr-pack-top,
 .cr-pack.done    .cr-pack-top,
-.cr-pack.crumble .cr-pack-top {
+.cr-pack.resolve .cr-pack-top {
   transform: translateY(-160%) rotate(20deg) translateX(20%);
   opacity: 0;
 }
@@ -491,14 +513,13 @@ const CSS = `
   font-size: clamp(6px, 1.3vw, 8px); font-weight: 600;
   letter-spacing: .2em; color: rgba(255,255,255,.3); text-transform: uppercase;
 }
-.cr-pack.crumble {
-  animation: packCrumble .7s .1s cubic-bezier(.55,0,1,.45) forwards;
+.cr-pack.resolve {
+  animation: packFade .35s ease forwards;
   pointer-events: none;
 }
-@keyframes packCrumble {
-  0%   { transform: scale(1) rotate(0deg); opacity: 1; }
-  20%  { transform: scale(1.04) rotate(-3deg); }
-  100% { transform: scale(0) rotate(25deg) translateY(40px); opacity: 0; }
+@keyframes packFade {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(.84); opacity: 0; }
 }
 
 .cr-card-wrap {
@@ -529,17 +550,53 @@ const CSS = `
 .cr-card-wrap.fly:active {
   transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(.97) !important;
 }
-.cr-card-wrap.crumble {
-  animation: cardCrumble .8s cubic-bezier(.55,0,1,.45) forwards !important;
+.cr-card-wrap.split {
+  animation: cardSplit .85s cubic-bezier(.55,0,1,.45) forwards !important;
   animation-delay: var(--cd) !important;
   pointer-events: none !important;
 }
-@keyframes cardCrumble {
+@keyframes cardSplit {
   0%   { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(1); opacity: 1; }
-  30%  { transform: translate(var(--tx), var(--ty)) rotate(calc(var(--rot) + 15deg)) scale(1.05); opacity: 1; }
+  25%  { transform: translate(var(--tx), var(--ty)) rotate(calc(var(--rot) + 6deg)) scale(1.04); opacity: 1; }
   100% { transform: translate(calc(var(--tx) + var(--cx)), calc(var(--ty) + var(--cy)))
                     rotate(calc(var(--rot) + var(--cr))) scale(0.05); opacity: 0; }
 }
+
+.cr-card-wrap.settle {
+  animation: cardSettle .6s cubic-bezier(.22,.61,.36,1) forwards !important;
+  pointer-events: none !important;
+}
+@keyframes cardSettle {
+  from { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(1); }
+  to { transform: translate(var(--sx), var(--sy)) rotate(var(--sr)) scale(1); }
+}
+
+.cr-shards {
+  position: absolute; inset: 0; z-index: 60; pointer-events: none;
+  opacity: 0;
+}
+.cr-card-wrap.split .cr-shards {
+  animation: shardShow .1s linear .2s forwards;
+}
+@keyframes shardShow {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.cr-shard {
+  position: absolute;
+  background: linear-gradient(135deg, rgba(255,255,255,.45), rgba(255,255,255,.08));
+  border: 1px solid rgba(255,255,255,.35);
+  box-shadow: 0 0 10px rgba(255,255,255,.28);
+  border-radius: 3px;
+}
+.cr-shard.shard-a { top: 20%; left: 12%; width: 24%; height: 28%; animation: shardA .7s ease-out forwards; }
+.cr-shard.shard-b { top: 15%; right: 14%; width: 28%; height: 24%; animation: shardB .72s ease-out forwards; }
+.cr-shard.shard-c { bottom: 24%; left: 18%; width: 32%; height: 26%; animation: shardC .68s ease-out forwards; }
+.cr-shard.shard-d { bottom: 18%; right: 12%; width: 22%; height: 30%; animation: shardD .75s ease-out forwards; }
+@keyframes shardA { to { transform: translate(-52px, 62px) rotate(-35deg); opacity: 0; } }
+@keyframes shardB { to { transform: translate(56px, 75px) rotate(38deg); opacity: 0; } }
+@keyframes shardC { to { transform: translate(-44px, 82px) rotate(-24deg); opacity: 0; } }
+@keyframes shardD { to { transform: translate(48px, 70px) rotate(31deg); opacity: 0; } }
 
 .cr-card-wrap { transition: none; }
 .cr-card-face {
