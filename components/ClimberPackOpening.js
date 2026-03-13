@@ -157,10 +157,10 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
   const allRevealed = activeCards.length > 0 && revealed.length === activeCards.length;
   const remaining = activeCards.length - revealed.length;
 
-  const toggleReveal = (i) => {
-    if (phase !== "done") return;
-    setRevealed((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]));
-  };
+  const revealCard = (i) => {
+    if (phase !== "done") return;
+    setRevealed((prev) => (prev.includes(i) ? prev : [...prev, i]));
+  };
 
   const handleRootClick = () => {
     if (phase === "idle") {
@@ -185,10 +185,10 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
           isRevealed={revealed.includes(i)}
           isCrumbling={phase === "crumble"}
           isDone={phase === "done"}
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleReveal(i);
-          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            revealCard(i);
+          }}
         />
       ))}
 
@@ -207,7 +207,7 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
             </span>
             <MountainClimberIcon />
             <span className="cr-pack-sub">
-              {cards.length} KLETTERER{cards.length !== 1 ? "" : ""} INSIDE
+              {cards.length} KLETTERER INSIDE
             </span>
           </div>
         </div>
