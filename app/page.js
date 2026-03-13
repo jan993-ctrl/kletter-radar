@@ -16,6 +16,13 @@ const GRADES = [
 
 const styleLabels = ["Crimper", "Sloper", "Slab", "Dyno", "Pocket"];
 
+const getClimberCardId = (climber) => {
+  if (climber?.user_id) return climber.user_id;
+  if (climber?.id) return climber.id;
+  if (climber?.name) return `name:${climber.name}`;
+  return "climber:unknown";
+};
+
 export default function Frontpage() {
   const [climbers, setClimbers] = useState([]);
   const [user, setUser] = useState(null);
@@ -129,11 +136,9 @@ export default function Frontpage() {
     return 2;
   };
 
-  const isRegisteredUserCard = (climber) => Boolean(climber?.user_id || climber?.id);
-
   const sortedInventoryClimbers = useMemo(() => {
     return climbers
-      .filter((climber) => inventoryIds.includes(climber.user_id || climber.id))
+      .filter((climber) => inventoryIds.includes(getClimberCardId(climber)))
       .sort((a, b) => {
         const powerA = Math.round(((a.abilities || []).reduce((acc, val) => acc + val, 0) / 120) * 100);
         const powerB = Math.round(((b.abilities || []).reduce((acc, val) => acc + val, 0) / 120) * 100);
@@ -151,7 +156,7 @@ export default function Frontpage() {
     const gradeIndex = Math.max(0, Math.min(GRADES.length - 1, Math.round((power / 100) * (GRADES.length - 1))));
 
     return {
-      id: climber.user_id || climber.id,
+      id: getClimberCardId(climber),
       name: climber.name || "Kletter-Gast",
       abilities,
       styles,
@@ -161,9 +166,9 @@ export default function Frontpage() {
       image_url: climber.image_url,
     };
   };
-
+  
   const packAthletes = useMemo(() => {
-    return climbers.filter(isRegisteredUserCard).map(toPackAthlete);
+    return climbers.map(toPackAthlete);
   }, [climbers]);
   const maxPackCards = Math.min(5, packAthletes.length);
 
@@ -397,7 +402,7 @@ function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
             const powerScore = Math.round((sumAbilities / 120) * 100);
             const mentalValue = safeAbilities[2];
             
-            const dbId = c.user_id || c.id || "climber";
+            const dbId = getClimberCardId(c);
             const uniqueCardKey = `${dbId}-${index}`;
             const isFlipped = !!flippedCards[uniqueCardKey];
 
