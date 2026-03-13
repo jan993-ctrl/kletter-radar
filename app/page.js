@@ -330,23 +330,25 @@ export default function Frontpage() {
         </div>
       ) : (
         <>
-          <div style={modeInfoStyle}>
-            <span
-              style={modeIconStyle}
-              title={user ? undefined : (viewMode === "global" ? "Weltweite Ansicht" : "Lokale Ansicht")}
-              aria-label={user ? undefined : (viewMode === "global" ? "Weltweite Ansicht" : "Lokale Ansicht")}
-            >
-              {viewMode === "global" ? "🌍" : "🏠"}
-            </span>
-            {viewMode === "global" ? (
-              <>
-                <span style={inventoryMetaStyle}>Inventar: {sortedInventoryClimbers.length} Karten · Fragmente: {fragments.toFixed(2)}</span>
-                <span style={inventoryHintStyle}>Packs verfügbar: {packStock} / 99</span>
-              </>
-            ) : (
-              <span style={inventoryMetaStyle}>Lokale Karten aus deiner Heimathalle</span>
-            )}
-          </div>
+          {user && (
+            <div style={modeInfoStyle}>
+              <span
+                style={modeIconStyle}
+                title={viewMode === "global" ? "Weltweite Ansicht" : "Lokale Ansicht"}
+                aria-label={viewMode === "global" ? "Weltweite Ansicht" : "Lokale Ansicht"}
+              >
+                {viewMode === "global" ? "🌍" : "🏠"}
+              </span>
+              {viewMode === "global" ? (
+                <>
+                  <span style={inventoryMetaStyle}>Inventar: {sortedInventoryClimbers.length} Karten · Fragmente: {fragments.toFixed(2)}</span>
+                  <span style={inventoryHintStyle}>Packs verfügbar: {packStock} / 99</span>
+                </>
+              ) : (
+                <span style={inventoryMetaStyle}>Lokale Karten aus deiner Heimathalle</span>
+              )}
+            </div>
+          )}
 
           <div style={gridSwitchViewportStyle}>
             <div style={{
