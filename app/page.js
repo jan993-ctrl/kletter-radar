@@ -108,9 +108,9 @@ export default function Frontpage() {
 
   const profileLink = user?.email === ADMIN_EMAIL ? "/admin" : "/profile";
   const hasLocalContext = Boolean(userGymId);
-  const baseVisibleClimbers = viewMode === "global" || !hasLocalContext
-    ? climbers
-    : climbers.filter((climber) => climber.gym_id && climber.gym_id === userGymId);
+  const localVisibleClimbers = hasLocalContext
+    ? climbers.filter((climber) => climber.gym_id && climber.gym_id === userGymId)
+    : [];
 
   const rarityWeight = (power) => {
     if (power >= 92) return 0;
@@ -120,7 +120,7 @@ export default function Frontpage() {
 
   const isRegisteredUserCard = (climber) => Boolean(climber?.user_id);
 
-  const sortedInventoryClimbers = baseVisibleClimbers
+  const sortedInventoryClimbers = climbers
     .filter((climber) => inventoryIds.includes(climber.user_id || climber.id))
     .sort((a, b) => {
       const powerA = Math.round(((a.abilities || []).reduce((acc, val) => acc + val, 0) / 120) * 100);
@@ -154,12 +154,9 @@ export default function Frontpage() {
     };
   };
 
-  const packPoolBase = viewMode === "global"
-    ? climbers
-    : climbers.filter((climber) => climber.gym_id && climber.gym_id === userGymId);
-  const packPool = packPoolBase.filter(isRegisteredUserCard);
+  const packPool = climbers.filter(isRegisteredUserCard);
   const packAthletes = packPool.map(toPackAthlete);
-  const maxPackCards = viewMode === "global" ? 5 : Math.min(3, packAthletes.length);
+  const maxPackCards = Math.min(5, packAthletes.length);
 
   const drawPackCards = (pool, count) => {
     const weights = { legendary: 10, rare: 30, common: 60 };
@@ -256,27 +253,29 @@ export default function Frontpage() {
           <p style={taglineStyle}>Deine Boulder-Community auf einen Blick</p>
         </div>
         <div>
-          <button
-            type="button"
-            onClick={() => {
-              if (packStock > 0 && packAthletes.length > 0) {
-                const drawn = drawPackCards(packAthletes, maxPackCards);
-                setCurrentPackCards(drawn);
-                setPendingPackCards([]);
-                setIsPackOpen(true);
-              }
-            }}
-            style={{
-              ...navBtnStyle,
-              marginRight: "10px",
-              opacity: packStock <= 0 ? 0.5 : 1,
-              cursor: packStock <= 0 ? "not-allowed" : "pointer",
-            }}
-            title={packStock <= 0 ? "Keine Packs mehr verfügbar" : "Kartenpack öffnen"}
-            aria-label="Kartenpack öffnen"
-          >
-            🃏 Karten
-          </button>
+          {viewMode === "global" && (
+            <button
+              type="button"
+              onClick={() => {
+                if (packStock > 0 && packAthletes.length > 0) {
+                  const drawn = drawPackCards(packAthletes, maxPackCards);
+                  setCurrentPackCards(drawn);
+                  setPendingPackCards([]);
+                  setIsPackOpen(true);
+                }
+              }}
+              style={{
+                ...navBtnStyle,
+                marginRight: "10px",
+                opacity: packStock <= 0 ? 0.5 : 1,
+                cursor: packStock <= 0 ? "not-allowed" : "pointer",
+              }}
+              title={packStock <= 0 ? "Keine Packs mehr verfügbar" : "Kartenpack öffnen"}
+              aria-label="Kartenpack öffnen"
+            >
+              🃏 Karten
+            </button>
+          )}
           <Link href={user ? profileLink : "/login"}>
             <button style={navBtnStyle}>
               {user ? "Mein Profil" : "Login"}
@@ -291,46 +290,35 @@ export default function Frontpage() {
         </div>
       ) : (
         <>
-          <div style={modeInfoStyle}>
-            <span
-              style={modeIconStyle}
-              title={viewMode === "global" ? "Weltweite Ansicht" : "Lokale Ansicht"}
-              aria-label={viewMode === "global" ? "Weltweite Ansicht" : "Lokale Ansicht"}
-            >
-              {viewMode === "global" ? "🌍" : "🏠"}
-            </span>
-            <span style={inventoryMetaStyle}>Inventar: {sortedInventoryClimbers.length} Karten · Fragmente: {fragments.toFixed(2)}</span>
-            {<span style={inventoryHintStyle}>Packs verfügbar: {packStock} / 99</span>}
-          </div>
-
-          <div style={gridSwitchViewportStyle}>
-            <div style={{
-              ...gridSwitchTrackStyle,
-              transform: viewMode === "global" ? "translateX(-50%)" : "translateX(0)",
-            }}>
-              <section style={gridPanelStyle}>
-                <div style={gridStyle}>
-                  {hasLocalContext
-                    ? climbers
-                      .filter((climber) => climber.gym_id && climber.gym_id === userGymId)
-                      .filter((climber) => inventoryIds.includes(climber.user_id || climber.id))
-                      .map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))
-                    : (
-                      <div style={emptyStateStyle}>Lege zuerst eine Heimathalle in deinem Profil fest, um lokale Karten zu sehen.</div>
-                    )}
-                </div>
-              </section>
-
-              <section style={gridPanelStyle}>
-                <div style={gridStyle}>
-                  {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
-                </div>
-              </section>
+          {viewMode === "global" && (
+            <div style={modeInfoStyle}>
+              <span
+                style={modeIconStyle}
+                title="Weltweite Ansicht"
+                aria-label="Weltweite Ansicht"
+              >
+                🌍
+              </span>
+              <span style={inventoryMetaStyle}>Inventar: {sortedInventoryClimbers.length} Karten · Fragmente: {fragments.toFixed(2)}</span>
+              <span style={inventoryHintStyle}>Packs verfügbar: {packStock} / 99</span>
             </div>
-          </div>
+          )}
 
-          {sortedInventoryClimbers.length === 0 && (
-            <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
+          {viewMode === "local" ? (
+            <div style={gridStyle}>
+              {hasLocalContext
+                ? localVisibleClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))
+                : <div style={emptyStateStyle}>Lege zuerst eine Heimathalle in deinem Profil fest, um lokale Karten zu sehen.</div>}
+            </div>
+          ) : (
+            <>
+              <div style={gridStyle}>
+                {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
+              </div>
+              {sortedInventoryClimbers.length === 0 && (
+                <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
+              )}
+            </>
           )}
         </>
       )}
