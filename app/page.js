@@ -302,7 +302,11 @@ export default function Frontpage() {
               onClick={() => {
                 if (packStock > 0 && packAthletes.length > 0) {
                   const drawn = drawPackCards(packAthletes, maxPackCards);
-                  setCurrentPackCards(drawn);
+                  const drawnWithOwnership = drawn.map((card) => ({
+                    ...card,
+                    alreadyOwned: inventoryIds.includes(card.id),
+                  }));
+                  setCurrentPackCards(drawnWithOwnership);
                   setPendingPackCards([]);
                   setIsPackOpen(true);
                 }

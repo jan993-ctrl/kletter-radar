@@ -125,6 +125,14 @@ const CRUMBLE_DIRS = [
   { tx: "55vw", ty: "65vh", rot: "200deg" },
 ];
 
+const COLLECT_DIRS = [
+  { tx: "0vw", ty: "7vh", rot: "-12deg" },
+  { tx: "0vw", ty: "5vh", rot: "8deg" },
+  { tx: "0vw", ty: "6vh", rot: "-5deg" },
+  { tx: "0vw", ty: "8vh", rot: "9deg" },
+  { tx: "0vw", ty: "6vh", rot: "-9deg" },
+];
+
 export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
   const [phase, setPhase] = useState("idle");
   const [activeCards, setActive] = useState([]);
@@ -208,6 +216,7 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
           totalCards={activeCards.length}
           isLaunched={launched.includes(i)}
           isRevealed={revealed.includes(i)}
+          isOwned={Boolean(card.alreadyOwned)}
           isCrumbling={phase === "crumble"}
           isDone={canRevealCards}
           onClick={(e) => {
@@ -252,10 +261,11 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
   );
 }
 
-function ClimberCard({ card, index, totalCards, isLaunched, isRevealed, isCrumbling, isDone, onClick }) {
+function ClimberCard({ card, index, totalCards, isLaunched, isRevealed, isOwned, isCrumbling, isDone, onClick }) {
   const spread = SPREAD_BY_COUNT[totalCards] || DEFAULT_SPREAD;
   const pos = spread[index] || DEFAULT_SPREAD[index] || DEFAULT_SPREAD[0];
   const cd = CRUMBLE_DIRS[index] || CRUMBLE_DIRS[0];
+  const collect = COLLECT_DIRS[index] || COLLECT_DIRS[0];
 
   const safeAbilities = Array.isArray(card.abilities) && card.abilities.length === 7 ? card.abilities : [0, 0, 0, 0, 0, 0, 0];
   const safeStyles = Array.isArray(card.styles) && card.styles.length === 5 ? card.styles : [0, 0, 0, 0, 0];
@@ -272,7 +282,7 @@ function ClimberCard({ card, index, totalCards, isLaunched, isRevealed, isCrumbl
 
   return (
     <div
-      className={["cr-card-wrap", isLaunched ? "fly" : "", isRevealed ? "flipped" : "", isCrumbling ? "crumble" : ""].join(" ")}
+      className={["cr-card-wrap", isLaunched ? "fly" : "", isRevealed ? "flipped" : "", isCrumbling ? (isOwned ? "crumble" : "collect") : ""].join(" ")}
       style={{
         "--tx": `${pos.x}vw`,
         "--ty": `${pos.y}vh`,
@@ -284,6 +294,9 @@ function ClimberCard({ card, index, totalCards, isLaunched, isRevealed, isCrumbl
         "--cy": cd.ty,
         "--cr": cd.rot,
         "--cd": `${index * 0.06}s`,
+        "--ctx": collect.tx,
+        "--cty": collect.ty,
+        "--cr2": collect.rot,
       }}
       onClick={isDone && !isCrumbling ? onClick : undefined}
     >
@@ -534,11 +547,22 @@ const CSS = `
   animation-delay: var(--cd) !important;
   pointer-events: none !important;
 }
+.cr-card-wrap.collect {
+  animation: cardCollect .85s cubic-bezier(.22,.61,.36,1) forwards !important;
+  animation-delay: var(--cd) !important;
+  pointer-events: none !important;
+}
 @keyframes cardCrumble {
   0%   { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(1); opacity: 1; }
-  30%  { transform: translate(var(--tx), var(--ty)) rotate(calc(var(--rot) + 15deg)) scale(1.05); opacity: 1; }
+  20%  { transform: translate(var(--tx), var(--ty)) rotate(calc(var(--rot) + 12deg)) scale(1.03); opacity: 1; }
+  60%  { transform: translate(calc(var(--tx) + var(--cx) * .7), calc(var(--ty) + var(--cy) * .7)) rotate(calc(var(--rot) + var(--cr) * .7)) scale(0.4); opacity: .6; }
   100% { transform: translate(calc(var(--tx) + var(--cx)), calc(var(--ty) + var(--cy)))
-                    rotate(calc(var(--rot) + var(--cr))) scale(0.05); opacity: 0; }
+                    rotate(calc(var(--rot) + var(--cr))) scale(0.06); opacity: 0; }
+}
+@keyframes cardCollect {
+  0%   { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(1); opacity: 1; }
+  55%  { transform: translate(calc(var(--tx) + var(--ctx)), calc(var(--ty) + var(--cty))) rotate(calc(var(--rot) + var(--cr2))) scale(0.95); opacity: 1; }
+  100% { transform: translate(0, 7vh) rotate(0deg) scale(0.92); opacity: 1; }
 }
 
 .cr-card-wrap { transition: none; }
