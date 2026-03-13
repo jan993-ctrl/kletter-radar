@@ -6,6 +6,7 @@ import Image from "next/image";
 import CombinedRadar from "@/components/charts/CombinedRadar";
 import VisualGimmick from "@/components/VisualGimmick";
 import ClimberPackOpening from "@/components/ClimberPackOpening";
+import { normalizeAbilities, normalizeStyles } from "@/lib/utils/profile-schema";
 
 const GRADES = [
   "1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", 
@@ -139,7 +140,7 @@ export default function Frontpage() {
     });
 
   const toPackAthlete = (climber) => {
-    const abilities = climber.abilities || [0, 0, 0, 0, 0];
+    const abilities = normalizeAbilities(climber.abilities, 0);
     const power = Math.round((abilities.reduce((a, b) => a + b, 0) / 120) * 100);
     const rarity = power >= 92 ? "legendary" : power >= 75 ? "rare" : "common";
     const gradeIndex = Math.max(0, Math.min(GRADES.length - 1, Math.round((power / 100) * (GRADES.length - 1))));
@@ -361,8 +362,8 @@ export default function Frontpage() {
 }
 
 function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
-            const safeAbilities = c.abilities || [0, 0, 0, 0, 0];
-            const safeStyles = c.styles || [0, 0, 0, 0, 0];
+            const safeAbilities = normalizeAbilities(c.abilities, 0);
+            const safeStyles = normalizeStyles(c.styles, 0);
             const sumAbilities = safeAbilities.reduce((a, b) => a + b, 0);
             const powerScore = Math.round((sumAbilities / 120) * 100);
             const mentalValue = safeAbilities[2];
