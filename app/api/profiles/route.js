@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient, getSupabaseAdmin } from "@/lib/supabase/server";
+import { createClient, getSupabaseAdmin, hasSupabaseAdminEnv } from "@/lib/supabase/server";
 import {
   hasExpectedArrayLengths,
   needsAbilityMigration,
@@ -11,6 +11,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    if (!hasSupabaseAdminEnv()) {
+      console.warn("Supabase-Admin-Umgebung fehlt. /api/profiles liefert [] als lokalen Fallback.");
+      return NextResponse.json([]);
+    }
+
     const { data, error } = await getSupabaseAdmin()
       .from("profiles")
       .select("*")

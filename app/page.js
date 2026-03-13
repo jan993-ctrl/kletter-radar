@@ -89,6 +89,14 @@ export default function Frontpage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+
+  useEffect(() => {
+    if (!user && viewMode !== "global") {
+      setViewMode("global");
+      setFlippedCards({});
+    }
+  }, [user, viewMode]);
+
   const toggleFlip = (id) => {
     setFlippedCards(prev => ({
       ...prev,
@@ -108,9 +116,9 @@ export default function Frontpage() {
 
   const profileLink = user?.email === ADMIN_EMAIL ? "/admin" : "/profile";
   const hasLocalContext = Boolean(userGymId);
-  const baseVisibleClimbers = viewMode === "global" || !hasLocalContext
-    ? climbers
-    : climbers.filter((climber) => climber.gym_id && climber.gym_id === userGymId);
+  const localVisibleClimbers = hasLocalContext
+    ? climbers.filter((climber) => climber.gym_id && climber.gym_id === userGymId)
+    : [];
 
   const rarityWeight = (power) => {
     if (power >= 92) return 0;
@@ -120,7 +128,7 @@ export default function Frontpage() {
 
   const isRegisteredUserCard = (climber) => Boolean(climber?.user_id);
 
-  const sortedInventoryClimbers = baseVisibleClimbers
+  const sortedInventoryClimbers = climbers
     .filter((climber) => inventoryIds.includes(climber.user_id || climber.id))
     .sort((a, b) => {
       const powerA = Math.round(((a.abilities || []).reduce((acc, val) => acc + val, 0) / 120) * 100);
@@ -154,12 +162,9 @@ export default function Frontpage() {
     };
   };
 
-  const packPoolBase = viewMode === "global"
-    ? climbers
-    : climbers.filter((climber) => climber.gym_id && climber.gym_id === userGymId);
-  const packPool = packPoolBase.filter(isRegisteredUserCard);
+  const packPool = climbers.filter(isRegisteredUserCard);
   const packAthletes = packPool.map(toPackAthlete);
-  const maxPackCards = viewMode === "global" ? 5 : Math.min(3, packAthletes.length);
+  const maxPackCards = Math.min(5, packAthletes.length);
 
   const drawPackCards = (pool, count) => {
     const weights = { legendary: 10, rare: 30, common: 60 };
@@ -216,6 +221,7 @@ export default function Frontpage() {
   };
 
   const switchViewMode = () => {
+    if (!user) return;
     setViewMode((prev) => (prev === "local" ? "global" : "local"));
     setFlippedCards({});
   };
@@ -233,11 +239,14 @@ export default function Frontpage() {
             style={{
               ...gimmickToggleBtn,
               transform: viewMode === "global" ? "scale(1.06)" : "scale(1)",
+              opacity: user ? 1 : 0.65,
+              cursor: user ? "pointer" : "not-allowed",
             }}
             onClick={switchViewMode}
             type="button"
-            aria-label={viewMode === "local" ? "Zu allen Karten wechseln" : "Zu lokalen Karten wechseln"}
-            title={viewMode === "local" ? "Alle Karten anzeigen" : "Lokale Karten anzeigen"}
+            disabled={!user}
+            aria-label={user ? (viewMode === "local" ? "Zu allen Karten wechseln" : "Zu lokalen Karten wechseln") : "Lokale Ansicht nur für eingeloggte Nutzer"}
+            title={user ? (viewMode === "local" ? "Alle Karten anzeigen" : "Lokale Karten anzeigen") : "Lokale Ansicht nur mit Login verfügbar"}
           >
             <div
               style={{
@@ -256,27 +265,29 @@ export default function Frontpage() {
           <p style={taglineStyle}>Deine Boulder-Community auf einen Blick</p>
         </div>
         <div>
-          <button
-            type="button"
-            onClick={() => {
-              if (packStock > 0 && packAthletes.length > 0) {
-                const drawn = drawPackCards(packAthletes, maxPackCards);
-                setCurrentPackCards(drawn);
-                setPendingPackCards([]);
-                setIsPackOpen(true);
-              }
-            }}
-            style={{
-              ...navBtnStyle,
-              marginRight: "10px",
-              opacity: packStock <= 0 ? 0.5 : 1,
-              cursor: packStock <= 0 ? "not-allowed" : "pointer",
-            }}
-            title={packStock <= 0 ? "Keine Packs mehr verfügbar" : "Kartenpack öffnen"}
-            aria-label="Kartenpack öffnen"
-          >
-            🃏 Karten
-          </button>
+          {viewMode === "global" && (
+            <button
+              type="button"
+              onClick={() => {
+                if (packStock > 0 && packAthletes.length > 0) {
+                  const drawn = drawPackCards(packAthletes, maxPackCards);
+                  setCurrentPackCards(drawn);
+                  setPendingPackCards([]);
+                  setIsPackOpen(true);
+                }
+              }}
+              style={{
+                ...navBtnStyle,
+                marginRight: "10px",
+                opacity: packStock <= 0 ? 0.5 : 1,
+                cursor: packStock <= 0 ? "not-allowed" : "pointer",
+              }}
+              title={packStock <= 0 ? "Keine Packs mehr verfügbar" : "Kartenpack öffnen"}
+              aria-label="Kartenpack öffnen"
+            >
+              🃏 Karten
+            </button>
+          )}
           <Link href={user ? profileLink : "/login"}>
             <button style={navBtnStyle}>
               {user ? "Mein Profil" : "Login"}
@@ -299,8 +310,14 @@ export default function Frontpage() {
             >
               {viewMode === "global" ? "🌍" : "🏠"}
             </span>
-            <span style={inventoryMetaStyle}>Inventar: {sortedInventoryClimbers.length} Karten · Fragmente: {fragments.toFixed(2)}</span>
-            {<span style={inventoryHintStyle}>Packs verfügbar: {packStock} / 99</span>}
+            {viewMode === "global" ? (
+              <>
+                <span style={inventoryMetaStyle}>Inventar: {sortedInventoryClimbers.length} Karten · Fragmente: {fragments.toFixed(2)}</span>
+                <span style={inventoryHintStyle}>Packs verfügbar: {packStock} / 99</span>
+              </>
+            ) : (
+              <span style={inventoryMetaStyle}>Lokale Karten aus deiner Heimathalle</span>
+            )}
           </div>
 
           <div style={gridSwitchViewportStyle}>
@@ -311,13 +328,8 @@ export default function Frontpage() {
               <section style={gridPanelStyle}>
                 <div style={gridStyle}>
                   {hasLocalContext
-                    ? climbers
-                      .filter((climber) => climber.gym_id && climber.gym_id === userGymId)
-                      .filter((climber) => inventoryIds.includes(climber.user_id || climber.id))
-                      .map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))
-                    : (
-                      <div style={emptyStateStyle}>Lege zuerst eine Heimathalle in deinem Profil fest, um lokale Karten zu sehen.</div>
-                    )}
+                    ? localVisibleClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))
+                    : <div style={emptyStateStyle}>Lege zuerst eine Heimathalle in deinem Profil fest, um lokale Karten zu sehen.</div>}
                 </div>
               </section>
 
@@ -325,13 +337,12 @@ export default function Frontpage() {
                 <div style={gridStyle}>
                   {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
                 </div>
+                {sortedInventoryClimbers.length === 0 && (
+                  <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
+                )}
               </section>
             </div>
           </div>
-
-          {sortedInventoryClimbers.length === 0 && (
-            <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
-          )}
         </>
       )}
       {isPackOpen && (
