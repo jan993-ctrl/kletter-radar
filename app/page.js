@@ -129,7 +129,7 @@ export default function Frontpage() {
     return 2;
   };
 
-  const isRegisteredUserCard = (climber) => Boolean(climber?.user_id);
+  const isRegisteredUserCard = (climber) => Boolean(climber?.user_id || climber?.id);
 
   const sortedInventoryClimbers = useMemo(() => {
     return climbers
@@ -144,7 +144,8 @@ export default function Frontpage() {
   }, [climbers, inventoryIds]);
 
   const toPackAthlete = (climber) => {
-    const abilities = climber.abilities || [0, 0, 0, 0, 0];
+    const abilities = normalizeAbilities(climber.abilities, 0);
+    const styles = normalizeStyles(climber.styles, 0);
     const power = Math.round((abilities.reduce((a, b) => a + b, 0) / 120) * 100);
     const rarity = power >= 92 ? "legendary" : power >= 75 ? "rare" : "common";
     const gradeIndex = Math.max(0, Math.min(GRADES.length - 1, Math.round((power / 100) * (GRADES.length - 1))));
@@ -152,18 +153,11 @@ export default function Frontpage() {
     return {
       id: climber.user_id || climber.id,
       name: climber.name || "Kletter-Gast",
-      country: climber.gym_name || "GYM",
-      flag: "🧗",
-      grade: GRADES[gradeIndex],
-      discipline: "Boulder",
-      stats: {
-        power,
-        tech: Math.max(35, Math.round(((abilities[0] + abilities[1]) / 24) * 100)),
-        endurance: Math.max(35, Math.round(((abilities[3] + abilities[4]) / 24) * 100)),
-      },
+      abilities,
+      styles,
+      best_grade: GRADES[gradeIndex],
       rarity,
-      emoji: rarity === "legendary" ? "🔥" : rarity === "rare" ? "⚡" : "🪨",
-      quote: climber.notes || "Keep climbing.",
+      notes: climber.notes || "Keep climbing.",
       image_url: climber.image_url,
     };
   };
@@ -307,11 +301,17 @@ export default function Frontpage() {
               style={{
                 ...navBtnStyle,
                 marginRight: "10px",
-                opacity: packStock <= 0 ? 0.5 : 1,
-                cursor: packStock <= 0 ? "not-allowed" : "pointer",
+                opacity: packStock <= 0 || packAthletes.length === 0 ? 0.5 : 1,
+                cursor: packStock <= 0 || packAthletes.length === 0 ? "not-allowed" : "pointer",
               }}
-              title={user ? undefined : (packStock <= 0 ? "Keine Packs mehr verfügbar" : "Kartenpack öffnen")}
-              aria-label={user ? undefined : "Kartenpack öffnen"}
+              title={
+                packStock <= 0
+                  ? "Keine Packs mehr verfügbar"
+                  : packAthletes.length === 0
+                    ? "Keine Kletterkarten verfügbar"
+                    : "Kartenpack öffnen"
+              }
+              aria-label="Kartenpack öffnen"
             >
               🃏 Karten
             </button>
