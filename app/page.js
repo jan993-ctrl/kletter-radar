@@ -406,6 +406,8 @@ function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
   const dbId = c.user_id || c.id || "climber";
   const uniqueCardKey = `${dbId}-${index}`;
   const isFlipped = !!flippedCards[uniqueCardKey];
+  const tierLabel = powerScore >= 92 ? "Legend" : powerScore >= 75 ? "Elite" : "Rookie";
+  const gymName = c.gym_name || "Unbekannte Halle";
 
   return (
     <div 
@@ -421,7 +423,9 @@ function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
       >
         {/* VORDERSEITE */}
         <div style={cardFrontStyle}>
+          <div style={cardGlowOrbStyle} />
           <div style={rankBadgeStyle}>#{index + 1}</div>
+          <div style={tierBadgeStyle}>{tierLabel}</div>
           
           <div style={imgContainerStyle}>
             <Image
@@ -435,6 +439,7 @@ function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
           </div>
           
           <div style={{ padding: "18px" }}>
+            <div style={gymTagStyle}>{gymName}</div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", gap: "12px" }}>
               <h2 style={nameStyle}>{c.name || "Kletter-Gast"}</h2>
               <div style={powerBadge}>
@@ -467,7 +472,7 @@ function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
         {/* RÜCKSEITE */}
         <div style={cardBackStyle}>
           <div style={{ padding: "20px", height: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <h3 style={{ borderBottom: "1px solid #3f3f46", width: "100%", paddingBottom: "10px", marginTop: 0, textAlign: "left", color: "#f4f4f5" }}>
+            <h3 style={{ borderBottom: "1px solid rgba(148,163,184,0.3)", width: "100%", paddingBottom: "10px", marginTop: 0, textAlign: "left", color: "#f4f4f5" }}>
               Statistik & Notizen
             </h3>
             
@@ -562,7 +567,7 @@ const emptyStateStyle = { gridColumn: "1/-1", textAlign: "center", padding: "50p
 
 const cardContainerStyle = { perspective: "1000px", height: "550px", cursor: "pointer" };
 
-const cardInnerStyle = { position: "relative", width: "100%", height: "100%", transition: "transform 0.6s", transformStyle: "preserve-3d" };
+const cardInnerStyle = { position: "relative", width: "100%", height: "100%", transition: "transform 0.72s cubic-bezier(0.22, 1, 0.36, 1)", transformStyle: "preserve-3d" };
 
 const baseFaceStyle = {
   position: "absolute",
@@ -570,9 +575,10 @@ const baseFaceStyle = {
   height: "100%",
   backfaceVisibility: "hidden",
   borderRadius: "26px",
-  boxShadow: "0 20px 45px rgba(0,0,0,0.5)",
+  border: "1px solid rgba(255,255,255,0.14)",
+  boxShadow: "0 24px 55px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.08)",
   overflow: "hidden",
-  background: "linear-gradient(165deg, #0b1120 0%, #18233a 46%, #0f172a 100%)"
+  background: "linear-gradient(158deg, #0f172a 0%, #1e1b4b 48%, #020617 100%)"
 };
 
 const cardFrontStyle = { ...baseFaceStyle };
@@ -580,20 +586,26 @@ const cardFrontStyle = { ...baseFaceStyle };
 const cardBackStyle = {
   ...baseFaceStyle,
   transform: "rotateY(180deg)",
-  background: "linear-gradient(165deg, #020617 0%, #172554 52%, #020617 100%)",
+  background: "radial-gradient(circle at 18% 12%, rgba(56,189,248,0.2), transparent 35%), linear-gradient(165deg, #020617 0%, #172554 52%, #020617 100%)",
 };
 
-const rankBadgeStyle = { position: "absolute", top: "15px", left: "15px", backgroundColor: "rgba(0,0,0,0.5)", color: "#fff", padding: "6px 12px", borderRadius: "12px", fontSize: "0.9rem", fontWeight: "bold", zIndex: 10 };
+const rankBadgeStyle = { position: "absolute", top: "15px", left: "15px", backgroundColor: "rgba(15,23,42,0.72)", color: "#fff", padding: "7px 13px", borderRadius: "999px", fontSize: "0.78rem", letterSpacing: "0.4px", fontWeight: "800", zIndex: 10, border: "1px solid rgba(255,255,255,0.2)", backdropFilter: "blur(4px)" };
+
+const tierBadgeStyle = { position: "absolute", top: "15px", right: "15px", padding: "7px 13px", borderRadius: "999px", fontSize: "0.72rem", fontWeight: "800", textTransform: "uppercase", color: "#fde68a", letterSpacing: "0.8px", zIndex: 10, border: "1px solid rgba(253,230,138,0.45)", background: "rgba(120,53,15,0.45)", backdropFilter: "blur(5px)" };
+
+const cardGlowOrbStyle = { position: "absolute", width: "230px", height: "230px", borderRadius: "999px", top: "-70px", right: "-70px", background: "radial-gradient(circle, rgba(129,140,248,0.4) 0%, rgba(129,140,248,0) 72%)", pointerEvents: "none", zIndex: 1 };
 
 const imgContainerStyle = { position: "relative", height: "210px", width: "100%", backgroundColor: "#000" };
 
-const imgStyle = { width: "100%", height: "100%", objectFit: "cover" };
+const imgStyle = { width: "100%", height: "100%", objectFit: "cover", filter: "saturate(1.1) contrast(1.06)" };
+
+const gymTagStyle = { display: "inline-flex", marginBottom: "12px", padding: "6px 11px", borderRadius: "999px", border: "1px solid rgba(148,163,184,0.3)", background: "rgba(15,23,42,0.55)", color: "#bfdbfe", fontSize: "0.68rem", fontWeight: "700", letterSpacing: "0.5px", textTransform: "uppercase" };
 
 const nameStyle = { margin: "0", fontSize: "1.35rem", color: "#fff", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
 
-const powerBadge = { display: "flex", flexDirection: "column", alignItems: "center", background: "rgba(255,255,255,0.05)", color: "#fff", padding: "8px", borderRadius: "16px", minWidth: "60px" };
+const powerBadge = { display: "flex", flexDirection: "column", alignItems: "center", background: "linear-gradient(145deg, rgba(59,130,246,0.24), rgba(30,41,59,0.7))", border: "1px solid rgba(125,211,252,0.35)", color: "#fff", padding: "8px", borderRadius: "16px", minWidth: "60px" };
 
-const mentalCenterBox = { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.03)", padding: "12px", borderRadius: "16px", marginBottom: "20px" };
+const mentalCenterBox = { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(15,23,42,0.58)", border: "1px solid rgba(148,163,184,0.18)", padding: "12px", borderRadius: "16px", marginBottom: "20px" };
 
 const mentalLabel = { fontSize: "0.7rem", fontWeight: "bold", color: "#666", letterSpacing: "1.5px", marginBottom: "4px" };
 
@@ -603,11 +615,11 @@ const stylesGrid = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px
 
 const styleItem = { display: "flex", flexDirection: "column" };
 
-const styleLabelText = { fontSize: "0.65rem", color: "#666", textTransform: "uppercase", fontWeight: "bold" };
+const styleLabelText = { fontSize: "0.65rem", color: "#94a3b8", textTransform: "uppercase", fontWeight: "bold" };
 
 const styleValueText = { fontSize: "1.2rem", fontWeight: "900" };
 
-const chartWrapperStyle = { margin: "10px 0", padding: "10px", backgroundColor: "rgba(0, 0, 0, 0.2)", borderRadius: "15px" };
+const chartWrapperStyle = { margin: "10px 0", padding: "10px", backgroundColor: "rgba(15,23,42,0.65)", border: "1px solid rgba(148,163,184,0.2)", borderRadius: "15px" };
 
 const notesAreaStyle = { 
   marginTop: "10px", 
@@ -617,7 +629,8 @@ const notesAreaStyle = {
   textAlign: "left", 
   width: "100%",
   padding: "10px",
-  backgroundColor: "rgba(255,255,255,0.02)",
+  backgroundColor: "rgba(15,23,42,0.55)",
+  border: "1px solid rgba(148,163,184,0.18)",
   borderRadius: "12px",
   maxHeight: "120px",
   overflowY: "auto"
