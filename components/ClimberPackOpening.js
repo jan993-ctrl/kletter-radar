@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useRef, useState, useCallback } from "react";
 
 const GRADES = [
@@ -157,9 +159,9 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
   const allRevealed = activeCards.length > 0 && revealed.length === activeCards.length;
   const remaining = activeCards.length - revealed.length;
 
-  const revealCard = (i) => {
+  const toggleReveal = (i) => {
     if (phase !== "done") return;
-    setRevealed((prev) => (prev.includes(i) ? prev : [...prev, i]));
+    setRevealed((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]));
   };
 
   const handleRootClick = () => {
@@ -187,10 +189,10 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
           isDone={phase === "done"}
           onClick={(e) => {
             e.stopPropagation();
-            revealCard(i);
+            toggleReveal(i);
           }}
-        />
-      ))}
+        />
+      ))}
 
       <div className={`cr-pack ${phase}`} role="button" aria-label="Pack öffnen">
         <div className="cr-pack-top" />
@@ -207,8 +209,8 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
             </span>
             <MountainClimberIcon />
             <span className="cr-pack-sub">
-              {cards.length} KLETTERER INSIDE
-            </span>
+              {cards.length} KLETTERER{cards.length !== 1 ? "" : ""} INSIDE
+	           </span>
           </div>
         </div>
       </div>
