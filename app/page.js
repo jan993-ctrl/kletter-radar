@@ -175,18 +175,29 @@ export default function Frontpage() {
   const maxPackCards = Math.min(5, packAthletes.length);
 
   const drawPackCards = (pool, count) => {
-    const weights = { legendary: 10, rare: 30, common: 60 };
     const copy = [...pool];
     const result = [];
 
+    const getPower = (card) => Number(card?.stats?.power) || 0;
+    const getDrawWeight = (card) => Math.max(1, 101 - getPower(card));
+
     while (result.length < count && copy.length > 0) {
-      const weighted = copy.flatMap((card) => Array(weights[card.rarity] || 1).fill(card));
-      const pick = weighted[Math.floor(Math.random() * weighted.length)];
-      if (!result.find(r => r.id === pick.id)) {
-        result.push(pick);
-        copy.splice(copy.findIndex((c) => c.id === pick.id), 1);
+      const totalWeight = copy.reduce((sum, card) => sum + getDrawWeight(card), 0);
+      let threshold = Math.random() * totalWeight;
+      let selectedIndex = copy.length - 1;
+
+      for (let i = 0; i < copy.length; i += 1) {
+        threshold -= getDrawWeight(copy[i]);
+        if (threshold <= 0) {
+          selectedIndex = i;
+          break;
+        }
       }
+
+      const [pick] = copy.splice(selectedIndex, 1);
+      result.push(pick);
     }
+
     return result;
   };
 
