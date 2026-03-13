@@ -244,28 +244,47 @@ export default function Frontpage() {
         opacity: isHeaderCollapsed ? 0 : 1,
       }}>
         <div style={headerAnimationStyle}>
-          <button
-            style={{
-              ...gimmickToggleBtn,
-              transform: viewMode === "global" ? "scale(1.06)" : "scale(1)",
-              opacity: user ? 1 : 0.65,
-              cursor: user ? "pointer" : "not-allowed",
-            }}
-            onClick={switchViewMode}
-            type="button"
-            disabled={!user}
-            aria-label={user ? (viewMode === "local" ? "Zu allen Karten wechseln" : "Zu lokalen Karten wechseln") : "Lokale Ansicht nur für eingeloggte Nutzer"}
-            title={user ? (viewMode === "local" ? "Alle Karten anzeigen" : "Lokale Karten anzeigen") : "Lokale Ansicht nur mit Login verfügbar"}
-          >
+          {user ? (
+            <button
+              style={{
+                ...gimmickToggleBtn,
+                transform: viewMode === "global" ? "scale(1.06)" : "scale(1)",
+              }}
+              onClick={switchViewMode}
+              type="button"
+              aria-label={viewMode === "local" ? "Zu allen Karten wechseln" : "Zu lokalen Karten wechseln"}
+              title={viewMode === "local" ? "Alle Karten anzeigen" : "Lokale Karten anzeigen"}
+            >
+              <div
+                style={{
+                  ...gimmickInner,
+                  transform: viewMode === "global" ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              >
+                <VisualGimmick size={100} showLabel={false} />
+              </div>
+            </button>
+          ) : (
             <div
               style={{
-                ...gimmickInner,
-                transform: viewMode === "global" ? "rotate(180deg)" : "rotate(0deg)",
+                ...gimmickToggleBtn,
+                transform: viewMode === "global" ? "scale(1.06)" : "scale(1)",
+                opacity: 0.65,
+                cursor: "default",
               }}
+              aria-label="Lokale Ansicht nur für eingeloggte Nutzer"
+              title="Lokale Ansicht nur mit Login verfügbar"
             >
-              <VisualGimmick size={100} showLabel={false} />
+              <div
+                style={{
+                  ...gimmickInner,
+                  transform: viewMode === "global" ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              >
+                <VisualGimmick size={100} showLabel={false} />
+              </div>
             </div>
-          </button>
+          )}
         </div>
         <div style={titleBlockStyle}>
           <h1 style={logoStyle}>
