@@ -297,29 +297,17 @@ export default function Frontpage() {
         </div>
         <div>
           {viewMode === "global" && (
-            <button
-              type="button"
-              onClick={() => {
-                if (packStock > 0 && packAthletes.length > 0) {
-                  const ownedIds = new Set(inventoryIds);
-                  const drawn = drawPackCards(packAthletes, maxPackCards).map((card) => ({
-                    ...card,
-                    isOwned: ownedIds.has(card.id),
-                  }));
-                  setCurrentPackCards(drawn);
-                  setPendingPackCards([]);
-                  setIsPackOpen(true);
-                }
-              }}
-              style={{
-                ...chestBtnStyle,
-                marginRight: "10px",
-                opacity: packStock <= 0 ? 0.5 : 1,
-                cursor: packStock <= 0 ? "not-allowed" : "pointer",
-              }}
-            >
-              🧰 Truhe
-            </button>
+            <Link href="/inventory" style={{ textDecoration: "none" }}>
+              <button
+                type="button"
+                style={{
+                  ...chestBtnStyle,
+                  marginRight: "10px",
+                }}
+              >
+                🧭 Tour
+              </button>
+            </Link>
           )}
           <Link href={user ? profileLink : "/login"}>
             <button style={navBtnStyle}>
