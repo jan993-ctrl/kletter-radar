@@ -411,7 +411,6 @@ function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
   const uniqueCardKey = `${dbId}-${index}`;
   const isFlipped = !!flippedCards[uniqueCardKey];
   const tierLabel = powerScore >= 92 ? "Legend" : powerScore >= 75 ? "Elite" : "Rookie";
-  const gymName = c.gym_name || "Unbekannte Halle";
 
   return (
     <div 
@@ -443,7 +442,6 @@ function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
           </div>
           
           <div style={{ padding: "18px" }}>
-            <div style={gymTagStyle}>{gymName}</div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", gap: "12px" }}>
               <h2 style={nameStyle}>{c.name || "Kletter-Gast"}</h2>
               <div style={powerBadge}>
@@ -603,7 +601,6 @@ const imgContainerStyle = { position: "relative", height: "210px", width: "100%"
 
 const imgStyle = { width: "100%", height: "100%", objectFit: "cover", filter: "saturate(1.1) contrast(1.06)" };
 
-const gymTagStyle = { display: "inline-flex", marginBottom: "12px", padding: "6px 11px", borderRadius: "999px", border: "1px solid rgba(148,163,184,0.3)", background: "rgba(15,23,42,0.55)", color: "#bfdbfe", fontSize: "0.68rem", fontWeight: "700", letterSpacing: "0.5px", textTransform: "uppercase" };
 
 const nameStyle = { margin: "0", fontSize: "1.35rem", color: "#fff", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
 
