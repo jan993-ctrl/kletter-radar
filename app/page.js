@@ -259,7 +259,7 @@ export default function Frontpage() {
             <div
               style={{
                 ...gimmickToggleBtn,
-                opacity: 0.65,
+                opacity: 0.9,
                 cursor: "default",
               }}
               aria-hidden="true"
@@ -529,7 +529,7 @@ const headerStyle = {
   transition: "transform 320ms ease, opacity 260ms ease",
 };
 
-const headerAnimationStyle = { position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", pointerEvents: "auto", opacity: 0.42 };
+const headerAnimationStyle = { position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", pointerEvents: "auto", opacity: 0.68 };
 
 const gimmickToggleBtn = { border: "1px solid rgba(255,255,255,0.1)", borderRadius: "999px", padding: "4px", background: "rgba(15,23,42,0.4)", cursor: "pointer", transition: "transform 280ms ease" };
 
