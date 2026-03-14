@@ -36,6 +36,23 @@ const RARITY_META = {
   common: { label: "COMMON", color: "#9E9E9E", shadow: "0 4px 16px rgba(0,0,0,.5)", badge: "#212121", bgFrom: "#1C1C1C" },
 };
 
+const DEFAULT_PACK_THEME = {
+  "--pt-top-from": "#2D2208",
+  "--pt-top-to": "#3D3010",
+  "--pt-top-border": "#BF8C00",
+  "--pt-shine": "rgba(255,220,100,.08)",
+  "--pt-slice": "#FFD166",
+  "--pt-slice-glow": "rgba(255,209,102,.5)",
+  "--pt-body-from": "#2A1F06",
+  "--pt-body-mid": "#1C1505",
+  "--pt-body-to": "#0E1020",
+  "--pt-body-border": "rgba(191,140,0,.35)",
+  "--pt-eyebrow": "rgba(191,140,0,.8)",
+  "--pt-title": "#FFD166",
+  "--pt-title-glow": "rgba(255,209,102,.4)",
+  "--pt-icon": "rgba(255,209,102,.7)",
+};
+
 const fallbackAvatar = (name) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "K")}&background=2A1F06&color=FFD166&size=300`;
 
@@ -73,7 +90,7 @@ const normalizeCard = (card) => {
   };
 };
 
-export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
+export default function ClimberPackOpening({ cards = [], packTheme = DEFAULT_PACK_THEME, packLabel = "PRO SERIES", onDone, onDismiss }) {
   const [phase, setPhase] = useState("idle");
   const [activeCards, setActive] = useState([]);
   const [launched, setLaunched] = useState([]);
@@ -219,14 +236,14 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
 
       <ShardChest active={bagVisible} />
 
-      <div className={`cr-pack ${phase === "exit" ? "crumble" : phase}`} role="button" aria-label="Pack öffnen">
+      <div className={`cr-pack ${phase === "exit" ? "crumble" : phase}`} style={packTheme} role="button" aria-label="Pack öffnen">
         <div className="cr-pack-top" />
         <div className={`cr-slice ${["slice", "open", "cards", "done", "exit"].includes(phase) ? "vis" : ""}`} />
         <div className="cr-pack-body">
           <div className="cr-pack-shine" />
           <div className="cr-pack-noise" />
           <div className="cr-pack-content">
-            <span className="cr-pack-eyebrow">SEASON 1 · PRO SERIES</span>
+            <span className="cr-pack-eyebrow">SEASON 1 · {packLabel}</span>
             <span className="cr-pack-title">CRUX<br />CARDS</span>
             <MountainClimberIcon />
             <span className="cr-pack-sub">{cards.length} KLETTERER INSIDE</span>

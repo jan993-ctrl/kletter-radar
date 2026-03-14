@@ -15,6 +15,40 @@ const GRADES = [
 
 const styleLabels = ["Crimper", "Sloper", "Slab", "Dyno", "Pocket"];
 
+const PACK_TYPES = [
+  { id: "pro", label: "PRO SERIES", description: "Mindestens 1 Legendary", color: "#FFB300", price: 3, legendary: 1, rare: 2 },
+  { id: "elite", label: "ELITE PACK", description: "Mindestens 2 Rare", color: "#42A5F5", price: 2, legendary: 0, rare: 2 },
+  { id: "starter", label: "STARTER PACK", description: "Perfekt zum Sammeln", color: "#9E9E9E", price: 1, legendary: 0, rare: 1 },
+];
+
+const PACK_THEMES = {
+  pro: {
+    "--pt-top-from": "#2D2208", "--pt-top-to": "#3D3010",
+    "--pt-top-border": "#BF8C00", "--pt-shine": "rgba(255,220,100,.08)",
+    "--pt-slice": "#FFD166", "--pt-slice-glow": "rgba(255,209,102,.5)",
+    "--pt-body-from": "#2A1F06", "--pt-body-mid": "#1C1505", "--pt-body-to": "#0E1020",
+    "--pt-body-border": "rgba(191,140,0,.35)", "--pt-eyebrow": "rgba(191,140,0,.8)",
+    "--pt-title": "#FFD166", "--pt-title-glow": "rgba(255,209,102,.4)", "--pt-icon": "rgba(255,209,102,.7)",
+  },
+  elite: {
+    "--pt-top-from": "#051628", "--pt-top-to": "#0A2440",
+    "--pt-top-border": "#1565C0", "--pt-shine": "rgba(66,165,245,.07)",
+    "--pt-slice": "#42A5F5", "--pt-slice-glow": "rgba(66,165,245,.45)",
+    "--pt-body-from": "#051830", "--pt-body-mid": "#061020", "--pt-body-to": "#060810",
+    "--pt-body-border": "rgba(21,101,192,.4)", "--pt-eyebrow": "rgba(66,165,245,.75)",
+    "--pt-title": "#90CAF9", "--pt-title-glow": "rgba(66,165,245,.35)", "--pt-icon": "rgba(66,165,245,.65)",
+  },
+  starter: {
+    "--pt-top-from": "#1A1A1A", "--pt-top-to": "#252525",
+    "--pt-top-border": "#555", "--pt-shine": "rgba(200,200,200,.05)",
+    "--pt-slice": "#BDBDBD", "--pt-slice-glow": "rgba(180,180,180,.3)",
+    "--pt-body-from": "#1C1C1C", "--pt-body-mid": "#141414", "--pt-body-to": "#0D0D12",
+    "--pt-body-border": "rgba(100,100,100,.3)", "--pt-eyebrow": "rgba(180,180,180,.65)",
+    "--pt-title": "#E0E0E0", "--pt-title-glow": "rgba(200,200,200,.2)", "--pt-icon": "rgba(180,180,180,.55)",
+  },
+};
+
+
 export default function Frontpage() {
   const [climbers, setClimbers] = useState([]);
   const [user, setUser] = useState(null);
@@ -29,6 +63,8 @@ export default function Frontpage() {
   const [pendingPackCards, setPendingPackCards] = useState([]);
   const [currentPackCards, setCurrentPackCards] = useState([]);
   const [packStock, setPackStock] = useState(99);
+  const [activeSection, setActiveSection] = useState("community");
+  const [selectedPack, setSelectedPack] = useState(null);
 
   const ADMIN_EMAIL = "janstoll1993@googlemail.com";
 
@@ -51,9 +87,8 @@ export default function Frontpage() {
         const cachedFragments = Number(localStorage.getItem(fragmentKey) || 0);
         const cachedPackStock = Number(localStorage.getItem(packStockKey) || 99);
 
-        // Test-reset: bestehendes Inventar bewusst leeren, damit Pack-Flow erneut geprüft werden kann.
-        localStorage.setItem(inventoryKey, JSON.stringify([]));
-        setInventoryIds([]);
+        const cachedInventory = JSON.parse(localStorage.getItem(inventoryKey) || "[]");
+        setInventoryIds(Array.isArray(cachedInventory) ? cachedInventory : []);
         setFragments(Number.isFinite(cachedFragments) ? cachedFragments : 0);
         setPackStock(Number.isFinite(cachedPackStock) ? cachedPackStock : 99);
 
@@ -173,16 +208,13 @@ export default function Frontpage() {
     return climbers.filter(isRegisteredUserCard).map(toPackAthlete);
   }, [climbers]);
 
-  const maxPackCards = Math.min(5, packAthletes.length);
-
-  const drawPackCards = (pool, count) => {
+  const pickWeightedCards = (pool, count) => {
     const copy = [...pool];
-    const result = [];
-
+    const picks = [];
     const getPower = (card) => Number(card?.stats?.power) || 0;
     const getDrawWeight = (card) => Math.max(1, 101 - getPower(card));
 
-    while (result.length < count && copy.length > 0) {
+    while (picks.length < count && copy.length > 0) {
       const totalWeight = copy.reduce((sum, card) => sum + getDrawWeight(card), 0);
       let threshold = Math.random() * totalWeight;
       let selectedIndex = copy.length - 1;
@@ -195,11 +227,45 @@ export default function Frontpage() {
         }
       }
 
-      const [pick] = copy.splice(selectedIndex, 1);
-      result.push(pick);
+      picks.push(copy.splice(selectedIndex, 1)[0]);
     }
 
-    return result;
+    return picks;
+  };
+
+  const drawPackByType = (pool, packType) => {
+    const uniques = new Map(pool.map((card) => [card.id, card]));
+    const source = Array.from(uniques.values());
+    const legendaryPool = source.filter((card) => card.rarity === "legendary");
+    const rarePool = source.filter((card) => card.rarity === "rare");
+    const commonPool = source.filter((card) => card.rarity === "common");
+
+    const picks = [];
+    picks.push(...pickWeightedCards(legendaryPool, packType.legendary));
+    picks.push(...pickWeightedCards(rarePool, packType.rare));
+
+    const remainingSlots = Math.max(0, 5 - picks.length);
+    const remainingPool = source.filter((card) => !picks.some((picked) => picked.id === card.id));
+    const fallbackPool = remainingPool.length > 0 ? remainingPool : [...commonPool, ...rarePool, ...legendaryPool];
+    picks.push(...pickWeightedCards(fallbackPool, remainingSlots));
+
+    return picks.slice(0, 5);
+  };
+
+  const openSelectedPack = (packType) => {
+    if (packAthletes.length === 0 || packStock < packType.price) return;
+    const ownedIds = new Set(inventoryIds);
+    const drawn = drawPackByType(packAthletes, packType).map((card, index) => ({
+      ...card,
+      id: `${card.id}-${Date.now()}-${index}`,
+      originalId: card.id,
+      isOwned: ownedIds.has(card.id),
+    }));
+
+    setSelectedPack(packType);
+    setCurrentPackCards(drawn);
+    setPendingPackCards([]);
+    setIsPackOpen(true);
   };
 
   const onPackDone = (drawnCards) => {
@@ -216,10 +282,11 @@ export default function Frontpage() {
       let duplicateCount = 0;
 
       pendingPackCards.forEach((card) => {
-        if (existing.has(card.id)) {
+        const compareId = card.originalId || card.id;
+        if (existing.has(compareId)) {
           duplicateCount += 1;
         } else {
-          existing.add(card.id);
+          existing.add(compareId);
         }
       });
 
@@ -231,13 +298,15 @@ export default function Frontpage() {
       localStorage.setItem(inventoryKey, JSON.stringify(nextInventory));
       localStorage.setItem(fragmentKey, String(nextFragments));
 
-      const nextPackStock = Math.max(0, packStock - 1);
+      const cost = selectedPack?.price || 1;
+      const nextPackStock = Math.max(0, packStock - cost);
       setPackStock(nextPackStock);
       localStorage.setItem(packStockKey, String(nextPackStock));
     }
 
     setPendingPackCards([]);
     setCurrentPackCards([]);
+    setSelectedPack(null);
     setIsPackOpen(false);
   };
 
@@ -300,18 +369,7 @@ export default function Frontpage() {
           {viewMode === "global" && (
             <button
               type="button"
-              onClick={() => {
-                if (packStock > 0 && packAthletes.length > 0) {
-                  const ownedIds = new Set(inventoryIds);
-                  const drawn = drawPackCards(packAthletes, maxPackCards).map((card) => ({
-                    ...card,
-                    isOwned: ownedIds.has(card.id),
-                  }));
-                  setCurrentPackCards(drawn);
-                  setPendingPackCards([]);
-                  setIsPackOpen(true);
-                }
-              }}
+              onClick={() => setActiveSection("inventory")}
               style={{
                 ...navBtnStyle,
                 marginRight: "10px",
@@ -350,39 +408,81 @@ export default function Frontpage() {
             )}
           </div>
 
-          {isGuestUser ? (
-            <section style={gridPanelStyle}>
+          {activeSection === "community" ? (
+            isGuestUser ? (
+              <section style={gridPanelStyle}>
+                <div style={gridStyle}>
+                  {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
+                </div>
+                {sortedInventoryClimbers.length === 0 && (
+                  <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
+                )}
+              </section>
+            ) : (
+              <div style={gridSwitchViewportStyle}>
+                <div style={{
+                  ...gridSwitchTrackStyle,
+                  transform: viewMode === "global" ? "translateX(-50%)" : "translateX(0)",
+                }}>
+                  <section style={gridPanelStyle}>
+                    <div style={gridStyle}>
+                      {hasLocalContext
+                        ? localVisibleClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))
+                        : <div style={emptyStateStyle}>Lege zuerst eine Heimathalle in deinem Profil fest, um lokale Karten zu sehen.</div>}
+                    </div>
+                  </section>
+
+                  <section style={gridPanelStyle}>
+                    <div style={gridStyle}>
+                      {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
+                    </div>
+                    {sortedInventoryClimbers.length === 0 && (
+                      <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
+                    )}
+                  </section>
+                </div>
+              </div>
+            )
+          ) : (
+            <section style={inventorySectionStyle}>
+              <div style={inventoryHeaderStyle}>
+                <h2 style={inventoryTitleStyle}>Inventar & Packs</h2>
+                <button type="button" style={inventoryBackBtnStyle} onClick={() => setActiveSection("community")}>← Zurück</button>
+              </div>
+              <div style={packGridStyle}>
+                {PACK_TYPES.map((pack) => (
+                  <div key={pack.id} style={packCardStyle}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                      <span style={{ color: pack.color, fontWeight: 700, letterSpacing: "0.14em" }}>{pack.label}</span>
+                      <span style={{ color: pack.color }}>{pack.price} Tickets</span>
+                    </div>
+                    <p style={{ color: "#9ca3af", marginBottom: "10px" }}>{pack.description}</p>
+                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "14px" }}>
+                      {pack.legendary > 0 && <span style={packBadgeStyle("#FFB300")}>{pack.legendary}x LEGENDARY</span>}
+                      <span style={packBadgeStyle("#42A5F5")}>{pack.rare}x RARE</span>
+                      <span style={packBadgeStyle("#9E9E9E")}>{5 - pack.legendary - pack.rare}x COMMON</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openSelectedPack(pack)}
+                      disabled={packStock < pack.price || packAthletes.length === 0}
+                      style={{ ...openPackBtnStyle, background: pack.color, opacity: packStock < pack.price ? 0.5 : 1 }}
+                    >
+                      PACK ÖFFNEN
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div style={inventoryStatsStyle}>
+                <span>Karten gesammelt: <strong>{sortedInventoryClimbers.length}</strong></span>
+                <span>Legendary: <strong>{sortedInventoryClimbers.filter((c) => rarityWeight(Math.round(((c.abilities || []).reduce((a, b) => a + b, 0) / 120) * 100)) === 0).length}</strong></span>
+                <span>Fragmente: <strong>{fragments.toFixed(2)}</strong></span>
+                <span>Tickets: <strong>{packStock}</strong></span>
+              </div>
               <div style={gridStyle}>
                 {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
               </div>
-              {sortedInventoryClimbers.length === 0 && (
-                <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
-              )}
             </section>
-          ) : (
-            <div style={gridSwitchViewportStyle}>
-              <div style={{
-                ...gridSwitchTrackStyle,
-                transform: viewMode === "global" ? "translateX(-50%)" : "translateX(0)",
-              }}>
-                <section style={gridPanelStyle}>
-                  <div style={gridStyle}>
-                    {hasLocalContext
-                      ? localVisibleClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))
-                      : <div style={emptyStateStyle}>Lege zuerst eine Heimathalle in deinem Profil fest, um lokale Karten zu sehen.</div>}
-                  </div>
-                </section>
-
-                <section style={gridPanelStyle}>
-                  <div style={gridStyle}>
-                    {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
-                  </div>
-                  {sortedInventoryClimbers.length === 0 && (
-                    <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
-                  )}
-                </section>
-              </div>
-            </div>
           )}
         </>
       )}
@@ -391,6 +491,8 @@ export default function Frontpage() {
           <button type="button" style={packCloseBtnStyle} onClick={closePackOverlay}>✕</button>
           <ClimberPackOpening
             cards={currentPackCards}
+            packTheme={PACK_THEMES[selectedPack?.id] || PACK_THEMES.pro}
+            packLabel={selectedPack?.label || "PRO SERIES"}
             onDone={onPackDone}
             onDismiss={closePackOverlay}
           />
@@ -567,6 +669,25 @@ const gridPanelStyle = { padding: "12px" };
 const gridStyle = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "25px" };
 
 const emptyStateStyle = { gridColumn: "1/-1", textAlign: "center", padding: "50px", color: "#94a3b8", fontWeight: "600" };
+
+
+const inventorySectionStyle = { padding: "16px 12px 22px" };
+
+const inventoryHeaderStyle = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" };
+
+const inventoryTitleStyle = { margin: 0, color: "#f8fafc", fontSize: "1.4rem", fontWeight: 800 };
+
+const inventoryBackBtnStyle = { padding: "10px 16px", borderRadius: "999px", border: "1px solid rgba(148,163,184,0.35)", background: "rgba(15,23,42,0.72)", color: "#e2e8f0", cursor: "pointer", fontWeight: 700 };
+
+const packGridStyle = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: "14px", marginBottom: "18px" };
+
+const packCardStyle = { border: "1px solid rgba(255,255,255,0.12)", borderRadius: "14px", padding: "14px", background: "linear-gradient(145deg, #13131F, #0D0D16)", boxShadow: "0 12px 28px rgba(2,6,23,0.45)" };
+
+const packBadgeStyle = (color) => ({ fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", color, border: `1px solid ${color}55`, borderRadius: "6px", padding: "3px 7px", background: `${color}1A` });
+
+const openPackBtnStyle = { width: "100%", border: "none", borderRadius: "10px", padding: "10px 12px", color: "#0f172a", fontWeight: 800, letterSpacing: "0.08em", cursor: "pointer" };
+
+const inventoryStatsStyle = { display: "flex", flexWrap: "wrap", gap: "16px", marginBottom: "18px", padding: "12px", borderRadius: "12px", border: "1px solid rgba(148,163,184,0.22)", background: "rgba(15,23,42,0.52)", color: "#cbd5e1", fontSize: "0.86rem", fontWeight: 600 };
 
 const cardContainerStyle = { perspective: "1000px", height: "550px", cursor: "pointer" };
 
