@@ -48,11 +48,12 @@ export default function Frontpage() {
         const fragmentKey = `fragments:${currentUser?.id ?? "anon"}`;
         const packStockKey = `pack-stock:${currentUser?.id ?? "anon"}`;
 
-        const cachedInventory = JSON.parse(localStorage.getItem(inventoryKey) || "[]");
         const cachedFragments = Number(localStorage.getItem(fragmentKey) || 0);
         const cachedPackStock = Number(localStorage.getItem(packStockKey) || 99);
 
-        setInventoryIds(Array.isArray(cachedInventory) ? cachedInventory : []);
+        // Test-reset: bestehendes Inventar bewusst leeren, damit Pack-Flow erneut geprüft werden kann.
+        localStorage.setItem(inventoryKey, JSON.stringify([]));
+        setInventoryIds([]);
         setFragments(Number.isFinite(cachedFragments) ? cachedFragments : 0);
         setPackStock(Number.isFinite(cachedPackStock) ? cachedPackStock : 99);
 

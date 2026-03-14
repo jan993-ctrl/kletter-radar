@@ -217,7 +217,7 @@ export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
         />
       ))}
 
-      {bagVisible && <ShardChest />}
+      <ShardChest active={bagVisible} />
 
       <div className={`cr-pack ${phase === "exit" ? "crumble" : phase}`} role="button" aria-label="Pack öffnen">
         <div className="cr-pack-top" />
@@ -371,9 +371,9 @@ function MountainClimberIcon({ size = 44 }) {
   );
 }
 
-function ShardChest() {
+function ShardChest({ active = false }) {
   return (
-    <div className="cr-bag-wrap">
+    <div className={`cr-bag-wrap ${active ? "active" : "idle"}`}>
       <div style={{ perspective: "380px", perspectiveOrigin: "50% 120%", position: "relative", width: 104, height: 84 }}>
         <div className="cr-chest-lid" style={{ position: "absolute", top: 0, left: 0, width: 104, height: 34, transformOrigin: "50% 100%" }}>
           <svg width="104" height="34" viewBox="0 0 104 34" fill="none" style={{ display: "block", overflow: "visible" }}>
@@ -390,7 +390,7 @@ function ShardChest() {
           </svg>
         </div>
       </div>
-      <span className="cr-bag-label">DUPLIKATE</span>
+      <span className="cr-bag-label">{active ? "DUPLIKATE" : "TRUHE"}</span>
     </div>
   );
 }
@@ -434,10 +434,10 @@ const CSS = `
 .cr-shard{position:absolute;inset:0;clip-path:var(--shard-clip);animation:shardCollect 1.8s cubic-bezier(.4,0,.2,1) forwards;animation-delay:var(--shard-delay);z-index:30}
 @keyframes shardCollect { 0%{transform:translate(0,0) rotate(0deg) scale(1);opacity:1} 100%{transform:translate(var(--bag-tx), var(--bag-ty)) rotate(calc(var(--srot)*1.6)) scale(0.03);opacity:0} }
 .cr-shatter-flash{position:absolute;inset:0;border-radius:10px;z-index:29;background:white;animation:shatterFlash .3s ease-out forwards} @keyframes shatterFlash{0%{opacity:.8}100%{opacity:0}}
-.cr-bag-wrap{position:absolute;left:50%;bottom:14%;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;align-items:center;gap:6px;animation:bagAppear .5s both;pointer-events:none}
+.cr-bag-wrap{position:absolute;left:50%;bottom:14%;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;opacity:.85;filter:drop-shadow(0 6px 14px rgba(0,0,0,.6))}.cr-bag-wrap.active{animation:bagAppear .5s both;opacity:1;filter:drop-shadow(0 8px 22px rgba(0,0,0,.85)) drop-shadow(0 0 14px rgba(191,140,0,.35))}
 .cr-bag-label{font-family:'Oswald',sans-serif;font-size:9px;letter-spacing:.22em;color:rgba(191,140,0,.6);text-transform:uppercase}
-.cr-chest-lid{animation:chestLidAnim 2.6s .45s ease-in-out forwards}@keyframes chestLidAnim{0%{transform:rotateX(0)}18%{transform:rotateX(-108deg)}78%{transform:rotateX(-108deg)}100%{transform:rotateX(0)}}
-@keyframes bagAppear{0%{transform:translateX(-50%) scale(.3) translateY(20px);opacity:0}100%{transform:translateX(-50%) scale(1) translateY(0);opacity:1}}
+.cr-bag-wrap.active .cr-chest-lid{animation:chestLidAnim 2.6s .45s ease-in-out forwards}@keyframes chestLidAnim{0%{transform:rotateX(0)}18%{transform:rotateX(-108deg)}78%{transform:rotateX(-108deg)}100%{transform:rotateX(0)}}
+@keyframes bagAppear{0%{transform:translateX(-50%) scale(.86) translateY(8px);opacity:.6}100%{transform:translateX(-50%) scale(1) translateY(0);opacity:1}}
 .cr-cta{position:absolute;bottom:5%;left:50%;transform:translateX(-50%);font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:.2em;color:rgba(255,255,255,.45);text-transform:uppercase}
 .cr-cta-pulse{animation:ctaPulse 2s ease infinite}@keyframes ctaPulse{0%,100%{opacity:.3}50%{opacity:.75}}
 .cr-hint{position:absolute;bottom:1.5%;left:50%;transform:translateX(-50%);font-size:10px;letter-spacing:.12em;color:rgba(255,255,255,.4);text-transform:uppercase;white-space:nowrap}
