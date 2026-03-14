@@ -133,7 +133,7 @@ const SETTLE_POSITIONS = [
   { x: 6, y: 5, rot: 2 },
 ];
 
-export default function ClimberPackOpening({ cards = [], onDone }) {
+export default function ClimberPackOpening({ cards = [], onDone, onDismiss }) {
   const [phase, setPhase] = useState("idle");
   const [activeCards, setActive] = useState([]);
   const [launched, setLaunched] = useState([]);
@@ -174,6 +174,14 @@ export default function ClimberPackOpening({ cards = [], onDone }) {
   const triggerResolve = useCallback(() => {
     setPhase("resolve");
   }, []);
+
+  useEffect(() => {
+    if (phase !== "resolve") return undefined;
+    const id = later(() => {
+      onDismiss?.();
+    }, 1200);
+    return () => clearTimeout(id);
+  }, [phase, onDismiss]);
 
   useEffect(() => () => clear(), []);
 
