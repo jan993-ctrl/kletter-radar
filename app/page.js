@@ -312,13 +312,13 @@ export default function Frontpage() {
                 }
               }}
               style={{
-                ...navBtnStyle,
+                ...chestBtnStyle,
                 marginRight: "10px",
                 opacity: packStock <= 0 ? 0.5 : 1,
                 cursor: packStock <= 0 ? "not-allowed" : "pointer",
               }}
             >
-              🃏 Karten
+              🧰 Truhe
             </button>
           )}
           <Link href={user ? profileLink : "/login"}>
@@ -411,6 +411,7 @@ function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
   const uniqueCardKey = `${dbId}-${index}`;
   const isFlipped = !!flippedCards[uniqueCardKey];
   const tierLabel = powerScore >= 92 ? "Legend" : powerScore >= 75 ? "Elite" : "Rookie";
+  const tierTheme = getTierTheme(tierLabel);
 
   return (
     <div 
@@ -425,10 +426,10 @@ function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
         }}
       >
         {/* VORDERSEITE */}
-        <div style={cardFrontStyle}>
-          <div style={cardGlowOrbStyle} />
+        <div style={{ ...cardFrontStyle, background: tierTheme.frontBg, border: tierTheme.border }}>
+          <div style={{ ...cardGlowOrbStyle, background: tierTheme.glow }} />
           <div style={rankBadgeStyle}>#{index + 1}</div>
-          <div style={tierBadgeStyle}>{tierLabel}</div>
+          <div style={{ ...tierBadgeStyle, ...tierTheme.badge }}>{tierLabel}</div>
           
           <div style={imgContainerStyle}>
             <Image
@@ -444,7 +445,7 @@ function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
           <div style={{ padding: "18px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", gap: "12px" }}>
               <h2 style={nameStyle}>{c.name || "Kletter-Gast"}</h2>
-              <div style={powerBadge}>
+              <div style={{ ...powerBadge, ...tierTheme.powerBadge }}>
                 <span style={{ fontSize: "0.55rem", fontWeight: "bold", color: "#aaa" }}>POWER</span>
                 <div style={{ fontSize: "1.3rem" }}>{powerScore}</div>
               </div>
@@ -472,7 +473,7 @@ function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
         </div>
 
         {/* RÜCKSEITE */}
-        <div style={cardBackStyle}>
+        <div style={{ ...cardBackStyle, background: tierTheme.backBg }}>
           <div style={{ padding: "20px", height: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
             <h3 style={{ borderBottom: "1px solid rgba(148,163,184,0.3)", width: "100%", paddingBottom: "10px", marginTop: 0, textAlign: "left", color: "#f4f4f5" }}>
               Statistik & Notizen
@@ -500,6 +501,60 @@ function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
       </div>
     </div>
   );
+}
+
+function getTierTheme(tierLabel) {
+  if (tierLabel === "Legend") {
+    return {
+      border: "1px solid rgba(253, 186, 116, 0.45)",
+      frontBg: "linear-gradient(160deg, #1f1306 0%, #78350f 55%, #0f172a 100%)",
+      backBg: "radial-gradient(circle at 18% 12%, rgba(251,191,36,0.35), transparent 35%), linear-gradient(165deg, #1f1306 0%, #451a03 52%, #020617 100%)",
+      glow: "radial-gradient(circle, rgba(251,191,36,0.52) 0%, rgba(251,191,36,0) 72%)",
+      badge: {
+        color: "#fde68a",
+        border: "1px solid rgba(253,230,138,0.65)",
+        background: "rgba(120,53,15,0.55)",
+      },
+      powerBadge: {
+        background: "linear-gradient(145deg, rgba(245,158,11,0.32), rgba(120,53,15,0.74))",
+        border: "1px solid rgba(253,230,138,0.52)",
+      },
+    };
+  }
+
+  if (tierLabel === "Elite") {
+    return {
+      border: "1px solid rgba(96,165,250,0.45)",
+      frontBg: "linear-gradient(158deg, #0f172a 0%, #1d4ed8 50%, #020617 100%)",
+      backBg: "radial-gradient(circle at 18% 12%, rgba(56,189,248,0.28), transparent 35%), linear-gradient(165deg, #0c1b3f 0%, #1e3a8a 52%, #020617 100%)",
+      glow: "radial-gradient(circle, rgba(96,165,250,0.52) 0%, rgba(96,165,250,0) 72%)",
+      badge: {
+        color: "#bfdbfe",
+        border: "1px solid rgba(191,219,254,0.62)",
+        background: "rgba(30,64,175,0.52)",
+      },
+      powerBadge: {
+        background: "linear-gradient(145deg, rgba(59,130,246,0.3), rgba(30,58,138,0.72))",
+        border: "1px solid rgba(125,211,252,0.4)",
+      },
+    };
+  }
+
+  return {
+    border: "1px solid rgba(148,163,184,0.3)",
+    frontBg: "linear-gradient(158deg, #0f172a 0%, #334155 48%, #020617 100%)",
+    backBg: "radial-gradient(circle at 18% 12%, rgba(148,163,184,0.2), transparent 35%), linear-gradient(165deg, #020617 0%, #1e293b 52%, #020617 100%)",
+    glow: "radial-gradient(circle, rgba(148,163,184,0.35) 0%, rgba(148,163,184,0) 72%)",
+    badge: {
+      color: "#e2e8f0",
+      border: "1px solid rgba(226,232,240,0.4)",
+      background: "rgba(30,41,59,0.55)",
+    },
+    powerBadge: {
+      background: "linear-gradient(145deg, rgba(71,85,105,0.35), rgba(30,41,59,0.75))",
+      border: "1px solid rgba(148,163,184,0.35)",
+    },
+  };
 }
 
 // STYLES
@@ -542,6 +597,13 @@ const logoStyle = { fontSize: "1.95rem", margin: 0, display: "flex", alignItems:
 const taglineStyle = { margin: 0, color: "#cbd5e1", fontSize: "0.9rem", fontWeight: "600" };
 
 const navBtnStyle = { padding: "12px 24px", borderRadius: "999px", border: "none", background: "linear-gradient(135deg, #312e81 0%, #4338ca 100%)", color: "#f8fafc", cursor: "pointer", fontWeight: "700", boxShadow: "0 10px 20px rgba(0,0,0,0.3)" };
+
+const chestBtnStyle = {
+  ...navBtnStyle,
+  background: "linear-gradient(135deg, #7c2d12 0%, #b45309 45%, #f59e0b 100%)",
+  boxShadow: "0 10px 22px rgba(245, 158, 11, 0.35)",
+  border: "1px solid rgba(253,230,138,0.45)",
+};
 
 const loaderContainer = { textAlign: "center", marginTop: "100px", color: "#a1a1aa" };
 
