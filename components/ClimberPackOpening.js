@@ -339,7 +339,72 @@ function StatBar({ label, value, color }) {
 function ShardChest() {
   return (
     <div className="cr-bag-wrap">
-      <div className="cr-bag-chest" />
+      <div style={{ perspective: "380px", perspectiveOrigin: "50% 120%", position: "relative", width: 104, height: 84 }}>
+        <div className="cr-chest-lid" style={{ position: "absolute", top: 0, left: 0, width: 104, height: 34, transformOrigin: "50% 100%" }}>
+          <svg width="104" height="34" viewBox="0 0 104 34" fill="none" style={{ display: "block", overflow: "visible" }}>
+            <defs>
+              <linearGradient id="lidTop" x1="0" y1="0" x2="0" y2="34" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#A06220" />
+                <stop offset="100%" stopColor="#5C3408" />
+              </linearGradient>
+              <linearGradient id="lidFront" x1="0" y1="22" x2="0" y2="34" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#7A4410" />
+                <stop offset="100%" stopColor="#4A2A06" />
+              </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="100" height="22" rx="3" fill="url(#lidTop)" stroke="#1E0A00" strokeWidth="1.4" />
+            <line x1="2" y1="10" x2="102" y2="10" stroke="rgba(0,0,0,.22)" strokeWidth="1" />
+            <line x1="2" y1="17" x2="102" y2="17" stroke="rgba(0,0,0,.18)" strokeWidth="1" />
+            <rect x="4" y="3" width="96" height="5" rx="1.5" fill="rgba(255,200,80,.1)" />
+            <rect x="2" y="22" width="100" height="10" rx="2" fill="url(#lidFront)" stroke="#1E0A00" strokeWidth="1.4" />
+            <rect x="2" y="22" width="100" height="5" rx="1" fill="#BF8C00" stroke="#7A5200" strokeWidth="1" />
+            {[12, 30, 52, 74, 92].map((x) => <circle key={x} cx={x} cy="24.5" r="2.3" fill="#FFD166" stroke="#8B5E00" strokeWidth=".6" />)}
+            <rect x="2" y="2" width="8" height="30" rx="2" fill="none" stroke="#CF9A10" strokeWidth="2" />
+            <rect x="94" y="2" width="8" height="30" rx="2" fill="none" stroke="#CF9A10" strokeWidth="2" />
+            <rect x="40" y="18" width="24" height="14" rx="4" fill="#FFD166" stroke="#8B5E00" strokeWidth="1.5" />
+            <rect x="43" y="21" width="18" height="9" rx="3" fill="#BF8C00" />
+            <circle cx="52" cy="24.5" r="3" fill="#3E1A00" />
+            <rect x="50.7" y="24.5" width="2.6" height="4.5" rx="1" fill="#3E1A00" />
+            <rect x="2" y="26" width="14" height="7" rx="2" fill="#FFD166" stroke="#8B5E00" strokeWidth="1.2" />
+            <circle cx="9" cy="29.5" r="2.5" fill="#8B6000" />
+            <circle cx="9" cy="29.5" r="1" fill="#FFD166" />
+            <rect x="88" y="26" width="14" height="7" rx="2" fill="#FFD166" stroke="#8B5E00" strokeWidth="1.2" />
+            <circle cx="95" cy="29.5" r="2.5" fill="#8B6000" />
+            <circle cx="95" cy="29.5" r="1" fill="#FFD166" />
+          </svg>
+        </div>
+
+        <div style={{ position: "absolute", bottom: 0, left: 0, width: 104, height: 54 }}>
+          <svg width="104" height="54" viewBox="0 0 104 54" fill="none" style={{ display: "block", overflow: "visible" }}>
+            <defs>
+              <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="54" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#7A4610" />
+                <stop offset="100%" stopColor="#3A1E04" />
+              </linearGradient>
+              <linearGradient id="innerGrad" x1="0" y1="0" x2="0" y2="12" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#120600" />
+                <stop offset="100%" stopColor="#28120A" />
+              </linearGradient>
+            </defs>
+            <rect x="2" y="0" width="100" height="14" rx="2" fill="url(#innerGrad)" />
+            <rect x="2" y="0" width="100" height="50" rx="3" fill="url(#bodyGrad)" stroke="#1E0A00" strokeWidth="1.4" />
+            <line x1="2" y1="14" x2="102" y2="14" stroke="rgba(0,0,0,.22)" strokeWidth="1" />
+            <line x1="2" y1="26" x2="102" y2="26" stroke="rgba(0,0,0,.2)" strokeWidth="1" />
+            <line x1="2" y1="38" x2="102" y2="38" stroke="rgba(0,0,0,.16)" strokeWidth="1" />
+            <rect x="2" y="0" width="100" height="7" rx="1" fill="#BF8C00" stroke="#7A5200" strokeWidth="1" />
+            <rect x="2" y="43" width="100" height="7" rx="1" fill="#BF8C00" stroke="#7A5200" strokeWidth="1" />
+            {[12, 30, 52, 74, 92].map((x) => <circle key={x} cx={x} cy="3.5" r="2.3" fill="#FFD166" stroke="#8B5E00" strokeWidth=".6" />)}
+            {[12, 30, 52, 74, 92].map((x) => <circle key={x} cx={x} cy="46.5" r="2.3" fill="#FFD166" stroke="#8B5E00" strokeWidth=".6" />)}
+            <rect x="48" y="0" width="8" height="50" fill="#BF8C00" stroke="#7A5200" strokeWidth="1" />
+            <rect x="2" y="0" width="9" height="50" rx="2" fill="none" stroke="#CF9A10" strokeWidth="2.2" />
+            <rect x="93" y="0" width="9" height="50" rx="2" fill="none" stroke="#CF9A10" strokeWidth="2.2" />
+            <rect x="2" y="0" width="16" height="7" rx="2" fill="#FFD166" stroke="#8B5E00" strokeWidth="1.2" />
+            <rect x="86" y="0" width="16" height="7" rx="2" fill="#FFD166" stroke="#8B5E00" strokeWidth="1.2" />
+            <circle cx="10" cy="3.5" r="2.5" fill="#8B6000" />
+            <circle cx="94" cy="3.5" r="2.5" fill="#8B6000" />
+          </svg>
+        </div>
+      </div>
       <span className="cr-bag-label">DUPLIKAT</span>
     </div>
   );
@@ -404,9 +469,12 @@ const CSS = `
 @keyframes shardCollect { 0%{transform:translate(0,0) scale(1); opacity:1} 100%{transform:translate(var(--bag-tx), var(--bag-ty)) rotate(var(--srot)) scale(0.03); opacity:0} }
 .cr-shatter-flash { position:absolute; inset:0; border-radius:10px; background:white; animation:shatterFlash .3s forwards; }
 @keyframes shatterFlash { 0%{opacity:.8} 100%{opacity:0} }
-.cr-bag-wrap { position:absolute; left:50%; bottom:14%; transform:translateX(-50%); z-index:60; display:flex; flex-direction:column; align-items:center; gap:6px; }
-.cr-bag-chest { width:94px; height:64px; border-radius:10px; background:linear-gradient(180deg,#8A5318,#3A1E04); border:2px solid #BF8C00; box-shadow:0 8px 22px rgba(0,0,0,.6); }
-.cr-bag-label { font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:.2em; color:rgba(191,140,0,.7); }
+.cr-bag-wrap { position:absolute; left:50%; bottom:14%; transform:translateX(-50%); z-index:60; display:flex; flex-direction:column; align-items:center; gap:6px; animation:bagAppear .5s cubic-bezier(.22,.61,.36,1) both, bagWiggle .55s 2.3s ease both; pointer-events:none; filter:drop-shadow(0 8px 22px rgba(0,0,0,.85)) drop-shadow(0 0 14px rgba(191,140,0,.35)); }
+.cr-bag-label { font-family:'Oswald',sans-serif; font-size:9px; letter-spacing:.22em; color:rgba(191,140,0,.6); text-transform:uppercase; }
+.cr-chest-lid { transform-origin:50% 100%; animation:chestLidAnim 2.6s .45s ease-in-out forwards; }
+@keyframes chestLidAnim { 0%{transform:rotateX(0deg);} 18%{transform:rotateX(-108deg);} 78%{transform:rotateX(-108deg);} 100%{transform:rotateX(0deg);} }
+@keyframes bagAppear { 0%{transform:translateX(-50%) scale(.3) translateY(20px); opacity:0;} 70%{transform:translateX(-50%) scale(1.12) translateY(-3px); opacity:1;} 100%{transform:translateX(-50%) scale(1) translateY(0); opacity:1;} }
+@keyframes bagWiggle { 0%{transform:translateX(-50%) rotate(0deg) scale(1);} 20%{transform:translateX(-50%) rotate(-8deg) scale(1.08);} 40%{transform:translateX(-50%) rotate(7deg) scale(1.06);} 60%{transform:translateX(-50%) rotate(-5deg) scale(1.04);} 80%{transform:translateX(-50%) rotate(3deg) scale(1.02);} 100%{transform:translateX(-50%) rotate(0deg) scale(1);} }
 .cr-cta,.cr-hint { position:absolute; left:50%; transform:translateX(-50%); color:rgba(255,255,255,.5); text-transform:uppercase; letter-spacing:.2em; }
 .cr-cta { bottom:5%; font-family:'Oswald',sans-serif; }
 .cr-hint { bottom:1.5%; font-size:10px; }

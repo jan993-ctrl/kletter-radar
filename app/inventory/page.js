@@ -188,6 +188,14 @@ export default function InventoryPage() {
     setView("collection");
   };
 
+  const clearAllCards = () => {
+    setCollection([]);
+    setPendingCards([]);
+    setOpeningCards([]);
+    setSelectedPack(null);
+    setView("packs");
+  };
+
   return (
     <div style={{ minHeight: "100dvh", background: "#080810", color: "#fff" }}>
       <style>{`
@@ -223,9 +231,18 @@ export default function InventoryPage() {
       {!loading && view === "packs" && (
         <main style={{ flex: 1, padding: "32px 24px", overflowY: "auto" }}>
           <div style={{ maxWidth: 860, margin: "0 auto" }}>
-            <div style={{ marginBottom: 32 }}>
-              <p style={{ fontFamily: "'Oswald',sans-serif", fontSize: 11, letterSpacing: ".3em", color: "rgba(255,209,102,.5)", marginBottom: 6 }}>AVAILABLE PACKS</p>
-              <h1 style={{ fontFamily: "'Oswald',sans-serif", fontSize: 28, fontWeight: 700, color: "#fff", letterSpacing: ".04em" }}>Choose Your Pack</h1>
+            <div style={{ marginBottom: 32, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <p style={{ fontFamily: "'Oswald',sans-serif", fontSize: 11, letterSpacing: ".3em", color: "rgba(255,209,102,.5)", marginBottom: 6 }}>AVAILABLE PACKS</p>
+                <h1 style={{ fontFamily: "'Oswald',sans-serif", fontSize: 28, fontWeight: 700, color: "#fff", letterSpacing: ".04em" }}>Choose Your Pack</h1>
+              </div>
+              <button
+                type="button"
+                onClick={clearAllCards}
+                style={{ border: "1px solid rgba(255,90,90,.45)", color: "#ff8f8f", background: "rgba(255,70,70,.08)", borderRadius: 8, padding: "8px 12px", fontFamily: "'Rajdhani',sans-serif", letterSpacing: ".1em", cursor: "pointer" }}
+              >
+                Alle Karten löschen
+              </button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 42 }}>
               {PACK_TYPES.map((pack) => (
