@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import ClimberPackOpening from "@/components/ClimberPackOpening";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -74,7 +74,17 @@ const getTopSet = (styles) => {
   return STYLE_LABELS[idx] || "Community";
 };
 
-const getOwnedCardId = (card) => card.originalId || card.id?.split("-")[0] || card.id;
+const getOwnedCardId = (card) => {
+  if (card?.originalId) return card.originalId;
+
+  const rawId = card?.id;
+  if (typeof rawId !== "string") return rawId;
+
+  const generatedMatch = rawId.match(/^(.*)-\d{13}-\d+$/);
+  if (generatedMatch?.[1]) return generatedMatch[1];
+
+  return rawId;
+};
 
 const readLocalJson = (key, fallback) => {
   try {
@@ -95,6 +105,7 @@ export default function InventoryPage() {
   const [pendingCards, setPendingCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState("anon");
+  const ownedIdsRef = useRef(new Set());
 
   useEffect(() => {
     const loadData = async () => {
@@ -132,6 +143,10 @@ export default function InventoryPage() {
 
     loadData();
   }, []);
+
+  useEffect(() => {
+    ownedIdsRef.current = new Set(collection.map((card) => getOwnedCardId(card)).filter(Boolean));
+  }, [collection]);
 
   useEffect(() => {
     if (!loading && !RESET_ON_RELOAD) {
@@ -209,11 +224,40 @@ export default function InventoryPage() {
   };
 
   const handleDismiss = () => {
-    if (pendingCards.length) setCollection((prev) => [...pendingCards, ...prev]);
+    if (pendingCards.length === 0 && openingCards.length > 0) {
+      const fallbackNewCards = openingCards.filter((card) => !ownedIdsRef.current.has(getOwnedCardId(card)));
+      mergeCollectedCards(fallbackNewCards);
+    }
+
     setOpeningCards([]);
     setPendingCards([]);
     setSelectedPack(null);
     setView("collection");
+  };
+
+  const mergeCollectedCards = (incomingCards) => {
+    const safeIncoming = Array.isArray(incomingCards) ? incomingCards : [];
+    if (!safeIncoming.length) return;
+
+    setCollection((prev) => {
+      const existingIds = new Set(prev.map((card) => getOwnedCardId(card)).filter(Boolean));
+      const uniqueIncoming = [];
+
+      safeIncoming.forEach((card) => {
+        const ownedId = getOwnedCardId(card);
+        if (!ownedId || existingIds.has(ownedId)) return;
+        existingIds.add(ownedId);
+        uniqueIncoming.push(card);
+      });
+
+      return uniqueIncoming.length ? [...uniqueIncoming, ...prev] : prev;
+    });
+  };
+
+  const handlePackDone = (newCards) => {
+    const safeNewCards = Array.isArray(newCards) ? newCards : [];
+    setPendingCards(safeNewCards);
+    mergeCollectedCards(safeNewCards);
   };
 
   const clearAllCards = () => {
@@ -316,7 +360,7 @@ export default function InventoryPage() {
             cards={openingCards}
             packTheme={PACK_THEMES[selectedPack?.id] || PACK_THEMES.pro}
             ownedIds={new Set(collection.map((c) => getOwnedCardId(c)).filter(Boolean))}
-            onDone={setPendingCards}
+            onDone={handlePackDone}
             onDismiss={handleDismiss}
           />
         </div>
