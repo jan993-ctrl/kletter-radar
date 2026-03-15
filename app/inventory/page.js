@@ -74,7 +74,7 @@ const getTopSet = (styles) => {
 
 export default function InventoryPage() {
   const [view, setView] = useState("packs");
-  const [xp, setXp] = useState(2450);
+  const [xp, setXp] = useState(10000);
   const [pool, setPool] = useState([]);
   const [collection, setCollection] = useState([]);
   const [openingCards, setOpeningCards] = useState([]);
@@ -97,9 +97,9 @@ export default function InventoryPage() {
         setPool(cards);
 
         const storedCollection = JSON.parse(localStorage.getItem(`inventory:cards:${id}`) || "[]");
-        const storedXp = Number(localStorage.getItem(`inventory:xp:${id}`) || 2450);
+        const storedXp = Number(localStorage.getItem(`inventory:xp:${id}`) || 10000);
         setCollection(Array.isArray(storedCollection) ? storedCollection : []);
-        setXp(Number.isFinite(storedXp) ? storedXp : 2450);
+        setXp(Number.isFinite(storedXp) ? storedXp : 10000);
       } finally {
         setLoading(false);
       }
