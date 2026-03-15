@@ -240,13 +240,28 @@ function ClimberCard({ card, index, isLaunched, isRevealed, exitMode, gatherPos,
   const powerScore = card.stats?.power ?? getPowerScore(safeAbilities);
   const rarity = card.rarity || getRarity(powerScore);
   const meta = RARITY_META[rarity] || RARITY_META.common;
+  const [tilt, setTilt] = useState({ rx: 0, ry: 0 });
 
   const isShatter = exitMode === "shatter";
   const isGather = exitMode === "gather";
+  const canTilt = isDone && isRevealed && !exitMode;
+
+  const handlePointerMove = (event) => {
+    if (!canTilt) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const px = (event.clientX - rect.left) / rect.width;
+    const py = (event.clientY - rect.top) / rect.height;
+    setTilt({
+      rx: (0.5 - py) * 7,
+      ry: (px - 0.5) * 9,
+    });
+  };
+
+  const resetTilt = () => setTilt({ rx: 0, ry: 0 });
 
   return (
     <div
-      className={["cr-card-wrap", isLaunched ? "fly" : "", isRevealed ? "flipped" : "", isGather ? "gather" : ""].join(" ")}
+      className={["cr-card-wrap", isLaunched ? "fly" : "", isRevealed ? "flipped" : "", isGather ? "gather" : "", canTilt ? "alive" : ""].join(" ")}
       style={{
         "--tx": `${pos.x}vw`,
         "--ty": `${pos.y}vh`,
@@ -260,7 +275,11 @@ function ClimberCard({ card, index, isLaunched, isRevealed, exitMode, gatherPos,
         "--cd": `${index * 0.06}s`,
         "--gx": `${gatherPos?.gx ?? 0}px`,
         "--gy": `${gatherPos?.gy ?? 0}px`,
+        "--hrx": `${tilt.rx}deg`,
+        "--hry": `${tilt.ry}deg`,
       }}
+      onMouseMove={handlePointerMove}
+      onMouseLeave={resetTilt}
       onClick={isDone && !exitMode ? onClick : undefined}
     >
       <div className="cr-card-face cr-card-back" style={isShatter ? { opacity: 0 } : {}}>
@@ -450,6 +469,9 @@ const CSS = `
 .cr-card-front { transform:rotateY(180deg); background:linear-gradient(155deg,var(--card-bg-from,#1C1C1C) 0%,#0D0D14 100%); border:1.5px solid var(--r-color); overflow:hidden; display:flex; flex-direction:column; }
 .cr-card-wrap.flipped .cr-card-back { transform:rotateY(-180deg); }
 .cr-card-wrap.flipped .cr-card-front { transform:rotateY(0deg); }
+.cr-card-wrap.alive { transition: transform .18s ease-out, filter .2s ease; }
+.cr-card-wrap.alive:hover { filter: drop-shadow(0 0 20px rgba(255,209,102,.32)); }
+.cr-card-wrap.alive.flipped { transform:translate(var(--tx),var(--ty)) rotate(var(--rot)) rotateX(var(--hrx, 0deg)) rotateY(var(--hry, 0deg)) scale(1.025); }
 .cr-profile-img { width:100%; height:100%; object-fit:cover; }
 .cr-card-head { display:flex; justify-content:space-between; padding:5px 7px 3px; background:rgba(0,0,0,.4); }
 .cr-rarity-badge { font-family:'Oswald',sans-serif; font-size:7px; letter-spacing:.15em; padding:1px 5px; border-radius:3px; }
