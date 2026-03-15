@@ -52,9 +52,7 @@ const RARITY_META = {
 
 const GRADE_SCALE = ["1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", "4a", "4b", "4c", "5a", "5b", "5c", "6a", "6b", "6c", "7a", "7b", "7c", "8a", "8b", "8c", "9a"];
 const STYLE_LABELS = ["Crimper", "Sloper", "Slab", "Dyno", "Pocket"];
-const INITIAL_XP = 10000;
-// Für die aktuelle Entwicklungsphase immer beim Reload zurücksetzen
-const RESET_ON_RELOAD = true;
+const INITIAL_XP = 3000;
 
 const fallbackAvatar = (name) => `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "K")}&background=2A1F06&color=FFD166&size=300`;
 
@@ -100,17 +98,10 @@ export default function InventoryPage() {
         const cards = userCards.length > 0 ? userCards : climbers.map(toPackCard);
         setPool(cards);
 
-        if (RESET_ON_RELOAD) {
-          localStorage.removeItem(`inventory:cards:${id}`);
-          localStorage.removeItem(`inventory:xp:${id}`);
-          setCollection([]);
-          setXp(INITIAL_XP);
-        } else {
-          const storedCollection = JSON.parse(localStorage.getItem(`inventory:cards:${id}`) || "[]");
-          const storedXp = Number(localStorage.getItem(`inventory:xp:${id}`) || INITIAL_XP);
-          setCollection(Array.isArray(storedCollection) ? storedCollection : []);
-          setXp(Number.isFinite(storedXp) ? storedXp : INITIAL_XP);
-        }
+        const storedCollection = JSON.parse(localStorage.getItem(`inventory:cards:${id}`) || "[]");
+        const storedXp = Number(localStorage.getItem(`inventory:xp:${id}`) || INITIAL_XP);
+        setCollection(Array.isArray(storedCollection) ? storedCollection : []);
+        setXp(Number.isFinite(storedXp) ? storedXp : INITIAL_XP);
       } finally {
         setLoading(false);
       }
@@ -204,7 +195,7 @@ export default function InventoryPage() {
     setPendingCards([]);
     setOpeningCards([]);
     setSelectedPack(null);
-    setXp(INITIAL_XP);
+    setXp(3000);
     setView("packs");
   };
 
