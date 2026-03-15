@@ -73,6 +73,8 @@ const getTopSet = (styles) => {
   return STYLE_LABELS[idx] || "Community";
 };
 
+const getOwnedCardId = (card) => card.originalId || card.id?.split("-")[0] || card.id;
+
 export default function InventoryPage() {
   const [view, setView] = useState("packs");
   const [xp, setXp] = useState(INITIAL_XP);
@@ -99,8 +101,19 @@ export default function InventoryPage() {
         setPool(cards);
 
         const storedCollection = JSON.parse(localStorage.getItem(`inventory:cards:${id}`) || "[]");
+        const storedInventoryIds = JSON.parse(localStorage.getItem(`inventory:${id}`) || "[]");
         const storedXp = Number(localStorage.getItem(`inventory:xp:${id}`) || INITIAL_XP);
-        setCollection(Array.isArray(storedCollection) ? storedCollection : []);
+
+        const safeCollection = Array.isArray(storedCollection) ? storedCollection : [];
+        const safeInventoryIds = Array.isArray(storedInventoryIds) ? storedInventoryIds : [];
+
+        // Fallback: falls nur die Startseiten-IDs existieren, Collection daraus wieder aufbauen
+        const rebuiltFromInventory = safeInventoryIds
+          .map((ownedId) => cards.find((card) => card.id === ownedId))
+          .filter(Boolean)
+          .map((card, i) => ({ ...card, id: `${card.id}-${Date.now()}-seed-${i}`, originalId: card.id }));
+
+        setCollection(safeCollection.length > 0 ? safeCollection : rebuiltFromInventory);
         setXp(Number.isFinite(storedXp) ? storedXp : INITIAL_XP);
       } finally {
         setLoading(false);
@@ -114,6 +127,9 @@ export default function InventoryPage() {
     if (!loading && !RESET_ON_RELOAD) {
       localStorage.setItem(`inventory:cards:${userId}`, JSON.stringify(collection));
       localStorage.setItem(`inventory:xp:${userId}`, String(xp));
+
+      const ownedIds = Array.from(new Set(collection.map((card) => getOwnedCardId(card)).filter(Boolean)));
+      localStorage.setItem(`inventory:${userId}`, JSON.stringify(ownedIds));
     }
   }, [collection, xp, userId, loading]);
 
@@ -196,6 +212,8 @@ export default function InventoryPage() {
     setOpeningCards([]);
     setSelectedPack(null);
     setXp(3000);
+
+    localStorage.setItem(`inventory:${userId}`, JSON.stringify([]));
     setView("packs");
   };
 
