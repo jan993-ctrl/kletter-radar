@@ -53,6 +53,7 @@ const RARITY_META = {
 const GRADE_SCALE = ["1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", "4a", "4b", "4c", "5a", "5b", "5c", "6a", "6b", "6c", "7a", "7b", "7c", "8a", "8b", "8c", "9a"];
 const STYLE_LABELS = ["Crimper", "Sloper", "Slab", "Dyno", "Pocket"];
 const INITIAL_XP = 3000;
+const RESET_ON_RELOAD = false;
 
 const fallbackAvatar = (name) => `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "K")}&background=2A1F06&color=FFD166&size=300`;
 
@@ -314,7 +315,7 @@ export default function InventoryPage() {
           <ClimberPackOpening
             cards={openingCards}
             packTheme={PACK_THEMES[selectedPack?.id] || PACK_THEMES.pro}
-            ownedIds={new Set(collection.map((c) => c.originalId || c.id.split("-")[0]))}
+            ownedIds={new Set(collection.map((c) => getOwnedCardId(c)).filter(Boolean))}
             onDone={setPendingCards}
             onDismiss={handleDismiss}
           />
