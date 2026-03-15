@@ -52,8 +52,9 @@ const RARITY_META = {
 
 const GRADE_SCALE = ["1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", "4a", "4b", "4c", "5a", "5b", "5c", "6a", "6b", "6c", "7a", "7b", "7c", "8a", "8b", "8c", "9a"];
 const STYLE_LABELS = ["Crimper", "Sloper", "Slab", "Dyno", "Pocket"];
-const INITIAL_XP = 2450;
-const RESET_ON_RELOAD = process.env.NODE_ENV !== "production";
+const INITIAL_XP = 10000;
+// Für die aktuelle Entwicklungsphase immer beim Reload zurücksetzen
+const RESET_ON_RELOAD = true;
 
 const fallbackAvatar = (name) => `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "K")}&background=2A1F06&color=FFD166&size=300`;
 
@@ -95,7 +96,8 @@ export default function InventoryPage() {
 
         const profileRes = await fetch("/api/profiles").then((res) => res.json());
         const climbers = Array.isArray(profileRes) ? profileRes : [];
-        const cards = climbers.filter((c) => Boolean(c.user_id)).map(toPackCard);
+        const userCards = climbers.filter((c) => Boolean(c.user_id)).map(toPackCard);
+        const cards = userCards.length > 0 ? userCards : climbers.map(toPackCard);
         setPool(cards);
 
         if (RESET_ON_RELOAD) {
@@ -202,6 +204,7 @@ export default function InventoryPage() {
     setPendingCards([]);
     setOpeningCards([]);
     setSelectedPack(null);
+    setXp(INITIAL_XP);
     setView("packs");
   };
 
