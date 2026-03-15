@@ -11,6 +11,39 @@ const PACK_TYPES = [
   { id: "starter", label: "STARTER PACK", description: "Perfekt zum Starten", color: "#9E9E9E", price: 150, rare: 1, legendary: 0, showCommon: true },
 ];
 
+const PACK_THEMES = {
+  pro: {
+    "--pt-top-from": "#2D2208", "--pt-top-to": "#3D3010",
+    "--pt-top-border": "#BF8C00",
+    "--pt-slice": "#FFD166", "--pt-slice-glow": "rgba(255,209,102,.5)",
+    "--pt-body-from": "#2A1F06", "--pt-body-mid": "#1C1505", "--pt-body-to": "#0E1020",
+    "--pt-body-border": "rgba(191,140,0,.35)",
+    "--pt-eyebrow": "rgba(191,140,0,.8)",
+    "--pt-title": "#FFD166", "--pt-title-glow": "rgba(255,209,102,.4)",
+    "--pt-icon": "rgba(255,209,102,.7)",
+  },
+  elite: {
+    "--pt-top-from": "#051628", "--pt-top-to": "#0A2440",
+    "--pt-top-border": "#1565C0",
+    "--pt-slice": "#42A5F5", "--pt-slice-glow": "rgba(66,165,245,.45)",
+    "--pt-body-from": "#051830", "--pt-body-mid": "#061020", "--pt-body-to": "#060810",
+    "--pt-body-border": "rgba(21,101,192,.4)",
+    "--pt-eyebrow": "rgba(66,165,245,.75)",
+    "--pt-title": "#90CAF9", "--pt-title-glow": "rgba(66,165,245,.35)",
+    "--pt-icon": "rgba(66,165,245,.65)",
+  },
+  starter: {
+    "--pt-top-from": "#1A1A1A", "--pt-top-to": "#252525",
+    "--pt-top-border": "#555",
+    "--pt-slice": "#BDBDBD", "--pt-slice-glow": "rgba(180,180,180,.3)",
+    "--pt-body-from": "#1C1C1C", "--pt-body-mid": "#141414", "--pt-body-to": "#0D0D12",
+    "--pt-body-border": "rgba(100,100,100,.3)",
+    "--pt-eyebrow": "rgba(180,180,180,.65)",
+    "--pt-title": "#E0E0E0", "--pt-title-glow": "rgba(200,200,200,.2)",
+    "--pt-icon": "rgba(180,180,180,.55)",
+  },
+};
+
 const RARITY_META = {
   legendary: { label: "LEGENDARY", color: "#FFB300", bg: "#3D2000", badge: "#7B5800" },
   rare: { label: "RARE", color: "#42A5F5", bg: "#001A3D", badge: "#0D47A1" },
@@ -45,6 +78,7 @@ export default function InventoryPage() {
   const [pool, setPool] = useState([]);
   const [collection, setCollection] = useState([]);
   const [openingCards, setOpeningCards] = useState([]);
+  const [selectedPack, setSelectedPack] = useState(null);
   const [pendingCards, setPendingCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState("anon");
@@ -140,6 +174,7 @@ export default function InventoryPage() {
   const openPack = (pack) => {
     if (xp < pack.price) return;
     setOpeningCards(drawPack(pack));
+    setSelectedPack(pack);
     setPendingCards([]);
     setXp((prev) => prev - pack.price);
     setView("opening");
@@ -149,6 +184,7 @@ export default function InventoryPage() {
     if (pendingCards.length) setCollection((prev) => [...pendingCards, ...prev]);
     setOpeningCards([]);
     setPendingCards([]);
+    setSelectedPack(null);
     setView("collection");
   };
 
@@ -228,7 +264,13 @@ export default function InventoryPage() {
       {!loading && view === "opening" && openingCards.length > 0 && (
         <div style={{ position: "relative", minHeight: "100dvh" }}>
           <button onClick={handleDismiss} style={{ position: "absolute", top: 18, left: 18, zIndex: 20, border: "1px solid rgba(255,255,255,.2)", borderRadius: 8, background: "rgba(0,0,0,.5)", color: "#fff", padding: "8px 12px" }}>← Zur Sammlung</button>
-          <ClimberPackOpening cards={openingCards} onDone={setPendingCards} onDismiss={handleDismiss} />
+          <ClimberPackOpening
+            cards={openingCards}
+            packTheme={PACK_THEMES[selectedPack?.id] || PACK_THEMES.pro}
+            ownedIds={new Set(collection.map((c) => c.originalId || c.id.split("-")[0]))}
+            onDone={setPendingCards}
+            onDismiss={handleDismiss}
+          />
         </div>
       )}
 
