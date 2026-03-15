@@ -105,7 +105,8 @@ export default function InventoryPage() {
 
         const profileRes = await fetch("/api/profiles").then((res) => res.json());
         const climbers = Array.isArray(profileRes) ? profileRes : [];
-        const cards = climbers.filter((c) => Boolean(c.user_id)).map(toPackCard);
+        const userCards = climbers.filter((c) => Boolean(c.user_id)).map(toPackCard);
+        const cards = userCards.length > 0 ? userCards : climbers.map(toPackCard);
         setPool(cards);
 
         const storedCollection = readLocalJson(`inventory:cards:${id}`, []);
@@ -132,7 +133,7 @@ export default function InventoryPage() {
   }, []);
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && !RESET_ON_RELOAD) {
       localStorage.setItem(`inventory:cards:${userId}`, JSON.stringify(collection));
       localStorage.setItem(`inventory:xp:${userId}`, String(xp));
 
