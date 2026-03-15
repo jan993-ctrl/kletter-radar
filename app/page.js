@@ -15,6 +15,15 @@ const GRADES = [
 
 const styleLabels = ["Crimper", "Sloper", "Slab", "Dyno", "Pocket"];
 
+const readLocalJson = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 export default function Frontpage() {
   const [climbers, setClimbers] = useState([]);
   const [user, setUser] = useState(null);
@@ -48,7 +57,7 @@ export default function Frontpage() {
         const fragmentKey = `fragments:${currentUser?.id ?? "anon"}`;
         const packStockKey = `pack-stock:${currentUser?.id ?? "anon"}`;
 
-        const cachedInventory = JSON.parse(localStorage.getItem(inventoryKey) || "[]");
+        const cachedInventory = readLocalJson(inventoryKey, []);
         const cachedFragments = Number(localStorage.getItem(fragmentKey) || 0);
         const cachedPackStock = Number(localStorage.getItem(packStockKey) || 99);
 

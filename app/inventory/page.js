@@ -75,6 +75,15 @@ const getTopSet = (styles) => {
 
 const getOwnedCardId = (card) => card.originalId || card.id?.split("-")[0] || card.id;
 
+const readLocalJson = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 export default function InventoryPage() {
   const [view, setView] = useState("packs");
   const [xp, setXp] = useState(INITIAL_XP);
@@ -100,8 +109,8 @@ export default function InventoryPage() {
         const cards = userCards.length > 0 ? userCards : climbers.map(toPackCard);
         setPool(cards);
 
-        const storedCollection = JSON.parse(localStorage.getItem(`inventory:cards:${id}`) || "[]");
-        const storedInventoryIds = JSON.parse(localStorage.getItem(`inventory:${id}`) || "[]");
+        const storedCollection = readLocalJson(`inventory:cards:${id}`, []);
+        const storedInventoryIds = readLocalJson(`inventory:${id}`, []);
         const storedXp = Number(localStorage.getItem(`inventory:xp:${id}`) || INITIAL_XP);
 
         const safeCollection = Array.isArray(storedCollection) ? storedCollection : [];
