@@ -110,12 +110,12 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
       const cardKey = card.originalId || card.id;
       const isDupe = ownedIds.has(cardKey);
       modes[i] = isDupe ? "shatter" : "gather";
-      if (isDupe) shatterCards.push(i);
-      else newCards.push(card);
+      if (!isDupe) newCards.push(i);
+      else shatterCards.push(i);
     });
 
     setExitModes(modes);
-    onDone?.(newCards);
+    onDone?.(newCards.map((i) => activeCards[i]).filter(Boolean));
 
     const CARD_W = 148;
     const GAP = 12;
@@ -124,14 +124,12 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
     const Y_OFFSET = -110;
 
     if (total <= 3) {
-      newCards.forEach((card, j) => {
-        const cardIdx = activeCards.findIndex((c) => c.id === card.id);
+      newCards.forEach((cardIdx, j) => {
         gp[cardIdx] = { gx: (j - (total - 1) / 2) * (CARD_W + GAP), gy: Y_OFFSET };
       });
     } else {
       const radius = 140 + total * 8;
-      newCards.forEach((card, j) => {
-        const cardIdx = activeCards.findIndex((c) => c.id === card.id);
+      newCards.forEach((cardIdx, j) => {
         const angle = (j / total) * 2 * Math.PI - Math.PI / 2;
         gp[cardIdx] = { gx: Math.cos(angle) * radius, gy: Math.sin(angle) * radius + Y_OFFSET };
       });
