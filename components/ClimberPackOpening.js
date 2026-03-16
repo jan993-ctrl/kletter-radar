@@ -2,17 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// --- KONSTANTEN ---
-const GRADES = [
-  "1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", "4a", "4b", "4c", 
-  "5a", "5b", "5c", "6a", "6b", "6c", "7a", "7b", "7c", "8a", "8b", "8c", "9a"
-]; [cite: 2]
+// KORREKTUR: Eckige Klammern hinzugefügt
+const GRADES = ["1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", "4a", "4b", "4c", "5a", "5b", "5c", "6a", "6b", "6c", "7a", "7b", "7c", "8a", "8b", "8c", "9a"];
 
 const RARITY_META = {
   legendary: { label: "LEGENDARY", color: "#FFB300", shadow: "0 0 24px #FFB30088, 0 0 48px #FF8F0044", badge: "#7B5800", bgFrom: "#3D2000" },
   rare: { label: "RARE", color: "#42A5F5", shadow: "0 0 16px #42A5F566, 0 0 32px #1565C033", badge: "#0D47A1", bgFrom: "#001A3D" },
   common: { label: "COMMON", color: "#9E9E9E", shadow: "0 4px 16px rgba(0,0,0,.5)", badge: "#212121", bgFrom: "#1C1C1C" },
-}; [cite: 3, 4, 68]
+};
 
 const SPREAD = [
   { x: -44, y: -16, rot: -24 },
@@ -20,7 +17,7 @@ const SPREAD = [
   { x: 0, y: -30, rot: 1 },
   { x: 22, y: -26, rot: 13 },
   { x: 44, y: -16, rot: 23 },
-]; [cite: 5, 69]
+];
 
 const CRUMBLE_DIRS = [
   { tx: "-55vw", ty: "60vh", rot: "-180deg" },
@@ -28,7 +25,7 @@ const CRUMBLE_DIRS = [
   { tx: "0vw", ty: "90vh", rot: "90deg" },
   { tx: "25vw", ty: "75vh", rot: "150deg" },
   { tx: "55vw", ty: "65vh", rot: "200deg" },
-]; [cite: 6, 70, 71]
+];
 
 const SHARDS = [
   { clip: "polygon(0% 0%, 52% 0%, 38% 33%, 0% 22%)", tx: "-88px", ty: "-95px", rot: "-48deg", delay: "0s" },
@@ -38,52 +35,50 @@ const SHARDS = [
   { clip: "polygon(66% 54%, 100% 60%, 100% 100%, 72% 100%)", tx: "90px", ty: "88px", rot: "58deg", delay: "0.1s" },
   { clip: "polygon(0% 52%, 27% 60%, 20% 82%, 0% 100%)", tx: "-88px", ty: "90px", rot: "-52deg", delay: "0.04s" },
   { clip: "polygon(27% 60%, 66% 54%, 72% 100%, 20% 82%)", tx: "22px", ty: "95px", rot: "38deg", delay: "0.15s" },
-]; [cite: 7, 8]
+];
 
-// --- HELPER FUNKTIONEN ---
-const fallbackAvatar = (name) => `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "K")}&background=2A1F06&color=FFD166&size=300`; [cite: 9]
+const fallbackAvatar = (name) => `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "K")}&background=2A1F06&color=FFD166&size=300`;
 
-const toPercent = (val) => Math.round((Math.min(24, Math.max(0, Number(val) || 0)) / 24) * 100); [cite: 9]
+const toPercent = (val) => Math.round((Math.min(24, Math.max(0, Number(val) || 0)) / 24) * 100);
 
 const getPowerScore = (abilities) => {
-  const safe = Array.isArray(abilities) && abilities.length === 7 ? abilities : [0, 0, 0, 0, 0, 0, 0]; [cite: 11]
-  return Math.round((safe.reduce((a, b) => a + b, 0) / (7 * 24)) * 100); [cite: 12]
+  const safe = Array.isArray(abilities) && abilities.length === 7 ? abilities : [0, 0, 0, 0, 0, 0, 0];
+  return Math.round((safe.reduce((a, b) => a + b, 0) / (7 * 24)) * 100);
 };
 
 const getRarity = (powerScore) => {
   if (powerScore >= 92) return "legendary";
   if (powerScore >= 75) return "rare";
   return "common";
-}; [cite: 13]
+};
 
 const getGrade = (powerScore) => {
   const idx = Math.max(0, Math.min(GRADES.length - 1, Math.round((powerScore / 100) * (GRADES.length - 1))));
-  return GRADES[idx]; [cite: 14]
+  return GRADES[idx];
 };
 
-// --- KOMPONENTE ---
 export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedIds = new Set(), onDone, onDismiss }) {
-  const [phase, setPhase] = useState("idle"); [cite: 16, 72]
-  const [activeCards, setActive] = useState([]); [cite: 16, 73]
-  const [launched, setLaunched] = useState([]); [cite: 16, 73]
-  const [revealed, setRevealed] = useState([]); [cite: 16, 73]
-  const [exitModes, setExitModes] = useState({}); [cite: 17, 73]
-  const [gatherPos, setGatherPos] = useState({}); [cite: 17, 74]
-  const [bagOffsets, setBagOffsets] = useState({}); [cite: 17, 74]
-  const [bagVisible, setBagVisible] = useState(false); [cite: 17, 75]
+  const [phase, setPhase] = useState("idle");
+  const [activeCards, setActive] = useState([]);
+  const [launched, setLaunched] = useState([]);
+  const [revealed, setRevealed] = useState([]);
+  const [exitModes, setExitModes] = useState({});
+  const [gatherPos, setGatherPos] = useState({});
+  const [bagOffsets, setBagOffsets] = useState({});
+  const [bagVisible, setBagVisible] = useState(false);
   
-  const timeouts = useRef([]); [cite: 18, 75]
+  const timeouts = useRef([]);
 
   const clear = () => {
     timeouts.current.forEach(clearTimeout);
     timeouts.current = [];
-  }; [cite: 18, 75]
+  };
 
   const later = (fn, ms) => {
     const id = setTimeout(fn, ms);
     timeouts.current.push(id);
     return id;
-  }; [cite: 18, 19, 76]
+  };
 
   const startAnimation = useCallback(() => {
     if (cards.length === 0) return;
@@ -96,16 +91,16 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
     setBagOffsets({});
     setBagVisible(false);
 
-    setPhase("shake"); [cite: 19, 77]
-    later(() => setPhase("slice"), 650); [cite: 19, 77]
-    later(() => setPhase("open"), 1150); [cite: 19, 78]
+    setPhase("shake");
+    later(() => setPhase("slice"), 650);
+    later(() => setPhase("open"), 1150);
     later(() => {
       setActive(cards);
-      setPhase("cards"); [cite: 19, 78]
+      setPhase("cards");
       cards.forEach((_, i) => later(() => setLaunched((prev) => [...prev, i]), i * 130));
-    }, 1750); [cite: 19, 78]
-    later(() => setPhase("done"), 3600); [cite: 19, 79]
-  }, [cards]); [cite: 20, 79]
+    }, 1750);
+    later(() => setPhase("done"), 3600);
+  }, [cards]);
 
   const triggerExit = useCallback(() => {
     const modes = {};
@@ -114,57 +109,45 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
 
     activeCards.forEach((card, i) => {
       const cardKey = card.originalId || card.id;
-      const isDupe = ownedIds.has(cardKey); [cite: 20, 79]
-      modes[i] = isDupe ? "shatter" : "gather"; [cite: 20, 79]
+      const isDupe = ownedIds.has(cardKey);
+      modes[i] = isDupe ? "shatter" : "gather";
       if (!isDupe) newCards.push(i);
       else shatterCards.push(i);
     });
 
-    setExitModes(modes); [cite: 20, 80]
+    setExitModes(modes);
     onDone?.(newCards.map((i) => activeCards[i]).filter(Boolean));
 
     const CARD_W = 148;
     const GAP = 12;
     const total = newCards.length;
     const gp = {};
-    const Y_OFFSET = -110; [cite: 20, 80, 81]
+    const Y_OFFSET = -110;
 
     if (total <= 3) {
       newCards.forEach((cardIdx, j) => {
         gp[cardIdx] = { gx: (j - (total - 1) / 2) * (CARD_W + GAP), gy: Y_OFFSET };
-      }); [cite: 21, 81]
+      });
     } else {
-      const radius = 140 + total * 8; [cite: 22, 82]
+      const radius = 140 + total * 8;
       newCards.forEach((cardIdx, j) => {
-        const angle = (j / total) * 2 * Math.PI - Math.PI / 2; [cite: 23, 83]
-        gp[cardIdx] = { 
-          gx: Math.cos(angle) * radius, 
-          gy: Math.sin(angle) * radius + Y_OFFSET 
-        }; [cite: 23, 84]
+        const angle = (j / total) * 2 * Math.PI - Math.PI / 2;
+        gp[cardIdx] = { gx: Math.cos(angle) * radius, gy: Math.sin(angle) * radius + Y_OFFSET };
       });
     }
-
-    setGatherPos(gp); [cite: 24, 84]
+    setGatherPos(gp);
 
     const BAG_X_VW = 0;
-    const BAG_Y_VH = 31; [cite: 24, 86]
+    const BAG_Y_VH = 31;
     const bo = {};
-
     shatterCards.forEach((i) => {
-      const sp = SPREAD[i] || SPREAD[0]; [cite: 25, 87]
-      // KORRIGIERTE SYNTAX OHNE BACKSLASHES
-      bo[i] = { 
-        bx: `${BAG_X_VW - sp.x}vw`, 
-        by: `${BAG_Y_VH - sp.y}vh` 
-      }; [cite: 25, 87]
+      const sp = SPREAD[i] || SPREAD[0];
+      bo[i] = { bx: `${BAG_X_VW - sp.x}vw`, by: `${BAG_Y_VH - sp.y}vh` };
     });
 
-    setBagOffsets(bo); [cite: 26, 88]
-    if (shatterCards.length > 0) setBagVisible(true); [cite: 26, 88]
-    setPhase("exit"); [cite: 26, 89]
-
-    const hasSomeGather = newCards.length > 0;
-    const delay = hasSomeGather ? 2800 : 2400; [cite: 89]
+    setBagOffsets(bo);
+    if (shatterCards.length > 0) setBagVisible(true);
+    setPhase("exit");
 
     later(() => {
       setPhase("idle");
@@ -176,31 +159,172 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
       setBagOffsets({});
       setBagVisible(false);
       onDismiss?.();
-    }, delay); [cite: 26, 90]
-  }, [activeCards, onDismiss, onDone, ownedIds]); [cite: 27, 90]
+    }, newCards.length > 0 ? 2800 : 2400);
+  }, [activeCards, onDismiss, onDone, ownedIds]);
 
-  useEffect(() => () => clear(), []); [cite: 27, 91]
+  useEffect(() => () => clear(), []);
 
-  const allRevealed = activeCards.length > 0 && revealed.length === activeCards.length; [cite: 27, 91]
+  const allRevealed = activeCards.length > 0 && revealed.length === activeCards.length;
 
   const toggleReveal = (i) => {
-    if (phase !== "done") return; [cite: 29, 93]
-    setRevealed((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i])); [cite: 30, 93]
-  };
-
-  const handleRootClick = () => {
-    if (phase === "idle") {
-      startAnimation();
-      return;
-    } [cite: 31, 94]
-    if (phase === "done" && allRevealed) {
-      triggerExit();
-    } [cite: 31, 32, 94]
+    if (phase !== "done") return;
+    setRevealed((prev) => (prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]));
   };
 
   return (
-    <div className={`cr-root phase-${phase}`} onClick={handleRootClick}>
-      {/* Hier folgen die Karten-Mappings und UI-Elemente wie in der Notiz beschrieben [cite: 32, 95] */}
+    <div className="cr-root" onClick={() => phase === "idle" ? startAnimation() : (allRevealed && phase === "done" ? triggerExit() : null)}>
+      <style>{CSS}</style>
+      
+      {/* PACK */}
+      <div className={`cr-pack ${phase === "shake" ? "shake" : ""} ${phase}`}>
+        <div className="cr-pack-top" />
+        <div className={`cr-slice ${phase === "slice" ? "vis" : ""}`} />
+        <div className="cr-pack-body">
+           <div className="cr-pack-content">
+              <span className="cr-pack-eyebrow">SEASON 26 · CRUX</span>
+              <h2 className="cr-pack-title">CRUX CARDS</h2>
+              <MountainClimberIcon size={42} />
+              <span className="cr-pack-sub">{cards.length} CLIMBERS INSIDE</span>
+           </div>
+        </div>
+      </div>
+
+      {/* CARDS */}
+      <div className="cards-layer">
+        {activeCards.map((card, i) => (
+          <ClimberCard
+            key={card.id || i}
+            card={card}
+            index={i}
+            isLaunched={launched.includes(i)}
+            isRevealed={revealed.includes(i)}
+            exitMode={phase === "exit" ? exitModes[i] || null : null}
+            gatherPos={gatherPos[i] || null}
+            bagOffset={bagOffsets[i] || null}
+            isDone={phase === "done"}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleReveal(i);
+            }}
+          />
+        ))}
+      </div>
+
+      {bagVisible && <div className="cr-bag-wrap"><ShardChest /></div>}
+
+      {phase === "idle" && <div className="cr-cta cr-cta-pulse">TAP TO OPEN PACK</div>}
+      {phase === "done" && !allRevealed && <div className="cr-hint">Reveal all cards to continue</div>}
+      {phase === "done" && allRevealed && <div className="cr-cta cr-cta-pulse">Tap to collect</div>}
     </div>
   );
 }
+
+// Sub-Komponente für die Karte
+function ClimberCard({ card, index, isLaunched, isRevealed, exitMode, gatherPos, bagOffset, isDone, onClick }) {
+  const pos = SPREAD[index] || SPREAD[0];
+  const cd = CRUMBLE_DIRS[index] || CRUMBLE_DIRS[0];
+  const safeAbilities = Array.isArray(card.abilities) && card.abilities.length === 7 ? card.abilities : [0, 0, 0, 0, 0, 0, 0];
+  const powerScore = card.stats?.power ?? getPowerScore(safeAbilities);
+  const rarity = card.rarity || getRarity(powerScore);
+  const meta = RARITY_META[rarity] || RARITY_META.common;
+  const [tilt, setTilt] = useState({ rx: 0, ry: 0 });
+
+  const isShatter = exitMode === "shatter";
+  const isGather = exitMode === "gather";
+  const canTilt = isDone && isRevealed && !exitMode;
+
+  const handlePointerMove = (event) => {
+    if (!canTilt) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const px = (event.clientX - rect.left) / rect.width;
+    const py = (event.clientY - rect.top) / rect.height;
+    setTilt({ rx: (0.5 - py) * 7, ry: (px - 0.5) * 9 });
+  };
+
+  return (
+    <div
+      className={`cr-card-wrap ${isLaunched ? "fly" : ""} ${isRevealed ? "flipped" : ""} ${isGather ? "gather" : ""} ${canTilt ? "alive" : ""}`}
+      style={{
+        "--tx": `${pos.x}vw`, "--ty": `${pos.y}vh`, "--rot": `${pos.rot}deg`,
+        "--gx": `${gatherPos?.gx ?? 0}px`, "--gy": `${gatherPos?.gy ?? 0}px`,
+        "--hrx": `${tilt.rx}deg`, "--hry": `${tilt.ry}deg`,
+        "--r-color": meta.color, "--r-shadow": meta.shadow
+      }}
+      onMouseMove={handlePointerMove}
+      onMouseLeave={() => setTilt({ rx: 0, ry: 0 })}
+      onClick={onClick}
+    >
+      <div className="cr-card-face cr-card-back">
+        <MountainClimberIcon size={32} />
+        <span style={{color: '#FFD166'}}>CRUX</span>
+      </div>
+      <div className="cr-card-face cr-card-front" style={{ borderColor: meta.color }}>
+        <div className="cr-card-head">
+          <span className="cr-rarity-badge" style={{ background: meta.badge, color: meta.color }}>{meta.label}</span>
+          <span className="cr-power-badge">POW {powerScore}</span>
+        </div>
+        <div className="cr-art-zone">
+          <img src={card.image_url || fallbackAvatar(card.name)} alt={card.name} className="cr-profile-img" />
+          <div className="cr-grade-overlay">{card.grade || getGrade(powerScore)}</div>
+        </div>
+        <div className="cr-name-row">
+          <span className="cr-athlete-name">{card.name || "Kletterer"}</span>
+        </div>
+        <div className="cr-stats">
+          <StatBar label="POW" value={powerScore} color={meta.color} />
+          <StatBar label="TEC" value={card.stats?.tech ?? toPercent(safeAbilities[2])} color={meta.color} />
+          <StatBar label="END" value={card.stats?.endurance ?? toPercent(safeAbilities[6])} color={meta.color} />
+        </div>
+
+        {isShatter && (
+          <>
+            <div className="cr-shatter-flash" />
+            {SHARDS.map((s, si) => (
+              <div
+                key={si}
+                className="cr-shard"
+                style={{
+                  "--shard-clip": s.clip, "--stx": s.tx, "--sty": s.ty, "--srot": s.rot,
+                  "--bag-tx": bagOffset?.bx ?? "0px", "--bag-ty": bagOffset?.by ?? "0px",
+                  background: `linear-gradient(155deg, ${meta.bgFrom} 0%, #0D0D14 100%)`,
+                  border: `1.5px solid ${meta.color}`
+                }}
+              />
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StatBar({ label, value, color }) {
+  return (
+    <div className="cr-stat-row">
+      <span className="cr-stat-label">{label}</span>
+      <div className="cr-stat-track"><div className="cr-stat-fill" style={{ width: `${value}%`, backgroundColor: color }} /></div>
+      <span className="cr-stat-val">{value}</span>
+    </div>
+  );
+}
+
+function ShardChest() {
+  return (
+    <div className="cr-chest-visual">
+       {/* Dein SVG/Chest Code hier */}
+       <div className="cr-bag-label">DUPLIKAT</div>
+    </div>
+  );
+}
+
+function MountainClimberIcon({ size = 44 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 52 52" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M12 40L26 12L40 40H12Z" />
+    </svg>
+  );
+}
+
+const CSS = `
+/* ... (Dein CSS wie oben, nur sicherstellen dass Template Literals korrekt sind) ... */
+`;
