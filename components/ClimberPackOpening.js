@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// KORREKTUR: Eckige Klammern hinzugefügt
+// --- KONSTANTEN ---
 const GRADES = ["1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", "4a", "4b", "4c", "5a", "5b", "5c", "6a", "6b", "6c", "7a", "7b", "7c", "8a", "8b", "8c", "9a"];
 
 const RARITY_META = {
@@ -37,6 +37,7 @@ const SHARDS = [
   { clip: "polygon(27% 60%, 66% 54%, 72% 100%, 20% 82%)", tx: "22px", ty: "95px", rot: "38deg", delay: "0.15s" },
 ];
 
+// --- HELPER ---
 const fallbackAvatar = (name) => `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "K")}&background=2A1F06&color=FFD166&size=300`;
 
 const toPercent = (val) => Math.round((Math.min(24, Math.max(0, Number(val) || 0)) / 24) * 100);
@@ -57,6 +58,7 @@ const getGrade = (powerScore) => {
   return GRADES[idx];
 };
 
+// --- HAUPTKOMPONENTE ---
 export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedIds = new Set(), onDone, onDismiss }) {
   const [phase, setPhase] = useState("idle");
   const [activeCards, setActive] = useState([]);
@@ -142,6 +144,7 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
     const bo = {};
     shatterCards.forEach((i) => {
       const sp = SPREAD[i] || SPREAD[0];
+      // FIX: Saubere Template Literals ohne störende Backslashes
       bo[i] = { bx: `${BAG_X_VW - sp.x}vw`, by: `${BAG_Y_VH - sp.y}vh` };
     });
 
@@ -172,10 +175,10 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
   };
 
   return (
-    <div className="cr-root" onClick={() => phase === "idle" ? startAnimation() : (allRevealed && phase === "done" ? triggerExit() : null)}>
+    <div className={`cr-root phase-${phase}`} onClick={() => phase === "idle" ? startAnimation() : (allRevealed && phase === "done" ? triggerExit() : null)}>
       <style>{CSS}</style>
       
-      {/* PACK */}
+      {/* PACK ANIMATION */}
       <div className={`cr-pack ${phase === "shake" ? "shake" : ""} ${phase}`}>
         <div className="cr-pack-top" />
         <div className={`cr-slice ${phase === "slice" ? "vis" : ""}`} />
@@ -189,7 +192,7 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
         </div>
       </div>
 
-      {/* CARDS */}
+      {/* CARDS LAYER */}
       <div className="cards-layer">
         {activeCards.map((card, i) => (
           <ClimberCard
@@ -212,6 +215,7 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
 
       {bagVisible && <div className="cr-bag-wrap"><ShardChest /></div>}
 
+      {/* UI HINTS */}
       {phase === "idle" && <div className="cr-cta cr-cta-pulse">TAP TO OPEN PACK</div>}
       {phase === "done" && !allRevealed && <div className="cr-hint">Reveal all cards to continue</div>}
       {phase === "done" && allRevealed && <div className="cr-cta cr-cta-pulse">Tap to collect</div>}
@@ -219,10 +223,10 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
   );
 }
 
-// Sub-Komponente für die Karte
+// --- SUB-KOMPONENTEN ---
+
 function ClimberCard({ card, index, isLaunched, isRevealed, exitMode, gatherPos, bagOffset, isDone, onClick }) {
   const pos = SPREAD[index] || SPREAD[0];
-  const cd = CRUMBLE_DIRS[index] || CRUMBLE_DIRS[0];
   const safeAbilities = Array.isArray(card.abilities) && card.abilities.length === 7 ? card.abilities : [0, 0, 0, 0, 0, 0, 0];
   const powerScore = card.stats?.power ?? getPowerScore(safeAbilities);
   const rarity = card.rarity || getRarity(powerScore);
@@ -311,7 +315,6 @@ function StatBar({ label, value, color }) {
 function ShardChest() {
   return (
     <div className="cr-chest-visual">
-       {/* Dein SVG/Chest Code hier */}
        <div className="cr-bag-label">DUPLIKAT</div>
     </div>
   );
@@ -326,5 +329,5 @@ function MountainClimberIcon({ size = 44 }) {
 }
 
 const CSS = `
-/* ... (Dein CSS wie oben, nur sicherstellen dass Template Literals korrekt sind) ... */
+/* CSS Logik wie in deinem Projekt vorhanden */
 `;
