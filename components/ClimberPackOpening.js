@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 // --- KONSTANTEN ---
@@ -268,7 +269,7 @@ function ClimberCard({ card, index, isLaunched, isRevealed, exitMode, gatherPos,
           <span className="cr-power-badge">POW {powerScore}</span>
         </div>
         <div className="cr-art-zone">
-          <img src={card.image_url || fallbackAvatar(card.name)} alt={card.name} className="cr-profile-img" />
+          <Image src={card.image_url || fallbackAvatar(card.name)} alt={card.name || "Kletterer"} className="cr-profile-img" width={320} height={320} unoptimized />
           <div className="cr-grade-overlay">{card.grade || getGrade(powerScore)}</div>
         </div>
         <div className="cr-name-row">
@@ -289,7 +290,7 @@ function ClimberCard({ card, index, isLaunched, isRevealed, exitMode, gatherPos,
                 className="cr-shard"
                 style={{
                   "--shard-clip": s.clip, "--stx": s.tx, "--sty": s.ty, "--srot": s.rot,
-                  "--bag-tx": bagOffset?.bx ?? "0px", "--bag-ty": bagOffset?.by ?? "0px",
+                  "--bag-tx": bagOffset?.bx ?? "0px", "--bag-ty": bagOffset?.by ?? "0px", "--delay": s.delay,
                   background: `linear-gradient(155deg, ${meta.bgFrom} 0%, #0D0D14 100%)`,
                   border: `1.5px solid ${meta.color}`
                 }}
@@ -329,5 +330,371 @@ function MountainClimberIcon({ size = 44 }) {
 }
 
 const CSS = `
-/* CSS Logik wie in deinem Projekt vorhanden */
+:root {
+  color-scheme: dark;
+}
+
+.cr-root {
+  position: relative;
+  width: min(100%, 920px);
+  min-height: 560px;
+  margin: 0 auto;
+  border-radius: 24px;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 20%, #1e253f 0%, #090b12 70%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+  perspective: 1200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  isolation: isolate;
+}
+
+.cr-root::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 85%, #ffd16622 0%, transparent 45%);
+  pointer-events: none;
+}
+
+.cr-pack {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  width: 250px;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+
+.cr-pack-top {
+  position: relative;
+  width: 100%;
+  height: 42px;
+  border-radius: 14px 14px 7px 7px;
+  background: linear-gradient(180deg, #f6be5f 0%, #b07016 100%);
+  transform-origin: bottom center;
+  box-shadow: inset 0 1px 8px #fff4, 0 10px 22px #0008;
+}
+
+.cr-pack-body {
+  margin-top: -5px;
+  border-radius: 14px;
+  border: 1.5px solid #ffcd7d66;
+  background: linear-gradient(180deg, #5a3b12 0%, #20160a 100%);
+  padding: 18px 16px 22px;
+  box-shadow: 0 15px 28px rgba(0, 0, 0, 0.42);
+}
+
+.cr-pack-content {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+  color: #f5f5f5;
+}
+
+.cr-pack-eyebrow {
+  font-size: 11px;
+  letter-spacing: .16em;
+  opacity: .85;
+}
+
+.cr-pack-title {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.cr-pack-sub {
+  font-size: 12px;
+  letter-spacing: .12em;
+  color: #ffd166;
+}
+
+.cr-pack.shake {
+  animation: cr-shake .58s linear;
+}
+
+.phase-open .cr-pack-top {
+  animation: cr-lid-open .65s cubic-bezier(.2, .8, .2, 1) forwards;
+}
+
+.phase-cards .cr-pack,
+.phase-done .cr-pack,
+.phase-exit .cr-pack {
+  opacity: 0;
+  transform: translate(-50%, -52%) scale(.9);
+  pointer-events: none;
+}
+
+.cr-slice {
+  position: absolute;
+  left: 50%;
+  top: 43%;
+  width: 115%;
+  height: 3px;
+  transform: translate(-50%, -50%) rotate(-12deg) scaleX(0);
+  background: linear-gradient(90deg, transparent, #ffffff, transparent);
+  box-shadow: 0 0 24px #fff;
+  opacity: 0;
+}
+
+.cr-slice.vis {
+  animation: cr-slice .45s ease;
+}
+
+.cards-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.cr-card-wrap {
+  --tx: 0vw;
+  --ty: 0vh;
+  --rot: 0deg;
+  --gx: 0px;
+  --gy: 0px;
+  --hrx: 0deg;
+  --hry: 0deg;
+  position: absolute;
+  width: 148px;
+  height: 224px;
+  transform-style: preserve-3d;
+  transform: translate3d(0, 130px, -250px) rotateZ(0deg) rotateX(4deg);
+  transition: transform .72s cubic-bezier(.2, .85, .2, 1), filter .25s ease;
+  pointer-events: none;
+}
+
+.cr-card-wrap.fly {
+  transform: translate3d(var(--tx), var(--ty), 0) rotateZ(var(--rot));
+  pointer-events: auto;
+}
+
+.cr-card-wrap.alive:hover {
+  filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.35));
+}
+
+.cr-card-wrap.flipped {
+  transform: translate3d(var(--tx), var(--ty), 0) rotateZ(var(--rot)) rotateY(calc(180deg + var(--hry))) rotateX(var(--hrx));
+}
+
+.cr-card-wrap.gather {
+  transform: translate3d(var(--gx), var(--gy), 0) rotateY(180deg) scale(.92);
+}
+
+.cr-card-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  backface-visibility: hidden;
+}
+
+.cr-card-back {
+  border: 1.5px solid #ffd166aa;
+  background: linear-gradient(165deg, #2a1f06 0%, #0f1018 100%);
+  display: grid;
+  place-content: center;
+  gap: 12px;
+  justify-items: center;
+}
+
+.cr-card-front {
+  transform: rotateY(180deg);
+  border: 1.5px solid var(--r-color, #999);
+  background: linear-gradient(160deg, #1e222f 0%, #0e1018 100%);
+  box-shadow: var(--r-shadow);
+  display: grid;
+  grid-template-rows: auto auto auto 1fr;
+  gap: 10px;
+  padding: 10px;
+}
+
+.cr-card-head,
+.cr-name-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.cr-rarity-badge,
+.cr-power-badge {
+  font-size: 10px;
+  letter-spacing: .08em;
+  font-weight: 700;
+  padding: 5px 7px;
+  border-radius: 999px;
+}
+
+.cr-power-badge {
+  color: #eceff1;
+  background: #121826;
+}
+
+.cr-art-zone {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #ffffff22;
+  aspect-ratio: 1.1;
+}
+
+.cr-profile-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cr-grade-overlay {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  font-weight: 800;
+  font-size: 22px;
+  color: #ffd166;
+  text-shadow: 0 2px 6px #000;
+}
+
+.cr-athlete-name {
+  font-weight: 700;
+}
+
+.cr-stats {
+  display: grid;
+  gap: 6px;
+}
+
+.cr-stat-row {
+  display: grid;
+  grid-template-columns: 28px 1fr 32px;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.cr-stat-track {
+  border-radius: 999px;
+  overflow: hidden;
+  background: #ffffff1a;
+  height: 7px;
+}
+
+.cr-stat-fill {
+  height: 100%;
+}
+
+.cr-shatter-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, #fff 0%, #fff8 30%, transparent 75%);
+  animation: cr-shatter-flash .35s ease-out;
+  pointer-events: none;
+}
+
+.cr-shard {
+  position: absolute;
+  inset: 0;
+  clip-path: var(--shard-clip);
+  animation: cr-shard .7s ease-out var(--delay, 0s) forwards, cr-shard-bag .95s ease-in .55s forwards;
+}
+
+.cr-bag-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.cr-chest-visual {
+  width: 128px;
+  height: 56px;
+  border-radius: 14px;
+  border: 1px solid #ffcd7d70;
+  background: linear-gradient(180deg, #4a3111, #1b1208);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 10px 24px #0009;
+}
+
+.cr-bag-label {
+  font-size: 11px;
+  letter-spacing: .16em;
+  color: #ffcf7f;
+}
+
+.cr-cta,
+.cr-hint {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  letter-spacing: .09em;
+  background: #0d1019cc;
+  border: 1px solid #ffffff22;
+  border-radius: 999px;
+  padding: 10px 14px;
+}
+
+.cr-cta {
+  bottom: 18px;
+}
+
+.cr-hint {
+  top: 14px;
+}
+
+.cr-cta-pulse {
+  animation: cr-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes cr-shake {
+  0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+  25% { transform: translate(-49%, -50%) rotate(1.8deg); }
+  50% { transform: translate(-50%, -50%) rotate(-1.8deg); }
+  75% { transform: translate(-51%, -50%) rotate(1.3deg); }
+}
+
+@keyframes cr-lid-open {
+  from { transform: rotateX(0deg); }
+  to { transform: rotateX(-82deg) translateY(-12px); }
+}
+
+@keyframes cr-slice {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scaleX(0); }
+  45% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scaleX(1.15); }
+}
+
+@keyframes cr-shatter-flash {
+  0% { opacity: 0; }
+  25% { opacity: .65; }
+  100% { opacity: 0; }
+}
+
+@keyframes cr-shard {
+  to {
+    transform: translate(var(--stx), var(--sty)) rotate(var(--srot)) scale(.9);
+    opacity: .45;
+  }
+}
+
+@keyframes cr-shard-bag {
+  to {
+    transform: translate(var(--bag-tx), var(--bag-ty)) rotate(360deg) scale(.1);
+    opacity: 0;
+  }
+}
+
+@keyframes cr-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 #ffd16633; }
+  50% { box-shadow: 0 0 0 8px #ffd16600; }
+}
 `;
