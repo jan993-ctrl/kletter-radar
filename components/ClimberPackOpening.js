@@ -114,15 +114,21 @@ gp[cardIdx] = { gx: Math.cos(angle) * radius, gy: Math.sin(angle) * radius + Y_O
 });
 }
 setGatherPos(gp);
-const BAG_X_VW = 0;
-const BAG_Y_VH = 31;
-const bo = {};
-shatterCards.forEach((i) => {
-const sp = SPREAD[i] || SPREAD[0];
-bo[i] = { bx: `${BAG\_X\_VW - sp.x}vw\`, by: \`${BAG_Y_VH - sp.y}vh` };
-});
-setBagOffsets(bo);
-if (shatterCards.length > 0) setBagVisible(true);
+// Berechnung für "Shatter" (In den Beutel fliegen)
+    const BAG_X_VW = 0;
+    const BAG_Y_VH = 31;
+    const bo = {};
+    shatterCards.forEach((i) => {
+      const sp = SPREAD[i] || SPREAD[0];
+      // Hier waren die Backslashes und Anführungszeichen falsch:
+      bo[i] = { 
+        bx: `${BAG_X_VW - sp.x}vw`, 
+        by: `${BAG_Y_VH - sp.y}vh` 
+      };
+    });
+    
+    setBagOffsets(bo);
+    if (shatterCards.length > 0) setBagVisible(true);
 setPhase("exit");
 later(() => {
 setPhase("idle");
