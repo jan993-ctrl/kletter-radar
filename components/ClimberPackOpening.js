@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// --- KONSTANTEN & HELPER ---
+// --- KONSTANTEN AUS DEINEM ENTWURF ---
 const GRADES = ["1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", "4a", "4b", "4c", "5a", "5b", "5c", "6a", "6b", "6c", "7a", "7b", "7c", "8a", "8b", "8c", "9a"];
 
 const RARITY_META = {
@@ -11,6 +11,7 @@ const RARITY_META = {
   common: { label: "COMMON", color: "#9E9E9E", shadow: "0 4px 16px rgba(0,0,0,.5)", badge: "#212121", bgFrom: "#1C1C1C" },
 };
 
+// Die exakten Flugkurven deiner Karten 
 const SPREAD = [
   { x: -44, y: -16, rot: -24 },
   { x: -22, y: -26, rot: -11 },
@@ -19,6 +20,7 @@ const SPREAD = [
   { x: 44, y: -16, rot: 23 },
 ];
 
+// Die Richtungen für den "Crumble"-Effekt [cite: 39, 69]
 const CRUMBLE_DIRS = [
   { tx: "-55vw", ty: "60vh", rot: "-180deg" },
   { tx: "-25vw", ty: "80vh", rot: "-120deg" },
@@ -27,6 +29,7 @@ const CRUMBLE_DIRS = [
   { tx: "55vw", ty: "65vh", rot: "200deg" },
 ];
 
+// Splitter-Animation für das Pack [cite: 70]
 const SHARDS = [
   { clip: "polygon(0% 0%, 52% 0%, 38% 33%, 0% 22%)", tx: "-88px", ty: "-95px", rot: "-48deg", delay: "0s" },
   { clip: "polygon(52% 0%, 100% 0%, 100% 26%, 62% 29%, 38% 33%)", tx: "80px", ty: "-90px", rot: "42deg", delay: "0.07s" },
@@ -37,6 +40,7 @@ const SHARDS = [
   { clip: "polygon(27% 60%, 66% 54%, 72% 100%, 20% 82%)", tx: "22px", ty: "95px", rot: "38deg", delay: "0.15s" },
 ];
 
+// --- HELPER ---
 const getPowerScore = (abilities) => {
   const safe = Array.isArray(abilities) && abilities.length === 7 ? abilities : [0, 0, 0, 0, 0, 0, 0];
   return Math.round((safe.reduce((a, b) => a + b, 0) / (7 * 24)) * 100);
@@ -48,9 +52,9 @@ const getRarity = (powerScore) => {
   return "common";
 };
 
-// --- KOMPONENTE ---
+// --- HAUPTKOMPONENTE ---
 export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedIds = new Set(), onDone, onDismiss }) {
-  const [phase, setPhase] = useState("idle");
+  const [phase, setPhase] = useState("idle"); // idle | shake | slice | open | cards | done | exit [cite: 40]
   const [activeCards, setActive] = useState([]);
   const [launched, setLaunched] = useState([]);
   const [revealed, setRevealed] = useState([]);
@@ -72,6 +76,7 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
     return id;
   };
 
+  // Start der Pack-Animation [cite: 45, 82]
   const startAnimation = useCallback(() => {
     if (cards.length === 0) return;
     clear();
@@ -89,11 +94,13 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
     later(() => {
       setActive(cards);
       setPhase("cards");
+      // Karten fliegen nacheinander raus [cite: 46]
       cards.forEach((_, i) => later(() => setLaunched((prev) => [...prev, i]), i * 130));
     }, 1750);
     later(() => setPhase("done"), 3600);
   }, [cards]);
 
+  // Exit-Animation: Gather (neue Karte) oder Shatter (Duplikat) [cite: 47, 83]
   const triggerExit = useCallback(() => {
     const modes = {};
     const newCards = [];
@@ -110,13 +117,13 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
     setExitModes(modes);
     onDone?.(newCards.map((i) => activeCards[i]).filter(Boolean));
 
+    // Berechnung der Positionen für "Gather" (Sammeln oben) [cite: 49, 84]
     const CARD_W = 148;
     const GAP = 12;
     const total = newCards.length;
     const gp = {};
     const Y_OFFSET = -110;
 
-    // Berechnung der Sammelpositionen (Gather)
     if (total <= 3) {
       newCards.forEach((cardIdx, j) => {
         gp[cardIdx] = { gx: (j - (total - 1) / 2) * (CARD_W + GAP), gy: Y_OFFSET };
@@ -130,7 +137,7 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
     }
     setGatherPos(gp);
 
-    // Berechnung der Bag-Offsets für Duplikate (Shatter)
+    // Berechnung für "Shatter" (In den Beutel fliegen) [cite: 54, 87, 88]
     const BAG_X_VW = 0;
     const BAG_Y_VH = 31;
     const bo = {};
@@ -153,7 +160,7 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
       setBagOffsets({});
       setBagVisible(false);
       onDismiss?.();
-    }, newCards.length > 0 ? 2800 : 2400);
+    }, newCards.length > 0 ? 2800 : 2400); // Verzögerung basierend auf Animationstyp [cite: 57, 89]
   }, [activeCards, onDismiss, onDone, ownedIds]);
 
   useEffect(() => () => clear(), []);
@@ -175,12 +182,30 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
 
   return (
     <div className={`pack-root phase-${phase}`} onClick={handleRootClick}>
-      {/* Pack Animation (Background/Slices/Shards) */}
+      {/* PACK VISUALS (Slice & Shards) */}
       <div className="pack-container" style={packTheme}>
-        {/* Hier kommen deine SVG-Elemente für das Pack, die Slices und Shards hinein */}
+         {/* Hintergrund-Glanz */}
+         <div className="pack-shine" />
+         
+         {/* Pack-Körper */}
+         <div className="pack-body">
+           {SHARDS.map((s, idx) => (
+             <div 
+               key={idx} 
+               className="pack-shard" 
+               style={{ 
+                 clipPath: s.clip, 
+                 "--tx": s.tx, 
+                 "--ty": s.ty, 
+                 "--rot": s.rot, 
+                 transitionDelay: s.delay 
+               }} 
+             />
+           ))}
+         </div>
       </div>
 
-      {/* Cards Display */}
+      {/* CARDS LAYER */}
       <div className="cards-layer">
         {activeCards.map((card, i) => {
           const isLaunched = launched.includes(i);
@@ -189,6 +214,8 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
           const gPos = gatherPos[i] || { gx: 0, gy: 0 };
           const bOff = bagOffsets[i] || { bx: "0vw", by: "0vh" };
           const spread = SPREAD[i] || SPREAD[0];
+          const power = getPowerScore(card.abilities);
+          const rarity = getRarity(power);
 
           return (
             <div
@@ -202,6 +229,7 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
                 "--gy": `${gPos.gy}px`,
                 "--bx": bOff.bx,
                 "--by": bOff.by,
+                zIndex: isRevealed ? 50 : 10 + i
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -209,12 +237,26 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
               }}
             >
               <div className="card-inner">
-                {/* Vorder- und Rückseite der Karte */}
+                {/* Rückseite (wird beim Öffnen angezeigt) */}
                 <div className="card-back">
-                   {/* Design der Rückseite */}
+                   <div className="card-back-pattern" />
+                   <div className="card-back-logo">▲</div>
                 </div>
-                <div className="card-front" style={{ borderColor: RARITY_META[getRarity(getPowerScore(card.abilities))]?.color }}>
-                  {/* Karteninhalt: Name, Bild, Stats */}
+                
+                {/* Vorderseite (Animation nach Klick)  */}
+                <div 
+                  className="card-front" 
+                  style={{ 
+                    borderColor: RARITY_META[rarity].color,
+                    boxShadow: isRevealed ? RARITY_META[rarity].shadow : 'none'
+                  }}
+                >
+                  <div className="rarity-badge" style={{ backgroundColor: RARITY_META[rarity].badge }}>
+                    {RARITY_META[rarity].label}
+                  </div>
+                  {/* Karteninhalt hier einfügen (Name, Image, Stats) */}
+                  <div className="card-name">{card.name}</div>
+                  <div className="card-power-score">{power}</div>
                 </div>
               </div>
             </div>
@@ -222,11 +264,19 @@ export default function ClimberPackOpening({ cards = [], packTheme = {}, ownedId
         })}
       </div>
 
-      {/* Bag/Chest Element (sichtbar während Exit-Phase) */}
+      {/* Chest/Bag für Duplikate [cite: 56, 89] */}
       {bagVisible && (
-        <div className="bag-container">
-           {/* Deine SVG/Icon für den Beutel/Truhe */}
+        <div className="bag-container fade-in">
+           <div className="bag-icon">袋</div>
         </div>
+      )}
+
+      {/* UI Overlay */}
+      {phase === "done" && !allRevealed && (
+        <div className="tap-instruction">Tippe auf die Karten zum Umdrehen</div>
+      )}
+      {phase === "done" && allRevealed && (
+        <div className="tap-instruction pulse">Tippe zum Fortfahren</div>
       )}
     </div>
   );
