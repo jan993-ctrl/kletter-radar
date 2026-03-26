@@ -35,6 +35,7 @@ const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
 
 const getCroppedBlob = async (imageSrc, pixelCrop, fileType = "image/jpeg") => {
   const image = new window.Image();
+  image.crossOrigin = "anonymous";
   image.src = imageSrc;
   await new Promise((resolve, reject) => {
     image.onload = resolve;
@@ -195,27 +196,57 @@ export default function ProfilePage() {
     };
   }, [cropFocus.x, cropFocus.y, imageNaturalSize, zoom]);
 
+  const openImageEditor = async (src) => {
+    if (!src) return;
+    const probe = new window.Image();
+    probe.crossOrigin = "anonymous";
+    probe.src = src;
+    await new Promise((resolve, reject) => {
+      probe.onload = resolve;
+      probe.onerror = reject;
+    });
+    setImageNaturalSize({ width: probe.naturalWidth, height: probe.naturalHeight });
+    setCropSource(src);
+    setCropFocus({ x: 50, y: 50 });
+    setZoom(1);
+    setShowImageEditor(true);
+  };
+
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
       const src = await readFileAsDataUrl(file);
-      const probe = new window.Image();
-      probe.src = src;
-      await new Promise((resolve, reject) => {
-        probe.onload = resolve;
-        probe.onerror = reject;
-      });
-      setImageNaturalSize({ width: probe.naturalWidth, height: probe.naturalHeight });
-      setCropSource(src);
-      setCropFocus({ x: 50, y: 50 });
-      setZoom(1);
-      setShowImageEditor(true);
+      await openImageEditor(src);
     } catch {
       alert("Bild konnte nicht geladen werden.");
     } finally {
       e.target.value = "";
+    }
+  };
+
+  const handleDeleteImage = async () => {
+    if (!profile?.image_url) return;
+
+    const shouldDelete = window.confirm("Profilbild wirklich löschen?");
+    if (!shouldDelete) return;
+
+    setSaving(true);
+    try {
+      const oldPath = getStoragePathFromPublicUrl(profile.image_url);
+      if (oldPath) {
+        const { error: removeError } = await supabaseBrowser.storage
+          .from("profiles")
+          .remove([oldPath]);
+        if (removeError && removeError.statusCode !== "404") throw removeError;
+      }
+      setProfile({ ...profile, image_url: "" });
+      alert("Bild gelöscht. Bitte unten 'Profil speichern' klicken.");
+    } catch (err) {
+      alert("Löschen fehlgeschlagen: " + err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -456,10 +487,24 @@ export default function ProfilePage() {
 
           <div style={{ backgroundColor: "rgba(249, 249, 249, 0.6)", padding: 15, borderRadius: 12, border: "1px solid rgba(0,0,0,0.05)", marginBottom: 25, backdropFilter: "blur(4px)" }}>
             <h3 style={{ marginTop: 0 }}>Profilfoto</h3>
-            <input type="file" accept="image/*" onChange={handleImageUpload} disabled={saving} />
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <input type="file" accept="image/*" onChange={handleImageUpload} disabled={saving} />
+              {profile.image_url && (
+                <button type="button" onClick={handleDeleteImage} disabled={saving} style={dangerButtonStyle}>
+                  Bild löschen
+                </button>
+              )}
+            </div>
             {profile.image_url && (
               <div style={{ marginTop: 15 }}>
-                <NextImage src={profile.image_url} alt="Vorschau" width={120} height={120} style={{ objectFit: 'cover', borderRadius: 8, border: "1px solid #ddd" }} />
+                <button
+                  type="button"
+                  onClick={() => openImageEditor(profile.image_url)}
+                  style={{ border: "none", background: "transparent", padding: 0, cursor: "pointer" }}
+                  title="Ausschnitt erneut bearbeiten"
+                >
+                  <NextImage src={profile.image_url} alt="Vorschau" width={120} height={120} style={{ objectFit: 'cover', borderRadius: 8, border: "1px solid #ddd" }} />
+                </button>
               </div>
             )}
           </div>
