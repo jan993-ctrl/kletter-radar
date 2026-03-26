@@ -24,123 +24,6 @@ const readLocalJson = (key, fallback) => {
   }
 };
 
-// --- OPTIMIERTE KARTEN-KOMPONENTE MIT HABA-ZOOM ---
-function ClimberCard({ c, index, isFlipped, onToggleFlip, getGradeColor }) {
-  const [isHovered, setIsHovered] = useState(false);
-
-  const safeAbilities = c.abilities || [0, 0, 0, 0, 0];
-  const safeStyles = c.styles || [0, 0, 0, 0, 0];
-  const sumAbilities = safeAbilities.reduce((a, b) => a + b, 0);
-  const powerScore = Math.round((sumAbilities / 120) * 100);
-  const mentalValue = safeAbilities[2];
-  
-  const tierLabel = powerScore >= 92 ? "Legend" : powerScore >= 75 ? "Elite" : "Rookie";
-  const tierTheme = getTierTheme(tierLabel);
-
-  return (
-    <div 
-      style={cardContainerStyle}
-      onClick={(e) => {
-        e.stopPropagation();
-        onToggleFlip();
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div
-        style={{
-          ...cardInnerStyle,
-          transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
-        }}
-      >
-        {/* VORDERSEITE */}
-        <div style={{ ...cardFrontStyle, background: tierTheme.frontBg, border: tierTheme.border }}>
-          <div style={{ ...cardGlowOrbStyle, background: tierTheme.glow }} />
-          <div style={rankBadgeStyle}>#{index + 1}</div>
-          <div style={{ ...tierBadgeStyle, ...tierTheme.badge }}>{tierLabel}</div>
-          
-          <div style={imgContainerStyle}>
-            <Image
-              src={c.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || "User")}&background=random&size=300`}
-              style={{
-                ...imgStyle,
-                // Zoom-Logik:
-                // Normal: scale(1) zeigt das Bild voll (via object-fit: cover im Container)
-                // Hover: scale(1.2) für moderaten Zoom, Fokus wandert leicht nach oben zum Headshot
-                transform: isHovered ? "scale(1.22)" : "scale(1.0)",
-                objectPosition: isHovered ? "center 15%" : "center center",
-              }}
-              alt={c.name || "Kletterer"}
-              fill
-              sizes="(max-width: 768px) 100vw, 280px"
-              unoptimized
-            />
-            {/* Sanfter Schattenverlauf unten für bessere Text-Lesbarkeit */}
-            <div style={imgOverlayShadow} />
-          </div>
-          
-          <div style={{ padding: "18px", position: 'relative', zIndex: 3 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", gap: "12px" }}>
-              <h2 style={nameStyle}>{c.name || "Kletter-Gast"}</h2>
-              <div style={{ ...powerBadge, ...tierTheme.powerBadge }}>
-                <span style={{ fontSize: "0.55rem", fontWeight: "bold", color: "#aaa" }}>POWER</span>
-                <div style={{ fontSize: "1.3rem" }}>{powerScore}</div>
-              </div>
-            </div>
-            
-            <div style={mentalCenterBox}>
-              <div style={mentalLabel}>MENTALITÄT</div>
-              <div style={mentalValueDisplay}>Level {mentalValue}</div>
-            </div>
-
-            <div style={stylesGrid}>
-              {styleLabels.map((label, i) => (
-                <div key={`${c.id}-${label}`} style={styleItem}>
-                  <span style={styleLabelText}>{label}</span>
-                  <span style={{ 
-                    ...styleValueText, 
-                    color: getGradeColor(safeStyles[i]) 
-                  }}>
-                    {GRADES[safeStyles[i]] || "1a"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* RÜCKSEITE */}
-        <div style={{ ...cardBackStyle, background: tierTheme.backBg }}>
-          <div style={{ padding: "20px", height: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <h3 style={{ borderBottom: "1px solid rgba(148,163,184,0.3)", width: "100%", paddingBottom: "10px", marginTop: 0, textAlign: "left", color: "#f4f4f5" }}>
-              Statistik & Notizen
-            </h3>
-            
-            <div style={chartWrapperStyle}>
-              <CombinedRadar 
-                abilities={safeAbilities} 
-                styles={safeStyles} 
-                width={240} 
-                height={240} 
-              />
-            </div>
-
-            <div style={notesAreaStyle}>
-              <strong style={{ fontSize: "0.75rem", color: "#888", display: "block", marginBottom: "5px" }}>ÜBER {c.name?.toUpperCase()}:</strong>
-              {c.notes ? c.notes : "Keine besonderen Notizen oder Ziele hinterlegt."}
-            </div>
-
-            <div style={{ marginTop: "auto", fontSize: "0.7rem", color: "#a1a1aa" }}>
-              ↻ Klicken zum Umdrehen
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- HAUPTPAGE ---
 export default function Frontpage() {
   const [climbers, setClimbers] = useState([]);
   const [user, setUser] = useState(null);
@@ -254,15 +137,83 @@ export default function Frontpage() {
 
   const topGlobalClimbers = useMemo(() => climbers.slice(0, 10), [climbers]);
 
+  const rarityWeight = (power) => {
+    if (power >= 92) return 0;
+    if (power >= 75) return 1;
+    return 2;
+  };
+
+  const isRegisteredUserCard = (climber) => Boolean(climber?.user_id);
+
   const sortedInventoryClimbers = useMemo(() => {
     return climbers
       .filter((climber) => inventoryIds.includes(climber.user_id || climber.id))
       .sort((a, b) => {
         const powerA = Math.round(((a.abilities || []).reduce((acc, val) => acc + val, 0) / 120) * 100);
         const powerB = Math.round(((b.abilities || []).reduce((acc, val) => acc + val, 0) / 120) * 100);
+        const rarityDiff = rarityWeight(powerA) - rarityWeight(powerB);
+        if (rarityDiff !== 0) return rarityDiff;
         return powerB - powerA;
       });
   }, [climbers, inventoryIds]);
+
+  const toPackAthlete = (climber) => {
+    const abilities = climber.abilities || [0, 0, 0, 0, 0];
+    const power = Math.round((abilities.reduce((a, b) => a + b, 0) / 120) * 100);
+    const rarity = power >= 92 ? "legendary" : power >= 75 ? "rare" : "common";
+    const gradeIndex = Math.max(0, Math.min(GRADES.length - 1, Math.round((power / 100) * (GRADES.length - 1))));
+
+    return {
+      id: climber.user_id || climber.id,
+      name: climber.name || "Kletter-Gast",
+      country: climber.gym_name || "GYM",
+      flag: "🧗",
+      grade: GRADES[gradeIndex],
+      discipline: "Boulder",
+      stats: {
+        power,
+        tech: Math.max(35, Math.round(((abilities[0] + abilities[1]) / 24) * 100)),
+        endurance: Math.max(35, Math.round(((abilities[3] + abilities[4]) / 24) * 100)),
+      },
+      rarity,
+      emoji: rarity === "legendary" ? "🔥" : rarity === "rare" ? "⚡" : "🪨",
+      quote: climber.notes || "Keep climbing.",
+      image_url: climber.image_url
+    };
+  };
+
+  const packAthletes = useMemo(() => {
+    return climbers.filter(isRegisteredUserCard).map(toPackAthlete);
+  }, [climbers]);
+
+  const maxPackCards = Math.min(5, packAthletes.length);
+
+  const drawPackCards = (pool, count) => {
+    const copy = [...pool];
+    const result = [];
+
+    const getPower = (card) => Number(card?.stats?.power) || 0;
+    const getDrawWeight = (card) => Math.max(1, 101 - getPower(card));
+
+    while (result.length < count && copy.length > 0) {
+      const totalWeight = copy.reduce((sum, card) => sum + getDrawWeight(card), 0);
+      let threshold = Math.random() * totalWeight;
+      let selectedIndex = copy.length - 1;
+
+      for (let i = 0; i < copy.length; i += 1) {
+        threshold -= getDrawWeight(copy[i]);
+        if (threshold <= 0) {
+          selectedIndex = i;
+          break;
+        }
+      }
+
+      const [pick] = copy.splice(selectedIndex, 1);
+      result.push(pick);
+    }
+
+    return result;
+  };
 
   const onPackDone = (drawnCards) => {
     setPendingPackCards(drawnCards || []);
@@ -318,7 +269,7 @@ export default function Frontpage() {
         opacity: isHeaderCollapsed ? 0 : 1,
       }}>
         <div style={headerAnimationStyle}>
-          {!isGuestUser && (
+          {isGuestUser ? null : (
             <button
               style={{
                 ...gimmickToggleBtn,
@@ -326,6 +277,7 @@ export default function Frontpage() {
               }}
               onClick={switchViewMode}
               type="button"
+              aria-label={viewMode === "local" ? "Zu allen Karten wechseln" : "Zu lokalen Karten wechseln"}
             >
               <div
                 style={{
@@ -347,7 +299,13 @@ export default function Frontpage() {
         <div>
           {viewMode === "global" && user && (
             <Link href="/inventory" style={{ textDecoration: "none" }}>
-              <button type="button" style={{ ...chestBtnStyle, marginRight: "10px" }}>
+              <button
+                type="button"
+                style={{
+                  ...chestBtnStyle,
+                  marginRight: "10px",
+                }}
+              >
                 🃏 Karten
               </button>
             </Link>
@@ -385,17 +343,11 @@ export default function Frontpage() {
           {isGuestUser ? (
             <section style={gridPanelStyle}>
               <div style={gridStyle}>
-                {topGlobalClimbers.map((c, index) => (
-                  <ClimberCard 
-                    key={`${c.id}-${index}`} 
-                    c={c} 
-                    index={index} 
-                    isFlipped={!!flippedCards[`${c.id}-${index}`]}
-                    onToggleFlip={() => toggleFlip(`${c.id}-${index}`)}
-                    getGradeColor={getGradeColor}
-                  />
-                ))}
+                {topGlobalClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
               </div>
+              {topGlobalClimbers.length === 0 && (
+                <div style={emptyStateStyle}>Noch keine Profile vorhanden.</div>
+              )}
             </section>
           ) : (
             <div style={gridSwitchViewportStyle}>
@@ -406,33 +358,18 @@ export default function Frontpage() {
                 <section style={gridPanelStyle}>
                   <div style={gridStyle}>
                     {hasLocalContext
-                      ? localVisibleClimbers.map((c, index) => (
-                          <ClimberCard 
-                            key={`local-${c.id}-${index}`} 
-                            c={c} 
-                            index={index} 
-                            isFlipped={!!flippedCards[`local-${c.id}-${index}`]}
-                            onToggleFlip={() => toggleFlip(`local-${c.id}-${index}`)}
-                            getGradeColor={getGradeColor}
-                          />
-                        ))
-                      : <div style={emptyStateStyle}>Heimathalle im Profil festlegen...</div>}
+                      ? localVisibleClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))
+                      : <div style={emptyStateStyle}>Lege zuerst eine Heimathalle in deinem Profil fest, um lokale Karten zu sehen.</div>}
                   </div>
                 </section>
 
                 <section style={gridPanelStyle}>
                   <div style={gridStyle}>
-                    {sortedInventoryClimbers.map((c, index) => (
-                      <ClimberCard 
-                        key={`inv-${c.id}-${index}`} 
-                        c={c} 
-                        index={index} 
-                        isFlipped={!!flippedCards[`inv-${c.id}-${index}`]}
-                        onToggleFlip={() => toggleFlip(`inv-${c.id}-${index}`)}
-                        getGradeColor={getGradeColor}
-                      />
-                    ))}
+                    {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
                   </div>
+                  {sortedInventoryClimbers.length === 0 && (
+                    <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
+                  )}
                 </section>
               </div>
             </div>
@@ -454,7 +391,108 @@ export default function Frontpage() {
   );
 }
 
-// --- STYLES & HILFSFUNKTIONEN ---
+function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
+  const safeAbilities = c.abilities || [0, 0, 0, 0, 0];
+  const safeStyles = c.styles || [0, 0, 0, 0, 0];
+  const sumAbilities = safeAbilities.reduce((a, b) => a + b, 0);
+  const powerScore = Math.round((sumAbilities / 120) * 100);
+  const mentalValue = safeAbilities[2];
+  
+  const dbId = c.user_id || c.id || "climber";
+  const uniqueCardKey = `${dbId}-${index}`;
+  const isFlipped = !!flippedCards[uniqueCardKey];
+  const tierLabel = powerScore >= 92 ? "Legend" : powerScore >= 75 ? "Elite" : "Rookie";
+  const tierTheme = getTierTheme(tierLabel);
+
+  return (
+    <div 
+      key={uniqueCardKey}
+      style={cardContainerStyle}
+      onClick={() => toggleFlip(uniqueCardKey)}
+    >
+      <div
+        style={{
+          ...cardInnerStyle,
+          transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+        }}
+      >
+        {/* VORDERSEITE */}
+        <div style={{ ...cardFrontStyle, background: tierTheme.frontBg, border: tierTheme.border }}>
+          <div style={{ ...cardGlowOrbStyle, background: tierTheme.glow }} />
+          {!isFlipped && <div style={rankBadgeStyle}>#{index + 1}</div>}
+          {!isFlipped && <div style={{ ...tierBadgeStyle, ...tierTheme.badge }}>{tierLabel}</div>}
+          
+          <div style={imgContainerStyle}>
+            <Image
+              src={c.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || "User")}&background=random&size=300`}
+              style={imgStyle}
+              alt={c.name || "Kletterer"}
+              fill
+              sizes="(max-width: 768px) 100vw, 280px"
+              unoptimized
+            />
+          </div>
+          
+          <div style={{ padding: "18px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", gap: "12px" }}>
+              <h2 style={nameStyle}>{c.name || "Kletter-Gast"}</h2>
+              <div style={{ ...powerBadge, ...tierTheme.powerBadge }}>
+                <span style={{ fontSize: "0.55rem", fontWeight: "bold", color: "#aaa" }}>POWER</span>
+                <div style={{ fontSize: "1.3rem" }}>{powerScore}</div>
+              </div>
+            </div>
+            
+            <div style={mentalCenterBox}>
+              <div style={mentalLabel}>MENTALITÄT</div>
+              <div style={mentalValueDisplay}>Level {mentalValue}</div>
+            </div>
+
+            <div style={stylesGrid}>
+              {styleLabels.map((label, i) => (
+                <div key={`${uniqueCardKey}-${label}`} style={styleItem}>
+                  <span style={styleLabelText}>{label}</span>
+                  <span style={{ 
+                    ...styleValueText, 
+                    color: getGradeColor(safeStyles[i]) 
+                  }}>
+                    {GRADES[safeStyles[i]] || "1a"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* RÜCKSEITE */}
+        <div style={{ ...cardBackStyle, background: tierTheme.backBg }}>
+          <div style={{ padding: "20px", height: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <h3 style={{ borderBottom: "1px solid rgba(148,163,184,0.3)", width: "100%", paddingBottom: "10px", marginTop: 0, textAlign: "left", color: "#f4f4f5" }}>
+              Statistik & Notizen
+            </h3>
+            
+            <div style={chartWrapperStyle}>
+              <CombinedRadar 
+                abilities={safeAbilities} 
+                styles={safeStyles} 
+                width={240} 
+                height={240} 
+              />
+            </div>
+
+            <div style={notesAreaStyle}>
+              <strong style={{ fontSize: "0.75rem", color: "#888", display: "block", marginBottom: "5px" }}>ÜBER {c.name?.toUpperCase()}:</strong>
+              {c.notes ? c.notes : "Keine besonderen Notizen oder Ziele hinterlegt."}
+            </div>
+
+            <div style={{ marginTop: "auto", fontSize: "0.7rem", color: "#a1a1aa" }}>
+              ↻ Klicken zum Umdrehen
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function getTierTheme(tierLabel) {
   if (tierLabel === "Legend") {
@@ -463,98 +501,191 @@ function getTierTheme(tierLabel) {
       frontBg: "linear-gradient(160deg, #1f1306 0%, #78350f 55%, #0f172a 100%)",
       backBg: "radial-gradient(circle at 18% 12%, rgba(251,191,36,0.35), transparent 35%), linear-gradient(165deg, #1f1306 0%, #451a03 52%, #020617 100%)",
       glow: "radial-gradient(circle, rgba(251,191,36,0.52) 0%, rgba(251,191,36,0) 72%)",
-      badge: { color: "#fde68a", border: "1px solid rgba(253,230,138,0.65)", background: "rgba(120,53,15,0.55)" },
-      powerBadge: { background: "linear-gradient(145deg, rgba(245,158,11,0.32), rgba(120,53,15,0.74))", border: "1px solid rgba(253,230,138,0.52)" },
+      badge: {
+        color: "#fde68a",
+        border: "1px solid rgba(253,230,138,0.65)",
+        background: "rgba(120,53,15,0.55)",
+      },
+      powerBadge: {
+        background: "linear-gradient(145deg, rgba(245,158,11,0.32), rgba(120,53,15,0.74))",
+        border: "1px solid rgba(253,230,138,0.52)",
+      },
     };
   }
+
   if (tierLabel === "Elite") {
     return {
       border: "1px solid rgba(96,165,250,0.45)",
       frontBg: "linear-gradient(158deg, #0f172a 0%, #1d4ed8 50%, #020617 100%)",
       backBg: "radial-gradient(circle at 18% 12%, rgba(56,189,248,0.28), transparent 35%), linear-gradient(165deg, #0c1b3f 0%, #1e3a8a 52%, #020617 100%)",
       glow: "radial-gradient(circle, rgba(96,165,250,0.52) 0%, rgba(96,165,250,0) 72%)",
-      badge: { color: "#bfdbfe", border: "1px solid rgba(191,219,254,0.62)", background: "rgba(30,64,175,0.52)" },
-      powerBadge: { background: "linear-gradient(145deg, rgba(59,130,246,0.3), rgba(30,58,138,0.72))", border: "1px solid rgba(125,211,252,0.4)" },
+      badge: {
+        color: "#bfdbfe",
+        border: "1px solid rgba(191,219,254,0.62)",
+        background: "rgba(30,64,175,0.52)",
+      },
+      powerBadge: {
+        background: "linear-gradient(145deg, rgba(59,130,246,0.3), rgba(30,58,138,0.72))",
+        border: "1px solid rgba(125,211,252,0.4)",
+      },
     };
   }
+
   return {
     border: "1px solid rgba(148,163,184,0.3)",
     frontBg: "linear-gradient(158deg, #0f172a 0%, #334155 48%, #020617 100%)",
     backBg: "radial-gradient(circle at 18% 12%, rgba(148,163,184,0.2), transparent 35%), linear-gradient(165deg, #020617 0%, #1e293b 52%, #020617 100%)",
     glow: "radial-gradient(circle, rgba(148,163,184,0.35) 0%, rgba(148,163,184,0) 72%)",
-    badge: { color: "#e2e8f0", border: "1px solid rgba(226,232,240,0.4)", background: "rgba(30,41,59,0.55)" },
-    powerBadge: { background: "linear-gradient(145deg, rgba(71,85,105,0.35), rgba(30,41,59,0.75))", border: "1px solid rgba(148,163,184,0.35)" },
+    badge: {
+      color: "#e2e8f0",
+      border: "1px solid rgba(226,232,240,0.4)",
+      background: "rgba(30,41,59,0.55)",
+    },
+    powerBadge: {
+      background: "linear-gradient(145deg, rgba(71,85,105,0.35), rgba(30,41,59,0.75))",
+      border: "1px solid rgba(148,163,184,0.35)",
+    },
   };
 }
 
-const pageWrapperStyle = { minHeight: "100vh", width: "100%", padding: "20px", background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)" };
-const mainStyle = { fontFamily: "'Inter', sans-serif", maxWidth: "1200px", margin: "0 auto" };
-const headerStyle = { position: "sticky", top: "0", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "15px 18px", marginBottom: "30px", minHeight: "110px", borderRadius: "22px", background: "linear-gradient(115deg, rgba(2,6,23,0.92) 0%, rgba(30,41,59,0.85) 60%, rgba(67,56,202,0.45) 100%)", backdropFilter: "blur(10px)", boxShadow: "0 14px 34px rgba(0,0,0,0.4)", zIndex: 20, transition: "transform 320ms ease, opacity 260ms ease" };
+// STYLES
+const pageWrapperStyle = {
+  minHeight: "100vh",
+  width: "100%",
+  padding: "20px",
+  background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
+};
+
+const mainStyle = { fontFamily: "'Inter', sans-serif", maxWidth: "1200px", margin: "0 auto", backgroundColor: "transparent", minHeight: "100vh", color: "#f4f4f5" };
+
+const headerStyle = {
+  position: "sticky",
+  top: "0",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  padding: "15px 18px",
+  marginBottom: "30px",
+  minHeight: "110px",
+  borderRadius: "22px",
+  background: "linear-gradient(115deg, rgba(2,6,23,0.92) 0%, rgba(30,41,59,0.85) 60%, rgba(67,56,202,0.45) 100%)",
+  backdropFilter: "blur(10px)",
+  boxShadow: "0 14px 34px rgba(0,0,0,0.4)",
+  zIndex: 20,
+  transition: "transform 320ms ease, opacity 260ms ease",
+};
+
 const headerAnimationStyle = { position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", pointerEvents: "auto", opacity: 0.68 };
+
 const gimmickToggleBtn = { border: "1px solid rgba(255,255,255,0.1)", borderRadius: "999px", padding: "4px", background: "rgba(15,23,42,0.4)", cursor: "pointer", transition: "transform 280ms ease" };
+
 const gimmickInner = { transition: "transform 520ms cubic-bezier(0.22, 1, 0.36, 1)", borderRadius: "50%" };
+
 const titleBlockStyle = { display: "flex", flexDirection: "column", gap: "6px", zIndex: 1 };
+
 const logoStyle = { fontSize: "1.95rem", margin: 0, display: "flex", alignItems: "center", gap: "12px", color: "#f8fafc", fontWeight: "900", letterSpacing: "-0.6px" };
+
 const taglineStyle = { margin: 0, color: "#cbd5e1", fontSize: "0.9rem", fontWeight: "600" };
+
 const navBtnStyle = { padding: "12px 24px", borderRadius: "999px", border: "none", background: "linear-gradient(135deg, #312e81 0%, #4338ca 100%)", color: "#f8fafc", cursor: "pointer", fontWeight: "700", boxShadow: "0 10px 20px rgba(0,0,0,0.3)" };
-const chestBtnStyle = { ...navBtnStyle, background: "linear-gradient(135deg, #7c2d12 0%, #b45309 45%, #f59e0b 100%)", boxShadow: "0 10px 22px rgba(245, 158, 11, 0.35)", border: "1px solid rgba(253,230,138,0.45)" };
+
+const chestBtnStyle = {
+  ...navBtnStyle,
+  background: "linear-gradient(135deg, #7c2d12 0%, #b45309 45%, #f59e0b 100%)",
+  boxShadow: "0 10px 22px rgba(245, 158, 11, 0.35)",
+  border: "1px solid rgba(253,230,138,0.45)",
+};
+
 const loaderContainer = { textAlign: "center", marginTop: "100px", color: "#a1a1aa" };
+
 const modeInfoStyle = { display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", marginBottom: "18px", textAlign: "center" };
+
 const modeIconStyle = { width: "32px", height: "32px", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" };
+
 const inventoryMetaStyle = { color: "#cbd5e1", fontSize: "0.82rem", fontWeight: 700 };
+
 const inventoryHintStyle = { color: "#fbbf24", fontSize: "0.75rem", fontWeight: 700 };
+
 const packOverlayStyle = { position: "fixed", inset: 0, zIndex: 1200, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" };
+
 const packCloseBtnStyle = { position: "fixed", top: "20px", right: "20px", width: "42px", height: "42px", borderRadius: "999px", border: "1px solid rgba(255,255,255,0.2)", background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: "1.1rem", cursor: "pointer", zIndex: 1300 };
+
 const gridSwitchViewportStyle = { overflow: "hidden" };
+
 const gridSwitchTrackStyle = { width: "200%", display: "grid", gridTemplateColumns: "1fr 1fr", transition: "transform 620ms cubic-bezier(0.22, 1, 0.36, 1)" };
+
 const gridPanelStyle = { padding: "12px" };
+
 const gridStyle = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "25px" };
+
 const emptyStateStyle = { gridColumn: "1/-1", textAlign: "center", padding: "50px", color: "#94a3b8", fontWeight: "600" };
 
 const cardContainerStyle = { perspective: "1000px", height: "550px", cursor: "pointer" };
+
 const cardInnerStyle = { position: "relative", width: "100%", height: "100%", transition: "transform 0.72s cubic-bezier(0.22, 1, 0.36, 1)", transformStyle: "preserve-3d" };
-const baseFaceStyle = { position: "absolute", width: "100%", height: "100%", backfaceVisibility: "hidden", borderRadius: "26px", border: "1px solid rgba(255,255,255,0.14)", boxShadow: "0 24px 55px rgba(2,6,23,0.6)", overflow: "hidden" };
+
+const baseFaceStyle = {
+  position: "absolute",
+  width: "100%",
+  height: "100%",
+  backfaceVisibility: "hidden",
+  borderRadius: "26px",
+  border: "1px solid rgba(255,255,255,0.14)",
+  boxShadow: "0 24px 55px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.08)",
+  overflow: "hidden",
+  background: "linear-gradient(158deg, #0f172a 0%, #1e1b4b 48%, #020617 100%)"
+};
+
 const cardFrontStyle = { ...baseFaceStyle };
-const cardBackStyle = { ...baseFaceStyle, transform: "rotateY(180deg)" };
-const rankBadgeStyle = { position: "absolute", top: "15px", left: "15px", backgroundColor: "rgba(15,23,42,0.72)", color: "#fff", padding: "7px 13px", borderRadius: "999px", fontSize: "0.78rem", fontWeight: "800", zIndex: 10, border: "1px solid rgba(255,255,255,0.2)", backdropFilter: "blur(4px)" };
-const tierBadgeStyle = { position: "absolute", top: "15px", right: "15px", padding: "7px 13px", borderRadius: "999px", fontSize: "0.72rem", fontWeight: "800", textTransform: "uppercase", zIndex: 10, backdropFilter: "blur(5px)" };
-const cardGlowOrbStyle = { position: "absolute", width: "230px", height: "230px", borderRadius: "999px", top: "-70px", right: "-70px", pointerEvents: "none", zIndex: 1 };
 
-const imgContainerStyle = { 
-  position: "relative", 
-  height: "250px", // Erhöht, damit mehr vom Bild sichtbar ist
-  width: "100%", 
-  backgroundColor: "#000",
-  overflow: "hidden" 
+const cardBackStyle = {
+  ...baseFaceStyle,
+  transform: "rotateY(180deg)",
+  background: "radial-gradient(circle at 18% 12%, rgba(56,189,248,0.2), transparent 35%), linear-gradient(165deg, #020617 0%, #172554 52%, #020617 100%)",
 };
 
-const imgStyle = { 
-  width: "100%", 
-  height: "100%", 
-  objectFit: "cover", 
-  filter: "saturate(1.1) contrast(1.06)",
-  transition: "transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), object-position 0.6s ease" 
-};
+const rankBadgeStyle = { position: "absolute", top: "15px", left: "15px", backgroundColor: "rgba(15,23,42,0.72)", color: "#fff", padding: "7px 13px", borderRadius: "999px", fontSize: "0.78rem", letterSpacing: "0.4px", fontWeight: "800", zIndex: 10, border: "1px solid rgba(255,255,255,0.2)", backdropFilter: "blur(4px)" };
 
-const imgOverlayShadow = {
-  position: 'absolute',
-  bottom: 0,
-  left: 0,
-  right: 0,
-  height: '50%',
-  background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
-  zIndex: 2,
-  pointerEvents: 'none'
-};
+const tierBadgeStyle = { position: "absolute", top: "15px", right: "15px", padding: "7px 13px", borderRadius: "999px", fontSize: "0.72rem", fontWeight: "800", textTransform: "uppercase", color: "#fde68a", letterSpacing: "0.8px", zIndex: 10, border: "1px solid rgba(253,230,138,0.45)", background: "rgba(120,53,15,0.45)", backdropFilter: "blur(5px)" };
+
+const cardGlowOrbStyle = { position: "absolute", width: "230px", height: "230px", borderRadius: "999px", top: "-70px", right: "-70px", background: "radial-gradient(circle, rgba(129,140,248,0.4) 0%, rgba(129,140,248,0) 72%)", pointerEvents: "none", zIndex: 1 };
+
+const imgContainerStyle = { position: "relative", height: "210px", width: "100%", backgroundColor: "#000" };
+
+const imgStyle = { width: "100%", height: "100%", objectFit: "cover", filter: "saturate(1.1) contrast(1.06)" };
+
 
 const nameStyle = { margin: "0", fontSize: "1.35rem", color: "#fff", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
-const powerBadge = { display: "flex", flexDirection: "column", alignItems: "center", color: "#fff", padding: "8px", borderRadius: "16px", minWidth: "60px" };
+
+const powerBadge = { display: "flex", flexDirection: "column", alignItems: "center", background: "linear-gradient(145deg, rgba(59,130,246,0.24), rgba(30,41,59,0.7))", border: "1px solid rgba(125,211,252,0.35)", color: "#fff", padding: "8px", borderRadius: "16px", minWidth: "60px" };
+
 const mentalCenterBox = { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(15,23,42,0.58)", border: "1px solid rgba(148,163,184,0.18)", padding: "12px", borderRadius: "16px", marginBottom: "20px" };
+
 const mentalLabel = { fontSize: "0.7rem", fontWeight: "bold", color: "#666", letterSpacing: "1.5px", marginBottom: "4px" };
+
 const mentalValueDisplay = { fontSize: "1.3rem", fontWeight: "900", color: "#34d399" };
+
 const stylesGrid = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "15px" };
+
 const styleItem = { display: "flex", flexDirection: "column" };
+
 const styleLabelText = { fontSize: "0.65rem", color: "#94a3b8", textTransform: "uppercase", fontWeight: "bold" };
+
 const styleValueText = { fontSize: "1.2rem", fontWeight: "900" };
+
 const chartWrapperStyle = { margin: "10px 0", padding: "10px", backgroundColor: "rgba(15,23,42,0.65)", border: "1px solid rgba(148,163,184,0.2)", borderRadius: "15px" };
-const notesAreaStyle = { marginTop: "10px", fontSize: "0.9rem", lineHeight: "1.4", color: "#a1a1aa", textAlign: "left", width: "100%", padding: "10px", backgroundColor: "rgba(15,23,42,0.55)", border: "1px solid rgba(148,163,184,0.18)", borderRadius: "12px", maxHeight: "120px", overflowY: "auto" };
+
+const notesAreaStyle = { 
+  marginTop: "10px", 
+  fontSize: "0.9rem", 
+  lineHeight: "1.4", 
+  color: "#a1a1aa", 
+  textAlign: "left", 
+  width: "100%",
+  padding: "10px",
+  backgroundColor: "rgba(15,23,42,0.55)",
+  border: "1px solid rgba(148,163,184,0.18)",
+  borderRadius: "12px",
+  maxHeight: "120px",
+  overflowY: "auto"
+};
