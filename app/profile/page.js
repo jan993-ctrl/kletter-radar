@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import RadarChart from "@/components/charts/RadarChart";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -49,7 +49,48 @@ export default function ProfilePage() {
   const [expandedKey, setExpandedKey] = useState(null);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [gyms, setGyms] = useState([]);
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const [selectedImageUrl, setSelectedImageUrl] = useState("");
+  const [cropOffsetX, setCropOffsetX] = useState(0);
+  const [cropOffsetY, setCropOffsetY] = useState(0);
+  const [cropZoom, setCropZoom] = useState(1);
+  const [isDraggingCrop, setIsDraggingCrop] = useState(false);
+  const cropDragRef = useRef(null);
   const router = useRouter();
+
+  const cropPreviewStyle = useMemo(
+    () => ({
+      position: "absolute",
+      inset: 0,
+      width: "100%",
+      height: "100%",
+      objectFit: "contain",
+      transform: `translate(${cropOffsetX}px, ${cropOffsetY}px) scale(${cropZoom})`,
+      transformOrigin: "center",
+      userSelect: "none",
+      pointerEvents: "none",
+    }),
+    [cropOffsetX, cropOffsetY, cropZoom]
+  );
+
+  const startCropDrag = (clientX, clientY) => {
+    setIsDraggingCrop(true);
+    cropDragRef.current = {
+      startX: clientX,
+      startY: clientY,
+      initialOffsetX: cropOffsetX,
+      initialOffsetY: cropOffsetY,
+    };
+  };
+
+  const updateCropDrag = (clientX, clientY) => {
+    const dragState = cropDragRef.current;
+    if (!dragState) return;
+    const deltaX = clientX - dragState.startX;
+    const deltaY = clientY - dragState.startY;
+    setCropOffsetX(dragState.initialOffsetX + deltaX);
+    setCropOffsetY(dragState.initialOffsetY + deltaY);
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -125,12 +166,11 @@ export default function ProfilePage() {
     router.refresh();
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file || !profile?.user_id) return;
+  const uploadProfileImage = async (fileToUpload) => {
+    if (!fileToUpload || !profile?.user_id) return;
 
     setSaving(true);
-    const fileExt = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const fileExt = (fileToUpload.name.split('.').pop() || 'jpg').toLowerCase();
     const fileName = `${profile.user_id}/${Date.now()}.${fileExt}`;
 
     try {
@@ -147,12 +187,17 @@ export default function ProfilePage() {
 
       const { error: uploadError } = await supabaseBrowser.storage
         .from('profiles')
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, fileToUpload, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data } = supabaseBrowser.storage.from('profiles').getPublicUrl(fileName);
       setProfile({ ...profile, image_url: data.publicUrl });
+      setSelectedImageFile(null);
+      setSelectedImageUrl("");
+      setCropOffsetX(0);
+      setCropOffsetY(0);
+      setCropZoom(1);
       alert("Bild bereit! Bitte unten 'Speichern' klicken.");
     } catch (err) {
       alert("Upload-Fehler: " + err.message);
@@ -160,6 +205,150 @@ export default function ProfilePage() {
       setSaving(false);
     }
   };
+
+  const handleImageSelection = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (selectedImageUrl) URL.revokeObjectURL(selectedImageUrl);
+    const objectUrl = URL.createObjectURL(file);
+    setSelectedImageFile(file);
+    setSelectedImageUrl(objectUrl);
+    setCropOffsetX(0);
+    setCropOffsetY(0);
+    setCropZoom(1);
+  };
+
+  const startCropEditorFromCurrentImage = async () => {
+    if (!profile?.image_url) return;
+    try {
+      setSaving(true);
+      const response = await fetch(profile.image_url);
+      if (!response.ok) throw new Error("Bild konnte nicht geladen werden.");
+
+      const blob = await response.blob();
+      const fileExt = (blob.type.split("/")[1] || "jpg").toLowerCase();
+      const file = new File([blob], `profile-recrop.${fileExt}`, {
+        type: blob.type || "image/jpeg",
+      });
+
+      if (selectedImageUrl) URL.revokeObjectURL(selectedImageUrl);
+      const objectUrl = URL.createObjectURL(file);
+      setSelectedImageFile(file);
+      setSelectedImageUrl(objectUrl);
+      setCropOffsetX(0);
+      setCropOffsetY(0);
+      setCropZoom(1);
+    } catch (error) {
+      alert("Ausschnitt konnte nicht erneut geöffnet werden: " + error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clearPendingCrop = () => {
+    if (selectedImageUrl) URL.revokeObjectURL(selectedImageUrl);
+    setSelectedImageFile(null);
+    setSelectedImageUrl("");
+    setCropOffsetX(0);
+    setCropOffsetY(0);
+    setCropZoom(1);
+    setIsDraggingCrop(false);
+  };
+
+  const buildCroppedImageBlob = async () => {
+    if (!selectedImageFile) return null;
+    const imageUrl = URL.createObjectURL(selectedImageFile);
+    try {
+      const img = await new Promise((resolve, reject) => {
+        const image = new window.Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = imageUrl;
+      });
+
+      const outputSize = 512;
+      const canvas = document.createElement("canvas");
+      canvas.width = outputSize;
+      canvas.height = outputSize;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+
+      const widthRatio = outputSize / img.width;
+      const heightRatio = outputSize / img.height;
+      const baseScale = Math.min(widthRatio, heightRatio);
+      const finalScale = baseScale * cropZoom;
+
+      const drawnWidth = img.width * finalScale;
+      const drawnHeight = img.height * finalScale;
+      const dx = (outputSize - drawnWidth) / 2 + cropOffsetX;
+      const dy = (outputSize - drawnHeight) / 2 + cropOffsetY;
+
+      ctx.clearRect(0, 0, outputSize, outputSize);
+      ctx.drawImage(img, dx, dy, drawnWidth, drawnHeight);
+
+      return await new Promise((resolve) => {
+        canvas.toBlob(
+          (blob) => resolve(blob),
+          selectedImageFile.type?.startsWith("image/") ? selectedImageFile.type : "image/jpeg",
+          0.92
+        );
+      });
+    } finally {
+      URL.revokeObjectURL(imageUrl);
+    }
+  };
+
+  const applyCropAndUpload = async () => {
+    if (!selectedImageFile) return;
+    const croppedBlob = await buildCroppedImageBlob();
+    if (!croppedBlob) {
+      alert("Das Bild konnte nicht zugeschnitten werden.");
+      return;
+    }
+
+    const extension = (selectedImageFile.name.split(".").pop() || "jpg").toLowerCase();
+    const croppedFile = new File([croppedBlob], `profile-crop.${extension}`, {
+      type: croppedBlob.type || selectedImageFile.type || "image/jpeg",
+    });
+
+    await uploadProfileImage(croppedFile);
+  };
+
+
+  useEffect(() => {
+    return () => {
+      if (selectedImageUrl) URL.revokeObjectURL(selectedImageUrl);
+    };
+  }, [selectedImageUrl]);
+
+  useEffect(() => {
+    const handleMouseMove = (event) => {
+      updateCropDrag(event.clientX, event.clientY);
+    };
+
+    const stopDrag = () => {
+      cropDragRef.current = null;
+      setIsDraggingCrop(false);
+    };
+
+    const handleTouchMove = (event) => {
+      if (!cropDragRef.current || event.touches.length === 0) return;
+      updateCropDrag(event.touches[0].clientX, event.touches[0].clientY);
+      event.preventDefault();
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", stopDrag);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", stopDrag);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", stopDrag);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", stopDrag);
+    };
+  }, []);
 
   const handleSave = async () => {
     if (!profile) return;
@@ -359,10 +548,82 @@ export default function ProfilePage() {
 
           <div style={{ backgroundColor: "rgba(249, 249, 249, 0.6)", padding: 15, borderRadius: 12, border: "1px solid rgba(0,0,0,0.05)", marginBottom: 25, backdropFilter: "blur(4px)" }}>
             <h3 style={{ marginTop: 0 }}>Profilfoto</h3>
-            <input type="file" accept="image/*" onChange={handleImageUpload} disabled={saving} />
+            <input type="file" accept="image/*" onChange={handleImageSelection} disabled={saving} />
+            {selectedImageUrl && (
+              <div style={{ marginTop: 16 }}>
+                <p style={{ marginTop: 0, marginBottom: 10, fontSize: "0.9rem", color: "#4b5563" }}>
+                  Ziehe das Bild mit der Maus/Finger in den gewünschten Ausschnitt:
+                </p>
+                <div
+                  style={{
+                    ...cropFrameStyle,
+                    cursor: isDraggingCrop ? "grabbing" : "grab",
+                  }}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    startCropDrag(event.clientX, event.clientY);
+                  }}
+                  onTouchStart={(event) => {
+                    if (event.touches.length === 0) return;
+                    startCropDrag(event.touches[0].clientX, event.touches[0].clientY);
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={selectedImageUrl} alt="Zuschneide-Vorschau" style={cropPreviewStyle} />
+                </div>
+                <div style={{ marginTop: 12 }}>
+                  <label style={smallLabel}>Zoom</label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="2.5"
+                    step="0.01"
+                    value={cropZoom}
+                    onChange={(e) => setCropZoom(parseFloat(e.target.value))}
+                    style={{ width: "100%" }}
+                    disabled={saving}
+                  />
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                  <button
+                    type="button"
+                    onClick={applyCropAndUpload}
+                    disabled={saving}
+                    style={{
+                      ...secondaryButtonStyle,
+                      borderColor: "#34d399",
+                      color: "#047857",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Ausschnitt übernehmen
+                  </button>
+                  <button type="button" onClick={clearPendingCrop} disabled={saving} style={secondaryButtonStyle}>
+                    Verwerfen
+                  </button>
+                </div>
+              </div>
+            )}
             {profile.image_url && (
               <div style={{ marginTop: 15 }}>
-                <Image src={profile.image_url} alt="Vorschau" width={120} height={120} style={{ objectFit: 'cover', borderRadius: 8, border: "1px solid #ddd" }} />
+                <button
+                  type="button"
+                  onClick={startCropEditorFromCurrentImage}
+                  disabled={saving}
+                  style={{ ...secondaryButtonStyle, marginBottom: 8 }}
+                >
+                  Bestehendes Bild neu zuschneiden
+                </button>
+                <div>
+                  <Image
+                    src={profile.image_url}
+                    alt="Vorschau"
+                    width={120}
+                    height={120}
+                    onClick={startCropEditorFromCurrentImage}
+                    style={{ objectFit: "cover", borderRadius: 8, border: "1px solid #ddd", cursor: "pointer" }}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -431,6 +692,16 @@ const detailBtnStyle = { display: "block", marginTop: "5px", background: "#fff",
 const detailBoxStyle = { marginTop: "15px", padding: "15px", backgroundColor: "rgba(255,255,255,0.9)", borderRadius: "12px", border: "1px solid #eee", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" };
 const chartBoxStyle = { position: "relative", width: "400px", height: "350px", border: "1px solid rgba(0,0,0,0.05)", borderRadius: 12, padding: 10, backgroundColor: "rgba(255,255,255,0.7)", backdropFilter: "blur(8px)" };
 const glassCardSmallStyle = { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: 25, backgroundColor: "rgba(249, 249, 249, 0.6)", padding: "15px", borderRadius: "12px", border: "1px solid rgba(0,0,0,0.05)", backdropFilter: "blur(4px)" };
+const cropFrameStyle = {
+  width: "100%",
+  maxWidth: "260px",
+  aspectRatio: "1 / 1",
+  borderRadius: "12px",
+  overflow: "hidden",
+  border: "1px solid rgba(0,0,0,0.12)",
+  backgroundColor: "#e5e7eb",
+  position: "relative",
+};
 
 const secondaryButtonStyle = { 
   padding: "10px 18px", 
