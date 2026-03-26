@@ -38,6 +38,7 @@ export default function Frontpage() {
   const [pendingPackCards, setPendingPackCards] = useState([]);
   const [currentPackCards, setCurrentPackCards] = useState([]);
   const [packStock, setPackStock] = useState(99);
+  const [hoveredCardKey, setHoveredCardKey] = useState(null);
 
   const ADMIN_EMAIL = "janstoll1993@googlemail.com";
 
@@ -343,7 +344,7 @@ export default function Frontpage() {
           {isGuestUser ? (
             <section style={gridPanelStyle}>
               <div style={gridStyle}>
-                {topGlobalClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
+                {topGlobalClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor, hoveredCardKey, setHoveredCardKey))}
               </div>
               {topGlobalClimbers.length === 0 && (
                 <div style={emptyStateStyle}>Noch keine Profile vorhanden.</div>
@@ -358,14 +359,14 @@ export default function Frontpage() {
                 <section style={gridPanelStyle}>
                   <div style={gridStyle}>
                     {hasLocalContext
-                      ? localVisibleClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))
+                      ? localVisibleClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor, hoveredCardKey, setHoveredCardKey))
                       : <div style={emptyStateStyle}>Lege zuerst eine Heimathalle in deinem Profil fest, um lokale Karten zu sehen.</div>}
                   </div>
                 </section>
 
                 <section style={gridPanelStyle}>
                   <div style={gridStyle}>
-                    {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
+                    {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor, hoveredCardKey, setHoveredCardKey))}
                   </div>
                   {sortedInventoryClimbers.length === 0 && (
                     <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
@@ -391,7 +392,7 @@ export default function Frontpage() {
   );
 }
 
-function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
+function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor, hoveredCardKey, setHoveredCardKey) {
   const safeAbilities = c.abilities || [0, 0, 0, 0, 0];
   const safeStyles = c.styles || [0, 0, 0, 0, 0];
   const sumAbilities = safeAbilities.reduce((a, b) => a + b, 0);
@@ -401,6 +402,7 @@ function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
   const dbId = c.user_id || c.id || "climber";
   const uniqueCardKey = `${dbId}-${index}`;
   const isFlipped = !!flippedCards[uniqueCardKey];
+  const isImageZoomed = hoveredCardKey === uniqueCardKey;
   const tierLabel = powerScore >= 92 ? "Legend" : powerScore >= 75 ? "Elite" : "Rookie";
   const tierTheme = getTierTheme(tierLabel);
 
@@ -409,6 +411,8 @@ function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
       key={uniqueCardKey}
       style={cardContainerStyle}
       onClick={() => toggleFlip(uniqueCardKey)}
+      onMouseEnter={() => setHoveredCardKey(uniqueCardKey)}
+      onMouseLeave={() => setHoveredCardKey(null)}
     >
       <div
         style={{
@@ -425,7 +429,10 @@ function renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor) {
           <div style={imgContainerStyle}>
             <Image
               src={c.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(c.name || "User")}&background=random&size=300`}
-              style={imgStyle}
+              style={{
+                ...imgStyle,
+                ...(isImageZoomed ? hoveredImgStyle : baseImgStyle),
+              }}
               alt={c.name || "Kletterer"}
               fill
               sizes="(max-width: 768px) 100vw, 280px"
@@ -652,7 +659,9 @@ const cardGlowOrbStyle = { position: "absolute", width: "230px", height: "230px"
 
 const imgContainerStyle = { position: "relative", height: "210px", width: "100%", backgroundColor: "#000" };
 
-const imgStyle = { width: "100%", height: "100%", objectFit: "cover", filter: "saturate(1.1) contrast(1.06)" };
+const imgStyle = { width: "100%", height: "100%", filter: "saturate(1.1) contrast(1.06)", transition: "transform 420ms ease, object-position 420ms ease" };
+const baseImgStyle = { objectFit: "contain", transform: "scale(1)", objectPosition: "center center" };
+const hoveredImgStyle = { objectFit: "cover", transform: "scale(1.22)", objectPosition: "center 18%" };
 
 
 const nameStyle = { margin: "0", fontSize: "1.35rem", color: "#fff", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
