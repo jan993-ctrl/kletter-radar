@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import ClimberPackOpening from "@/components/ClimberPackOpening";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 const PACK_TYPES = [
   { id: "pro", label: "PRO SERIES", description: "1 Legendary garantiert", color: "#FFB300", price: 800, rare: 0, legendary: 1, showCommon: false },
@@ -96,6 +97,7 @@ const readLocalJson = (key, fallback) => {
 };
 
 export default function InventoryPage() {
+  const router = useRouter();
   const [view, setView] = useState("packs");
   const [xp, setXp] = useState(INITIAL_XP);
   const [pool, setPool] = useState([]);
@@ -104,6 +106,7 @@ export default function InventoryPage() {
   const [selectedPack, setSelectedPack] = useState(null);
   const [pendingCards, setPendingCards] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [userId, setUserId] = useState("anon");
   const ownedIdsRef = useRef(new Set());
 
@@ -112,7 +115,14 @@ export default function InventoryPage() {
       try {
         const authRes = await supabaseBrowser.auth.getUser();
         const currentUser = authRes.data?.user ?? null;
-        const id = currentUser?.id || "anon";
+        if (!currentUser) {
+          setIsAuthenticated(false);
+          router.replace("/login");
+          return;
+        }
+
+        const id = currentUser.id;
+        setIsAuthenticated(true);
         setUserId(id);
 
         const profileRes = await fetch("/api/profiles").then((res) => res.json());
@@ -142,7 +152,7 @@ export default function InventoryPage() {
     };
 
     loadData();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     ownedIdsRef.current = new Set(collection.map((card) => getOwnedCardId(card)).filter(Boolean));
@@ -270,6 +280,10 @@ export default function InventoryPage() {
     localStorage.setItem(`inventory:${userId}`, JSON.stringify([]));
     setView("packs");
   };
+
+  if (!loading && !isAuthenticated) {
+    return null;
+  }
 
   return (
     <div style={{ minHeight: "100dvh", background: "#080810", color: "#fff" }}>
