@@ -269,20 +269,7 @@ export default function Frontpage() {
         opacity: isHeaderCollapsed ? 0 : 1,
       }}>
         <div style={headerAnimationStyle}>
-          {isGuestUser ? (
-            <div
-              style={{
-                ...gimmickToggleBtn,
-                opacity: 0.9,
-                cursor: "default",
-              }}
-              aria-hidden="true"
-            >
-              <div style={gimmickInner}>
-                <VisualGimmick size={100} showLabel={false} />
-              </div>
-            </div>
-          ) : (
+          {isGuestUser ? null : (
             <button
               style={{
                 ...gimmickToggleBtn,
@@ -337,23 +324,21 @@ export default function Frontpage() {
         </div>
       ) : (
         <>
-          <div style={modeInfoStyle}>
-            <span style={modeIconStyle}>
-              {viewMode === "global" ? "🌍" : "🏠"}
-            </span>
-            {viewMode === "global" ? (
-              isGuestUser ? (
-                <span style={inventoryMetaStyle}>Top 10 der aktuellen Community-Karten</span>
-              ) : (
+          {!isGuestUser && (
+            <div style={modeInfoStyle}>
+              <span style={modeIconStyle}>
+                {viewMode === "global" ? "🌍" : "🏠"}
+              </span>
+              {viewMode === "global" ? (
                 <>
                   <span style={inventoryMetaStyle}>Inventar: {sortedInventoryClimbers.length} Karten · Fragmente: {fragments.toFixed(2)}</span>
                   <span style={inventoryHintStyle}>Packs verfügbar: {packStock} / 99</span>
                 </>
-              )
-            ) : (
-              <span style={inventoryMetaStyle}>Lokale Karten aus deiner Heimathalle</span>
-            )}
-          </div>
+              ) : (
+                <span style={inventoryMetaStyle}>Lokale Karten aus deiner Heimathalle</span>
+              )}
+            </div>
+          )}
 
           {isGuestUser ? (
             <section style={gridPanelStyle}>
