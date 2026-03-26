@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import RadarChart from "@/components/charts/RadarChart";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import NextImage from "next/image";
 import {
   ABILITY_LABELS,
   ABILITY_COUNT,
@@ -24,6 +24,52 @@ const getStoragePathFromPublicUrl = (publicUrl) => {
   const idx = publicUrl.indexOf(marker);
   if (idx === -1) return null;
   return decodeURIComponent(publicUrl.slice(idx + marker.length));
+};
+
+const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.addEventListener("load", () => resolve(reader.result));
+  reader.addEventListener("error", reject);
+  reader.readAsDataURL(file);
+});
+
+const getCroppedBlob = async (imageSrc, pixelCrop, fileType = "image/jpeg") => {
+  const image = new window.Image();
+  image.crossOrigin = "anonymous";
+  image.src = imageSrc;
+  await new Promise((resolve, reject) => {
+    image.onload = resolve;
+    image.onerror = reject;
+  });
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas Kontext nicht verfügbar");
+
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  );
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("Bild konnte nicht verarbeitet werden"));
+        return;
+      }
+      resolve(blob);
+    }, fileType, 0.9);
+  });
 };
 
 const GRADES = [
@@ -49,6 +95,11 @@ export default function ProfilePage() {
   const [expandedKey, setExpandedKey] = useState(null);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [gyms, setGyms] = useState([]);
+  const [cropSource, setCropSource] = useState("");
+  const [showImageEditor, setShowImageEditor] = useState(false);
+  const [cropFocus, setCropFocus] = useState({ x: 50, y: 50 });
+  const [zoom, setZoom] = useState(1);
+  const [imageNaturalSize, setImageNaturalSize] = useState({ width: 0, height: 0 });
   const router = useRouter();
 
   useEffect(() => {
@@ -125,15 +176,89 @@ export default function ProfilePage() {
     router.refresh();
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file || !profile?.user_id) return;
+  const cropPixels = useMemo(() => {
+    const { width, height } = imageNaturalSize;
+    if (!width || !height) return null;
 
-    setSaving(true);
-    const fileExt = (file.name.split('.').pop() || 'jpg').toLowerCase();
-    const fileName = `${profile.user_id}/${Date.now()}.${fileExt}`;
+    const targetAspect = 4 / 3.5;
+    const baseWidth = width / height > targetAspect ? height * targetAspect : width;
+    const baseHeight = baseWidth / targetAspect;
+    const cropWidth = Math.max(1, Math.round(baseWidth / zoom));
+    const cropHeight = Math.max(1, Math.round(baseHeight / zoom));
+    const maxX = Math.max(0, width - cropWidth);
+    const maxY = Math.max(0, height - cropHeight);
+
+    return {
+      x: Math.round((cropFocus.x / 100) * maxX),
+      y: Math.round((cropFocus.y / 100) * maxY),
+      width: cropWidth,
+      height: cropHeight,
+    };
+  }, [cropFocus.x, cropFocus.y, imageNaturalSize, zoom]);
+
+  const openImageEditor = async (src) => {
+    if (!src) return;
+    const probe = new window.Image();
+    probe.crossOrigin = "anonymous";
+    probe.src = src;
+    await new Promise((resolve, reject) => {
+      probe.onload = resolve;
+      probe.onerror = reject;
+    });
+    setImageNaturalSize({ width: probe.naturalWidth, height: probe.naturalHeight });
+    setCropSource(src);
+    setCropFocus({ x: 50, y: 50 });
+    setZoom(1);
+    setShowImageEditor(true);
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
     try {
+      const src = await readFileAsDataUrl(file);
+      await openImageEditor(src);
+    } catch {
+      alert("Bild konnte nicht geladen werden.");
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  const handleDeleteImage = async () => {
+    if (!profile?.image_url) return;
+
+    const shouldDelete = window.confirm("Profilbild wirklich löschen?");
+    if (!shouldDelete) return;
+
+    setSaving(true);
+    try {
+      const oldPath = getStoragePathFromPublicUrl(profile.image_url);
+      if (oldPath) {
+        const { error: removeError } = await supabaseBrowser.storage
+          .from("profiles")
+          .remove([oldPath]);
+        if (removeError && removeError.statusCode !== "404") throw removeError;
+      }
+      setProfile({ ...profile, image_url: "" });
+      alert("Bild gelöscht. Bitte unten 'Profil speichern' klicken.");
+    } catch (err) {
+      alert("Löschen fehlgeschlagen: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCroppedUpload = async () => {
+    if (!profile?.user_id || !cropSource || !cropPixels) return;
+
+    setSaving(true);
+    const fileName = `${profile.user_id}/${Date.now()}.jpg`;
+
+    try {
+      const croppedBlob = await getCroppedBlob(cropSource, cropPixels, "image/jpeg");
+
       const oldPath = getStoragePathFromPublicUrl(profile.image_url);
       if (oldPath && oldPath !== fileName) {
         const { error: removeError } = await supabaseBrowser.storage
@@ -147,12 +272,15 @@ export default function ProfilePage() {
 
       const { error: uploadError } = await supabaseBrowser.storage
         .from('profiles')
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, croppedBlob, { upsert: true, contentType: "image/jpeg" });
 
       if (uploadError) throw uploadError;
 
       const { data } = supabaseBrowser.storage.from('profiles').getPublicUrl(fileName);
       setProfile({ ...profile, image_url: data.publicUrl });
+      setShowImageEditor(false);
+      setCropSource("");
+      setImageNaturalSize({ width: 0, height: 0 });
       alert("Bild bereit! Bitte unten 'Speichern' klicken.");
     } catch (err) {
       alert("Upload-Fehler: " + err.message);
@@ -359,10 +487,24 @@ export default function ProfilePage() {
 
           <div style={{ backgroundColor: "rgba(249, 249, 249, 0.6)", padding: 15, borderRadius: 12, border: "1px solid rgba(0,0,0,0.05)", marginBottom: 25, backdropFilter: "blur(4px)" }}>
             <h3 style={{ marginTop: 0 }}>Profilfoto</h3>
-            <input type="file" accept="image/*" onChange={handleImageUpload} disabled={saving} />
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <input type="file" accept="image/*" onChange={handleImageUpload} disabled={saving} />
+              {profile.image_url && (
+                <button type="button" onClick={handleDeleteImage} disabled={saving} style={dangerButtonStyle}>
+                  Bild löschen
+                </button>
+              )}
+            </div>
             {profile.image_url && (
               <div style={{ marginTop: 15 }}>
-                <Image src={profile.image_url} alt="Vorschau" width={120} height={120} style={{ objectFit: 'cover', borderRadius: 8, border: "1px solid #ddd" }} />
+                <button
+                  type="button"
+                  onClick={() => openImageEditor(profile.image_url)}
+                  style={{ border: "none", background: "transparent", padding: 0, cursor: "pointer" }}
+                  title="Ausschnitt erneut bearbeiten"
+                >
+                  <NextImage src={profile.image_url} alt="Vorschau" width={120} height={120} style={{ objectFit: 'cover', borderRadius: 8, border: "1px solid #ddd" }} />
+                </button>
               </div>
             )}
           </div>
@@ -405,6 +547,82 @@ export default function ProfilePage() {
         </div>
       </div>
       </main>
+
+      {showImageEditor && (
+        <div style={modalOverlayStyle}>
+          <div style={modalContentStyle}>
+            <h3 style={{ marginTop: 0, marginBottom: 6 }}>Ausschnitt wählen</h3>
+            <p style={{ marginTop: 0, color: "#64748b", fontSize: "0.9rem" }}>
+              Positioniere dich so, wie du später auf der Karte erscheinen möchtest.
+            </p>
+            <div style={cropperWrapStyle}>
+              <NextImage
+                src={cropSource}
+                alt="Vorschau für Zuschnitt"
+                fill
+                unoptimized
+                style={{
+                  objectFit: "cover",
+                  objectPosition: `${cropFocus.x}% ${cropFocus.y}%`,
+                  transform: `scale(${zoom})`,
+                  transformOrigin: "center center",
+                }}
+              />
+            </div>
+            <label style={smallLabel}>Zoom</label>
+            <input
+              type="range"
+              min={1}
+              max={3}
+              step={0.1}
+              value={zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              style={{ width: "100%", margin: "6px 0 14px" }}
+            />
+            <label style={smallLabel}>Fokus horizontal</label>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={cropFocus.x}
+              onChange={(e) => setCropFocus((prev) => ({ ...prev, x: Number(e.target.value) }))}
+              style={{ width: "100%", margin: "6px 0 14px" }}
+            />
+            <label style={smallLabel}>Fokus vertikal</label>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={cropFocus.y}
+              onChange={(e) => setCropFocus((prev) => ({ ...prev, y: Number(e.target.value) }))}
+              style={{ width: "100%", margin: "6px 0 14px" }}
+            />
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowImageEditor(false);
+                  setCropSource("");
+                  setImageNaturalSize({ width: 0, height: 0 });
+                }}
+                style={secondaryButtonStyle}
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                onClick={handleCroppedUpload}
+                disabled={saving || !cropPixels}
+                style={{ ...dangerButtonStyle, backgroundColor: "#10b981", borderColor: "#10b981", color: "#fff" }}
+              >
+                {saving ? "Speichert..." : "Ausschnitt speichern"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -431,6 +649,9 @@ const detailBtnStyle = { display: "block", marginTop: "5px", background: "#fff",
 const detailBoxStyle = { marginTop: "15px", padding: "15px", backgroundColor: "rgba(255,255,255,0.9)", borderRadius: "12px", border: "1px solid #eee", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" };
 const chartBoxStyle = { position: "relative", width: "400px", height: "350px", border: "1px solid rgba(0,0,0,0.05)", borderRadius: 12, padding: 10, backgroundColor: "rgba(255,255,255,0.7)", backdropFilter: "blur(8px)" };
 const glassCardSmallStyle = { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: 25, backgroundColor: "rgba(249, 249, 249, 0.6)", padding: "15px", borderRadius: "12px", border: "1px solid rgba(0,0,0,0.05)", backdropFilter: "blur(4px)" };
+const modalOverlayStyle = { position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000, padding: 20 };
+const modalContentStyle = { width: "100%", maxWidth: 520, backgroundColor: "#fff", borderRadius: 16, padding: 18, boxShadow: "0 20px 45px rgba(0,0,0,0.25)" };
+const cropperWrapStyle = { width: "100%", height: 360, position: "relative", borderRadius: 12, overflow: "hidden", backgroundColor: "#111827" };
 
 const secondaryButtonStyle = { 
   padding: "10px 18px", 
