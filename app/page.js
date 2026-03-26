@@ -310,7 +310,7 @@ export default function Frontpage() {
           <p style={taglineStyle}>Deine Boulder-Community auf einen Blick</p>
         </div>
         <div>
-          {viewMode === "global" && (
+          {viewMode === "global" && user && (
             <Link href="/inventory" style={{ textDecoration: "none" }}>
               <button
                 type="button"
@@ -319,7 +319,7 @@ export default function Frontpage() {
                   marginRight: "10px",
                 }}
               >
-                🧭 Tour
+                🃏 Karten
               </button>
             </Link>
           )}
