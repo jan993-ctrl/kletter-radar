@@ -52,6 +52,7 @@ export default function Frontpage() {
         const currentUser = authRes.data?.user ?? null;
         setUser(currentUser);
         setViewMode(currentUser ? "local" : "global");
+        const adminSelectedGymId = localStorage.getItem("admin:selectedGymId");
 
         const inventoryKey = `inventory:${currentUser?.id ?? "anon"}`;
         const fragmentKey = `fragments:${currentUser?.id ?? "anon"}`;
@@ -65,7 +66,9 @@ export default function Frontpage() {
         setFragments(Number.isFinite(cachedFragments) ? cachedFragments : 0);
         setPackStock(Number.isFinite(cachedPackStock) ? cachedPackStock : 99);
 
-        if (Array.isArray(profileRes) && currentUser?.id) {
+        if (currentUser?.email === ADMIN_EMAIL && adminSelectedGymId) {
+          setUserGymId(adminSelectedGymId);
+        } else if (Array.isArray(profileRes) && currentUser?.id) {
           const ownProfile = profileRes.find((profile) => profile.user_id === currentUser.id);
           setUserGymId(ownProfile?.gym_id ?? null);
         }
