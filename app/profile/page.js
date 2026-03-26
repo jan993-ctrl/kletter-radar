@@ -218,6 +218,43 @@ export default function ProfilePage() {
     setCropZoom(1);
   };
 
+  const startCropEditorFromCurrentImage = async () => {
+    if (!profile?.image_url) return;
+    try {
+      setSaving(true);
+      const response = await fetch(profile.image_url);
+      if (!response.ok) throw new Error("Bild konnte nicht geladen werden.");
+
+      const blob = await response.blob();
+      const fileExt = (blob.type.split("/")[1] || "jpg").toLowerCase();
+      const file = new File([blob], `profile-recrop.${fileExt}`, {
+        type: blob.type || "image/jpeg",
+      });
+
+      if (selectedImageUrl) URL.revokeObjectURL(selectedImageUrl);
+      const objectUrl = URL.createObjectURL(file);
+      setSelectedImageFile(file);
+      setSelectedImageUrl(objectUrl);
+      setCropOffsetX(0);
+      setCropOffsetY(0);
+      setCropZoom(1);
+    } catch (error) {
+      alert("Ausschnitt konnte nicht erneut geöffnet werden: " + error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clearPendingCrop = () => {
+    if (selectedImageUrl) URL.revokeObjectURL(selectedImageUrl);
+    setSelectedImageFile(null);
+    setSelectedImageUrl("");
+    setCropOffsetX(0);
+    setCropOffsetY(0);
+    setCropZoom(1);
+    setIsDraggingCrop(false);
+  };
+
   const buildCroppedImageBlob = async () => {
     if (!selectedImageFile) return null;
     const imageUrl = URL.createObjectURL(selectedImageFile);
@@ -277,15 +314,6 @@ export default function ProfilePage() {
     await uploadProfileImage(croppedFile);
   };
 
-  const clearPendingCrop = () => {
-    if (selectedImageUrl) URL.revokeObjectURL(selectedImageUrl);
-    setSelectedImageFile(null);
-    setSelectedImageUrl("");
-    setCropOffsetX(0);
-    setCropOffsetY(0);
-    setCropZoom(1);
-    setIsDraggingCrop(false);
-  };
 
   useEffect(() => {
     return () => {
@@ -578,7 +606,24 @@ export default function ProfilePage() {
             )}
             {profile.image_url && (
               <div style={{ marginTop: 15 }}>
-                <Image src={profile.image_url} alt="Vorschau" width={120} height={120} style={{ objectFit: 'cover', borderRadius: 8, border: "1px solid #ddd" }} />
+                <button
+                  type="button"
+                  onClick={startCropEditorFromCurrentImage}
+                  disabled={saving}
+                  style={{ ...secondaryButtonStyle, marginBottom: 8 }}
+                >
+                  Bestehendes Bild neu zuschneiden
+                </button>
+                <div>
+                  <Image
+                    src={profile.image_url}
+                    alt="Vorschau"
+                    width={120}
+                    height={120}
+                    onClick={startCropEditorFromCurrentImage}
+                    style={{ objectFit: "cover", borderRadius: 8, border: "1px solid #ddd", cursor: "pointer" }}
+                  />
+                </div>
               </div>
             )}
           </div>
