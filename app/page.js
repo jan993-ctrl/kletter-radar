@@ -430,8 +430,8 @@ function renderClimberCard(c, index, flippedCards, hoveredCards, toggleFlip, set
         {/* VORDERSEITE */}
         <div style={{ ...cardFrontStyle, background: tierTheme.frontBg, border: tierTheme.border }}>
           <div style={{ ...cardGlowOrbStyle, background: tierTheme.glow }} />
-          <div style={rankBadgeStyle}>#{index + 1}</div>
-          <div style={{ ...tierBadgeStyle, ...tierTheme.badge }}>{tierLabel}</div>
+          {!isFlipped && <div style={rankBadgeStyle}>#{index + 1}</div>}
+          {!isFlipped && <div style={{ ...tierBadgeStyle, ...tierTheme.badge }}>{tierLabel}</div>}
           
           <div style={imgContainerStyle}>
             <Image
