@@ -64,7 +64,7 @@ export default function ProfilePage() {
       inset: 0,
       width: "100%",
       height: "100%",
-      objectFit: "cover",
+      objectFit: "contain",
       transform: `translate(${cropOffsetX}px, ${cropOffsetY}px) scale(${cropZoom})`,
       transformOrigin: "center",
       userSelect: "none",
@@ -238,7 +238,7 @@ export default function ProfilePage() {
 
       const widthRatio = outputSize / img.width;
       const heightRatio = outputSize / img.height;
-      const baseScale = Math.max(widthRatio, heightRatio);
+      const baseScale = Math.min(widthRatio, heightRatio);
       const finalScale = baseScale * cropZoom;
 
       const drawnWidth = img.width * finalScale;
