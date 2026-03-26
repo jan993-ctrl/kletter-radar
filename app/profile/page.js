@@ -16,8 +16,6 @@ import {
   normalizeStyles,
 } from "@/lib/utils/profile-schema";
 
-// Deine definierten Grade
-
 const getStoragePathFromPublicUrl = (publicUrl) => {
   if (!publicUrl) return null;
   const marker = "/storage/v1/object/public/profiles/";
@@ -159,7 +157,6 @@ export default function ProfilePage() {
     loadData();
   }, [router]);
 
-
   useEffect(() => {
     const onScroll = () => {
       setIsHeaderCollapsed(window.scrollY > 0);
@@ -181,10 +178,23 @@ export default function ProfilePage() {
     if (!width || !height) return null;
 
     const targetAspect = 4 / 3.5;
-    const baseWidth = width / height > targetAspect ? height * targetAspect : width;
-    const baseHeight = baseWidth / targetAspect;
+    const imgAspect = width / height;
+
+    // Wir berechnen das maximale Rechteck im Ziel-Verhältnis, das in das Originalbild passt
+    let baseWidth, baseHeight;
+    if (imgAspect > targetAspect) {
+      baseHeight = height;
+      baseWidth = height * targetAspect;
+    } else {
+      baseWidth = width;
+      baseHeight = width / targetAspect;
+    }
+
+    // Zoom reduziert die Größe des Ausschnitts (vergrößert das Motiv)
     const cropWidth = Math.max(1, Math.round(baseWidth / zoom));
     const cropHeight = Math.max(1, Math.round(baseHeight / zoom));
+    
+    // Verschiebung berechnen
     const maxX = Math.max(0, width - cropWidth);
     const maxY = Math.max(0, height - cropHeight);
 
@@ -327,7 +337,7 @@ export default function ProfilePage() {
     setProfile({ ...profile, ability_details: newDetails, abilities: newAbilities });
   };
 
-  if (loading) return null; // Das Layout zeigt bereits das Gimmick während der kurzen Ladezeit
+  if (loading) return null;
 
   const safeAbilities = normalizeAbilities(profile.abilities);
   const safeStyles = normalizeStyles(profile.styles);
@@ -341,14 +351,6 @@ export default function ProfilePage() {
           <button 
             onClick={() => router.push("/")} 
             style={secondaryButtonStyle}
-            onMouseEnter={(e) => {
-                e.target.style.borderColor = "#cbd5e0";
-                e.target.style.backgroundColor = "#f8fafc";
-            }}
-            onMouseLeave={(e) => {
-                e.target.style.borderColor = "#e2e8f0";
-                e.target.style.backgroundColor = "#fff";
-            }}
           >
             ← Zur Website
           </button>
@@ -356,14 +358,6 @@ export default function ProfilePage() {
           <button 
             onClick={signOut} 
             style={dangerButtonStyle}
-            onMouseEnter={(e) => {
-                e.target.style.backgroundColor = "#fff5f5";
-                e.target.style.borderColor = "#fc8181";
-            }}
-            onMouseLeave={(e) => {
-                e.target.style.backgroundColor = "#fff";
-                e.target.style.borderColor = "#feb2b2";
-            }}
           >
             Abmelden
           </button>
@@ -553,71 +547,89 @@ export default function ProfilePage() {
           <div style={modalContentStyle}>
             <h3 style={{ marginTop: 0, marginBottom: 6 }}>Ausschnitt wählen</h3>
             <p style={{ marginTop: 0, color: "#64748b", fontSize: "0.9rem" }}>
-              Positioniere dich so, wie du später auf der Karte erscheinen möchtest.
+              Der schwarze Rahmen zeigt genau das Format deiner Sammelkarte.
             </p>
+            
+            {/* WICHTIG: cropperWrapStyle nutzt nun aspectRatio */}
             <div style={cropperWrapStyle}>
-              <NextImage
-                src={cropSource}
-                alt="Vorschau für Zuschnitt"
-                fill
-                unoptimized
-                style={{
-                  objectFit: "cover",
-                  objectPosition: `${cropFocus.x}% ${cropFocus.y}%`,
-                  transform: `scale(${zoom})`,
-                  transformOrigin: "center center",
-                }}
-              />
+              <div style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden"
+              }}>
+                <img
+                  src={cropSource}
+                  alt="Vorschau"
+                  style={{
+                    width: `${zoom * 100}%`,
+                    height: `${zoom * 100}%`,
+                    objectFit: "cover",
+                    objectPosition: `${cropFocus.x}% ${cropFocus.y}%`,
+                    transition: "none" // Sofortiges Feedback beim Sliden
+                  }}
+                />
+              </div>
             </div>
-            <label style={smallLabel}>Zoom</label>
-            <input
-              type="range"
-              min={1}
-              max={3}
-              step={0.1}
-              value={zoom}
-              onChange={(e) => setZoom(Number(e.target.value))}
-              style={{ width: "100%", margin: "6px 0 14px" }}
-            />
-            <label style={smallLabel}>Fokus horizontal</label>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={cropFocus.x}
-              onChange={(e) => setCropFocus((prev) => ({ ...prev, x: Number(e.target.value) }))}
-              style={{ width: "100%", margin: "6px 0 14px" }}
-            />
-            <label style={smallLabel}>Fokus vertikal</label>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={cropFocus.y}
-              onChange={(e) => setCropFocus((prev) => ({ ...prev, y: Number(e.target.value) }))}
-              style={{ width: "100%", margin: "6px 0 14px" }}
-            />
-            <div style={{ display: "flex", gap: 10 }}>
+
+            <div style={{ marginTop: 15 }}>
+              <label style={smallLabel}>Zoom</label>
+              <input
+                type="range"
+                min={1}
+                max={4}
+                step={0.01}
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                style={{ width: "100%", margin: "4px 0 12px", accentColor: "#10b981" }}
+              />
+              
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+                <div>
+                  <label style={smallLabel}>Position X</label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={cropFocus.x}
+                    onChange={(e) => setCropFocus(p => ({ ...p, x: Number(e.target.value) }))}
+                    style={{ width: "100%", accentColor: "#64748b" }}
+                  />
+                </div>
+                <div>
+                  <label style={smallLabel}>Position Y</label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={cropFocus.y}
+                    onChange={(e) => setCropFocus(p => ({ ...p, y: Number(e.target.value) }))}
+                    style={{ width: "100%", accentColor: "#64748b" }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
               <button
                 type="button"
                 onClick={() => {
                   setShowImageEditor(false);
                   setCropSource("");
-                  setImageNaturalSize({ width: 0, height: 0 });
                 }}
-                style={secondaryButtonStyle}
+                style={{ ...secondaryButtonStyle, flex: 1 }}
               >
                 Abbrechen
               </button>
               <button
                 type="button"
                 onClick={handleCroppedUpload}
-                disabled={saving || !cropPixels}
-                style={{ ...dangerButtonStyle, backgroundColor: "#10b981", borderColor: "#10b981", color: "#fff" }}
+                disabled={saving}
+                style={{ ...dangerButtonStyle, backgroundColor: "#10b981", borderColor: "#10b981", color: "#fff", flex: 1 }}
               >
-                {saving ? "Speichert..." : "Ausschnitt speichern"}
+                {saving ? "Speichert..." : "Bild zuschneiden"}
               </button>
             </div>
           </div>
@@ -640,45 +652,31 @@ const mainStyle = {
   margin: "0 auto",
   fontFamily: "sans-serif",
   color: "#333",
-  backgroundColor: "transparent",
-  minHeight: "100vh",
 };
+
 const inputStyle = { width: '100%', padding: 10, borderRadius: 10, border: "1px solid #ccc", boxSizing: "border-box", color: "#333", backgroundColor: "rgba(255,255,255,0.8)", marginTop: "5px" };
 const smallLabel = { fontSize: "0.75rem", fontWeight: "bold", color: "#666" };
 const detailBtnStyle = { display: "block", marginTop: "5px", background: "#fff", border: "1px solid #10b981", color: "#10b981", cursor: "pointer", fontSize: "0.7rem", borderRadius: "8px", padding: "4px 8px" };
 const detailBoxStyle = { marginTop: "15px", padding: "15px", backgroundColor: "rgba(255,255,255,0.9)", borderRadius: "12px", border: "1px solid #eee", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" };
 const chartBoxStyle = { position: "relative", width: "400px", height: "350px", border: "1px solid rgba(0,0,0,0.05)", borderRadius: 12, padding: 10, backgroundColor: "rgba(255,255,255,0.7)", backdropFilter: "blur(8px)" };
 const glassCardSmallStyle = { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: 25, backgroundColor: "rgba(249, 249, 249, 0.6)", padding: "15px", borderRadius: "12px", border: "1px solid rgba(0,0,0,0.05)", backdropFilter: "blur(4px)" };
-const modalOverlayStyle = { position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000, padding: 20 };
-const modalContentStyle = { width: "100%", maxWidth: 520, backgroundColor: "#fff", borderRadius: 16, padding: 18, boxShadow: "0 20px 45px rgba(0,0,0,0.25)" };
-const cropperWrapStyle = { width: "100%", height: 360, position: "relative", borderRadius: 12, overflow: "hidden", backgroundColor: "#111827" };
 
-const secondaryButtonStyle = { 
-  padding: "10px 18px", 
-  cursor: "pointer", 
-  borderRadius: "12px", 
-  border: "2px solid #e2e8f0", 
-  backgroundColor: "#fff", 
-  color: "#4a5568", 
-  fontSize: "0.9rem", 
-  fontWeight: "600", 
-  transition: "all 0.2s",
-  boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+const modalOverlayStyle = { position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000, padding: 20 };
+const modalContentStyle = { width: "100%", maxWidth: 480, backgroundColor: "#fff", borderRadius: 24, padding: 24, boxShadow: "0 25px 50px rgba(0,0,0,0.3)" };
+
+// FIX: Hier wird nun das exakte Seitenverhältnis der Karte erzwungen (4 / 3.5)
+const cropperWrapStyle = { 
+  width: "100%", 
+  aspectRatio: "4 / 3.5", 
+  position: "relative", 
+  borderRadius: 12, 
+  overflow: "hidden", 
+  backgroundColor: "#000",
+  boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.1)"
 };
 
-const dangerButtonStyle = { 
-  padding: "10px 18px", 
-  cursor: "pointer", 
-  backgroundColor: "#fff", 
-  color: "#e53e3e", 
-  border: "2px solid #feb2b2", 
-  borderRadius: "12px", 
-  fontSize: "0.9rem", 
-  fontWeight: "700", 
-  transition: "all 0.2s",
-  boxShadow: "0 2px 4px rgba(229, 62, 62, 0.05)"
-};
-
+const secondaryButtonStyle = { padding: "12px 18px", cursor: "pointer", borderRadius: "12px", border: "2px solid #e2e8f0", backgroundColor: "#fff", color: "#4a5568", fontSize: "0.9rem", fontWeight: "600", transition: "all 0.2s" };
+const dangerButtonStyle = { padding: "12px 18px", cursor: "pointer", backgroundColor: "#fff", color: "#e53e3e", border: "2px solid #feb2b2", borderRadius: "12px", fontSize: "0.9rem", fontWeight: "700" };
 
 const pageHeaderStyle = {
   position: "sticky",
