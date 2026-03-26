@@ -132,6 +132,8 @@ export default function Frontpage() {
       : [];
   }, [climbers, userGymId, hasLocalContext]);
 
+  const topGlobalClimbers = useMemo(() => climbers.slice(0, 10), [climbers]);
+
   const rarityWeight = (power) => {
     if (power >= 92) return 0;
     if (power >= 75) return 1;
@@ -337,10 +339,14 @@ export default function Frontpage() {
               {viewMode === "global" ? "🌍" : "🏠"}
             </span>
             {viewMode === "global" ? (
-              <>
-                <span style={inventoryMetaStyle}>Inventar: {sortedInventoryClimbers.length} Karten · Fragmente: {fragments.toFixed(2)}</span>
-                <span style={inventoryHintStyle}>Packs verfügbar: {packStock} / 99</span>
-              </>
+              isGuestUser ? (
+                <span style={inventoryMetaStyle}>Top 10 der aktuellen Community-Karten</span>
+              ) : (
+                <>
+                  <span style={inventoryMetaStyle}>Inventar: {sortedInventoryClimbers.length} Karten · Fragmente: {fragments.toFixed(2)}</span>
+                  <span style={inventoryHintStyle}>Packs verfügbar: {packStock} / 99</span>
+                </>
+              )
             ) : (
               <span style={inventoryMetaStyle}>Lokale Karten aus deiner Heimathalle</span>
             )}
@@ -349,10 +355,10 @@ export default function Frontpage() {
           {isGuestUser ? (
             <section style={gridPanelStyle}>
               <div style={gridStyle}>
-                {sortedInventoryClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
+                {topGlobalClimbers.map((c, index) => renderClimberCard(c, index, flippedCards, toggleFlip, getGradeColor))}
               </div>
-              {sortedInventoryClimbers.length === 0 && (
-                <div style={emptyStateStyle}>Noch keine Karten im Inventar. Öffne ein Pack über 🃏 Karten.</div>
+              {topGlobalClimbers.length === 0 && (
+                <div style={emptyStateStyle}>Noch keine Profile vorhanden.</div>
               )}
             </section>
           ) : (
