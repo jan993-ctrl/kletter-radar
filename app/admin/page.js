@@ -93,6 +93,15 @@ export default function AdminPage() {
     router.refresh();
   };
 
+  const goToWebsite = () => {
+    if (selected?.gym_id) {
+      localStorage.setItem("admin:selectedGymId", selected.gym_id);
+    } else {
+      localStorage.removeItem("admin:selectedGymId");
+    }
+    router.push("/");
+  };
+
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file || !selected) return;
@@ -240,7 +249,7 @@ export default function AdminPage() {
       <div style={{ ...pageHeaderStyle, transform: isHeaderCollapsed ? "translateY(-130%)" : "translateY(0)", opacity: isHeaderCollapsed ? 0 : 1 }}>
         <h1 style={{ margin: 0 }}>🧗 Admin Panel</h1>
         <div>
-          <button onClick={() => router.push("/")} style={{ marginRight: 10, padding: "8px 15px", cursor: "pointer", borderRadius: 4, border: "1px solid #ccc", backgroundColor: "white", color: "black" }}>← Zur Website</button>
+          <button onClick={goToWebsite} style={{ marginRight: 10, padding: "8px 15px", cursor: "pointer", borderRadius: 4, border: "1px solid #ccc", backgroundColor: "white", color: "black" }}>← Zur Website</button>
           <button onClick={signOut} style={{ padding: "8px 15px", cursor: "pointer", backgroundColor: "#ff4d4d", color: "white", border: "none", borderRadius: 4, fontWeight: "bold" }}>Abmelden</button>
         </div>
       </div>
