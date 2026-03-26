@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import RadarChart from "@/components/charts/RadarChart";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -54,6 +54,8 @@ export default function ProfilePage() {
   const [cropOffsetX, setCropOffsetX] = useState(0);
   const [cropOffsetY, setCropOffsetY] = useState(0);
   const [cropZoom, setCropZoom] = useState(1);
+  const [isDraggingCrop, setIsDraggingCrop] = useState(false);
+  const cropDragRef = useRef(null);
   const router = useRouter();
 
   const cropPreviewStyle = useMemo(
@@ -70,6 +72,25 @@ export default function ProfilePage() {
     }),
     [cropOffsetX, cropOffsetY, cropZoom]
   );
+
+  const startCropDrag = (clientX, clientY) => {
+    setIsDraggingCrop(true);
+    cropDragRef.current = {
+      startX: clientX,
+      startY: clientY,
+      initialOffsetX: cropOffsetX,
+      initialOffsetY: cropOffsetY,
+    };
+  };
+
+  const updateCropDrag = (clientX, clientY) => {
+    const dragState = cropDragRef.current;
+    if (!dragState) return;
+    const deltaX = clientX - dragState.startX;
+    const deltaY = clientY - dragState.startY;
+    setCropOffsetX(dragState.initialOffsetX + deltaX);
+    setCropOffsetY(dragState.initialOffsetY + deltaY);
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -263,6 +284,7 @@ export default function ProfilePage() {
     setCropOffsetX(0);
     setCropOffsetY(0);
     setCropZoom(1);
+    setIsDraggingCrop(false);
   };
 
   useEffect(() => {
@@ -270,6 +292,35 @@ export default function ProfilePage() {
       if (selectedImageUrl) URL.revokeObjectURL(selectedImageUrl);
     };
   }, [selectedImageUrl]);
+
+  useEffect(() => {
+    const handleMouseMove = (event) => {
+      updateCropDrag(event.clientX, event.clientY);
+    };
+
+    const stopDrag = () => {
+      cropDragRef.current = null;
+      setIsDraggingCrop(false);
+    };
+
+    const handleTouchMove = (event) => {
+      if (!cropDragRef.current || event.touches.length === 0) return;
+      updateCropDrag(event.touches[0].clientX, event.touches[0].clientY);
+      event.preventDefault();
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", stopDrag);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", stopDrag);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", stopDrag);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", stopDrag);
+    };
+  }, []);
 
   const handleSave = async () => {
     if (!profile) return;
@@ -473,9 +524,22 @@ export default function ProfilePage() {
             {selectedImageUrl && (
               <div style={{ marginTop: 16 }}>
                 <p style={{ marginTop: 0, marginBottom: 10, fontSize: "0.9rem", color: "#4b5563" }}>
-                  Wähle deinen Kartenausschnitt:
+                  Ziehe das Bild mit der Maus/Finger in den gewünschten Ausschnitt:
                 </p>
-                <div style={cropFrameStyle}>
+                <div
+                  style={{
+                    ...cropFrameStyle,
+                    cursor: isDraggingCrop ? "grabbing" : "grab",
+                  }}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    startCropDrag(event.clientX, event.clientY);
+                  }}
+                  onTouchStart={(event) => {
+                    if (event.touches.length === 0) return;
+                    startCropDrag(event.touches[0].clientX, event.touches[0].clientY);
+                  }}
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={selectedImageUrl} alt="Zuschneide-Vorschau" style={cropPreviewStyle} />
                 </div>
@@ -488,32 +552,6 @@ export default function ProfilePage() {
                     step="0.01"
                     value={cropZoom}
                     onChange={(e) => setCropZoom(parseFloat(e.target.value))}
-                    style={{ width: "100%" }}
-                    disabled={saving}
-                  />
-                </div>
-                <div style={{ marginTop: 8 }}>
-                  <label style={smallLabel}>Ausschnitt horizontal</label>
-                  <input
-                    type="range"
-                    min="-160"
-                    max="160"
-                    step="1"
-                    value={cropOffsetX}
-                    onChange={(e) => setCropOffsetX(parseInt(e.target.value, 10))}
-                    style={{ width: "100%" }}
-                    disabled={saving}
-                  />
-                </div>
-                <div style={{ marginTop: 8 }}>
-                  <label style={smallLabel}>Ausschnitt vertikal</label>
-                  <input
-                    type="range"
-                    min="-160"
-                    max="160"
-                    step="1"
-                    value={cropOffsetY}
-                    onChange={(e) => setCropOffsetY(parseInt(e.target.value, 10))}
                     style={{ width: "100%" }}
                     disabled={saving}
                   />
