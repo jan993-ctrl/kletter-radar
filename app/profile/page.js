@@ -42,6 +42,8 @@ const ABILITY_CONFIG = [
   { label: ABILITY_LABELS[6], desc: "Headgame, Fokus, Mut" },
 ];
 
+const CARD_IMAGE_ASPECT_RATIO = 4 / 3;
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +66,7 @@ export default function ProfilePage() {
       inset: 0,
       width: "100%",
       height: "100%",
-      objectFit: "contain",
+      objectFit: "cover",
       transform: `translate(${cropOffsetX}px, ${cropOffsetY}px) scale(${cropZoom})`,
       transformOrigin: "center",
       userSelect: "none",
@@ -229,24 +231,22 @@ export default function ProfilePage() {
         image.src = imageUrl;
       });
 
-      const outputSize = 512;
+      const outputWidth = 640;
+      const outputHeight = Math.round(outputWidth / CARD_IMAGE_ASPECT_RATIO);
       const canvas = document.createElement("canvas");
-      canvas.width = outputSize;
-      canvas.height = outputSize;
+      canvas.width = outputWidth;
+      canvas.height = outputHeight;
       const ctx = canvas.getContext("2d");
       if (!ctx) return null;
 
-      const widthRatio = outputSize / img.width;
-      const heightRatio = outputSize / img.height;
-      const baseScale = Math.min(widthRatio, heightRatio);
+      const baseScale = Math.max(outputWidth / img.width, outputHeight / img.height);
       const finalScale = baseScale * cropZoom;
-
       const drawnWidth = img.width * finalScale;
       const drawnHeight = img.height * finalScale;
-      const dx = (outputSize - drawnWidth) / 2 + cropOffsetX;
-      const dy = (outputSize - drawnHeight) / 2 + cropOffsetY;
+      const dx = (outputWidth - drawnWidth) / 2 + cropOffsetX;
+      const dy = (outputHeight - drawnHeight) / 2 + cropOffsetY;
 
-      ctx.clearRect(0, 0, outputSize, outputSize);
+      ctx.clearRect(0, 0, outputWidth, outputHeight);
       ctx.drawImage(img, dx, dy, drawnWidth, drawnHeight);
 
       return await new Promise((resolve) => {
@@ -524,7 +524,7 @@ export default function ProfilePage() {
             {selectedImageUrl && (
               <div style={{ marginTop: 16 }}>
                 <p style={{ marginTop: 0, marginBottom: 10, fontSize: "0.9rem", color: "#4b5563" }}>
-                  Ziehe das Bild mit der Maus/Finger in den gewünschten Ausschnitt:
+                  Richte den Bildausschnitt so aus, wie er später auf der Karte erscheinen soll:
                 </p>
                 <div
                   style={{
@@ -548,7 +548,7 @@ export default function ProfilePage() {
                   <input
                     type="range"
                     min="1"
-                    max="2.5"
+                    max="3"
                     step="0.01"
                     value={cropZoom}
                     onChange={(e) => setCropZoom(parseFloat(e.target.value))}
@@ -649,8 +649,8 @@ const chartBoxStyle = { position: "relative", width: "400px", height: "350px", b
 const glassCardSmallStyle = { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: 25, backgroundColor: "rgba(249, 249, 249, 0.6)", padding: "15px", borderRadius: "12px", border: "1px solid rgba(0,0,0,0.05)", backdropFilter: "blur(4px)" };
 const cropFrameStyle = {
   width: "100%",
-  maxWidth: "260px",
-  aspectRatio: "1 / 1",
+  maxWidth: "380px",
+  aspectRatio: "4 / 3",
   borderRadius: "12px",
   overflow: "hidden",
   border: "1px solid rgba(0,0,0,0.12)",
