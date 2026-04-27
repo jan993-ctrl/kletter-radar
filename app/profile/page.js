@@ -72,6 +72,8 @@ const getCroppedBlob = async (imageSrc, pixelCrop, fileType = "image/jpeg") => {
   });
 };
 
+const PROFILE_CARD_IMAGE_ASPECT_RATIO = 4 / 3;
+
 const GRADES = [
   "1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b", "3c", 
   "4a", "4b", "4c", "5a", "5b", "5c", "6a", "6b", "6c", 
@@ -180,7 +182,7 @@ export default function ProfilePage() {
     const { width, height } = imageNaturalSize;
     if (!width || !height) return null;
 
-    const targetAspect = 4 / 3.5;
+    const targetAspect = PROFILE_CARD_IMAGE_ASPECT_RATIO;
     const baseWidth = width / height > targetAspect ? height * targetAspect : width;
     const baseHeight = baseWidth / targetAspect;
     const cropWidth = Math.max(1, Math.round(baseWidth / zoom));
@@ -651,7 +653,7 @@ const chartBoxStyle = { position: "relative", width: "400px", height: "350px", b
 const glassCardSmallStyle = { display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: 25, backgroundColor: "rgba(249, 249, 249, 0.6)", padding: "15px", borderRadius: "12px", border: "1px solid rgba(0,0,0,0.05)", backdropFilter: "blur(4px)" };
 const modalOverlayStyle = { position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000, padding: 20 };
 const modalContentStyle = { width: "100%", maxWidth: 520, backgroundColor: "#fff", borderRadius: 16, padding: 18, boxShadow: "0 20px 45px rgba(0,0,0,0.25)" };
-const cropperWrapStyle = { width: "100%", height: 360, position: "relative", borderRadius: 12, overflow: "hidden", backgroundColor: "#111827" };
+const cropperWrapStyle = { width: "100%", aspectRatio: String(PROFILE_CARD_IMAGE_ASPECT_RATIO), position: "relative", borderRadius: 12, overflow: "hidden", backgroundColor: "#111827" };
 
 const secondaryButtonStyle = { 
   padding: "10px 18px", 

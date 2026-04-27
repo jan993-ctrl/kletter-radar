@@ -650,7 +650,7 @@ const tierBadgeStyle = { position: "absolute", top: "15px", right: "15px", paddi
 
 const cardGlowOrbStyle = { position: "absolute", width: "230px", height: "230px", borderRadius: "999px", top: "-70px", right: "-70px", background: "radial-gradient(circle, rgba(129,140,248,0.4) 0%, rgba(129,140,248,0) 72%)", pointerEvents: "none", zIndex: 1 };
 
-const imgContainerStyle = { position: "relative", height: "210px", width: "100%", backgroundColor: "#000" };
+const imgContainerStyle = { position: "relative", width: "100%", aspectRatio: "4 / 3", backgroundColor: "#000" };
 
 const imgStyle = { width: "100%", height: "100%", objectFit: "cover", filter: "saturate(1.1) contrast(1.06)" };
 
